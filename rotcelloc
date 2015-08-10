@@ -1971,6 +1971,13 @@ var helper = {
         {
             cache.fileMap[path.basename(cache.URLs[ckey])] = url;
         }
+    },
+    /*
+     * Resolve the path to a file relative to our directory
+     */
+    resolvePath: function(file)
+    {
+        return __dirname+'/'+file;
     }
 };
 
@@ -2002,7 +2009,7 @@ var core = {
             dVer: 0,
             version: packageJSON.version
         };
-        fs.writeFileSync('src/static/'+name.toLowerCase()+'.dataset.json',JSON.stringify(dataset));
+        fs.writeFileSync(helper.resolvePath('src/static/'+name.toLowerCase()+'.dataset.json'),JSON.stringify(dataset));
     },
     /*
      * Writes out an HTML file for a collection group
@@ -2018,7 +2025,7 @@ var core = {
         {
             filename = 'index.html';
         }
-        fs.writeFileSync('src/render/'+filename,'---\nlayout: default\ntitle: '+name+'\nmenuOrder: '+groupNo+'\n---\n<div class="searchForm" id="searchForm"></div>\n<div id="collResultTarget" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>');
+        fs.writeFileSync(helper.resolvePath('src/render/'+filename),'---\nlayout: default\ntitle: '+name+'\nmenuOrder: '+groupNo+'\n---\n<div class="searchForm" id="searchForm"></div>\n<div id="collResultTarget" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>');
         return filename;
     },
     /*
@@ -2029,7 +2036,7 @@ var core = {
     {
         var config  = {},
             nameMap = {};
-        if (!fs.existsSync('config.json'))
+        if (!fs.existsSync(helper.resolvePath('config.json')))
         {
             console.log('Error: you must configure rotcelloc first. Aborting.');
             console.log('See the user guide in README.md');
@@ -2037,7 +2044,7 @@ var core = {
         }
         try
         {
-            config  = JSON.parse(fs.readFileSync('config.json'));
+            config  = JSON.parse(fs.readFileSync(helper.resolvePath('config.json')));
         }
         catch(e)
         {
@@ -2076,7 +2083,7 @@ var core = {
         }
 
         // Remove old *html files
-        var files = wait.for(glob,'src/render/*html');
+        var files = wait.for(glob,helper.resolvePath('src/render/*html'));
         for (var file of files)
         {
             if (!writtenFiles[path.basename(file)])
@@ -2124,7 +2131,7 @@ var core = {
         {
             reverseFileMap[ cache.URLs[ckey] ] = ckey;
         }
-        var files = wait.for(glob,'src/raw/images/orig/*');
+        var files = wait.for(glob,helper.resolvePath('src/raw/images/orig/*'));
         for(var file of files)
         {
             var baseFile = path.basename(file);
@@ -2148,13 +2155,13 @@ var core = {
                 printv(2,'Reason for removal: '+remove);
             }
         }
-        var resizedFiles = wait.for(glob,'src/raw/images/*');
+        var resizedFiles = wait.for(glob,helper.resolvePath('src/raw/images/*'));
         for(var resizedFile of resizedFiles)
         {
             if(fs.statSync(resizedFile).isFile())
             {
                 var baseResizedFile = path.basename(resizedFile);
-                if (! fs.existsSync('src/raw/images/orig/'+baseResizedFile))
+                if (! fs.existsSync(helper.resolvePath('src/raw/images/orig/'+baseResizedFile)))
                 {
                     fs.unlinkSync(resizedFile);
                     printv(1,'Removed file: '+resizedFile);
@@ -2311,7 +2318,7 @@ function main()
 {
     try
     {
-        packageJSON = JSON.parse(fs.readFileSync('package.json'));
+        packageJSON = JSON.parse(fs.readFileSync(helper.resolvePath('package.json')));
     }
     catch(e)
     {
@@ -2351,7 +2358,7 @@ function main()
 
     process.chdir(path.dirname(fs.realpathSync(process.argv[1])));
 
-    if (!fs.existsSync('src/render/rotcelloc.js'))
+    if (!fs.existsSync(helper.resolvePath('src/render/rotcelloc.js')))
     {
         console.log('Run me from the right directory (root of the tree)');
         process.exit(1);
@@ -2401,13 +2408,13 @@ function main()
         printv(1,'Building database...');
         core.constructDatabase();
         printv(1,'Preparing images...');
-        var files = wait.for(glob,'src/raw/images/orig/*');
+        var files = wait.for(glob,helper.resolvePath('src/raw/images/orig/*'));
         for(var file of files)
         {
-            if(! fs.existsSync('src/raw/images/'+path.basename(file)))
+            if(! fs.existsSync(helper.resolvePath('src/raw/images/'+path.basename(file))))
             {
                 printv(3,'Creating resized version of '+path.basename(file));
-                child_process.execFileSync('convert', [ '-resize', '270x', file, 'src/raw/images/'+path.basename(file) ], { stdio: 'inherit' });
+                child_process.execFileSync('convert', [ '-resize', '270x', helper.resolvePath(file), 'src/raw/images/'+path.basename(file) ], { stdio: 'inherit' });
             }
         }
     }
@@ -2416,15 +2423,15 @@ function main()
     {
         var docpadConf = require('./.docpad.js');
 
-        if(fs.existsSync('./out'))
+        if(fs.existsSync(helper.resolvePath('out')))
         {
             printv(1,'Cleaning up old files...');
-            child_process.execFileSync('rm',['-rf','out']);
+            child_process.execFileSync('rm',['-rf',helper.resolvePath('out')]);
         }
-        if (!fs.existsSync('src/deps/bootstrap-variables.scss'))
+        if (!fs.existsSync(helper.resolvePath('src/deps/bootstrap-variables.scss')))
         {
             printv(1,'Fetching dependency: bootstrap-variables.scss');
-            child_process.execFileSync('wget', [ 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+docpadConf.templateData.site.bootstrapVersion+')/assets/stylesheets/bootstrap/_variables.scss', '-O', 'src/deps/bootstrap-variables.scss' ]);
+            child_process.execFileSync('wget', [ 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+docpadConf.templateData.site.bootstrapVersion+')/assets/stylesheets/bootstrap/_variables.scss', '-O', helper.resolvePath('src/deps/bootstrap-variables.scss') ]);
         }
         if(commander.server)
         {
@@ -2434,7 +2441,7 @@ function main()
         else
         {
             printv(1,'Generating site with docpad...');
-            var params = [ 'generate', '--config','./.docpad.js','--no-color', '--offline','--silent', '--env', 'static' ];
+            var params = [ 'generate', '--config',helper.resolvePath('.docpad.js'),'--no-color', '--offline','--silent', '--env', 'static' ];
             if(commander.verbose < 3)
             {
                 params.push('--debug',4);
@@ -2448,7 +2455,7 @@ function main()
                 process.exit(1);
             }
 
-            var htmlFiles = child_process.execFileSync('find',[ 'out', '-name', '*.html', '-print0' ]);
+            var htmlFiles = child_process.execFileSync('find',[ helper.resolvePath('out'), '-name', '*.html', '-print0' ]);
             htmlFiles = htmlFiles.toString().split(/\0/);
             htmlFiles.pop(); // Remove empty last element
             htmlFiles.unshift('-pi','-e','s/^\\s+//');
