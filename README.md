@@ -32,8 +32,8 @@ that file. A single collection can consist of several input files, and each
 file gets treated as a "group". Groups will be displayed in the interface.
 Rotcelloc does not enforce any organizational pattern on your files, so you're
 free to handle them however you want - one way could be to have the file
-designating where the items are, for instance "OnShelf.csv" and "InFolder.csv"
-- or you can simply have a "My(Movie|Series|Game)Collection.csv". You can enter
+designating where the items are, for instance "OnShelf.csv" and "InFolder.csv" -
+or you can simply have a "My(Movie|Series|Game)Collection.csv". You can enter
 as little or as much information in the file as you wish. Rotcelloc will do its
 best to retrieve the rest.
 
