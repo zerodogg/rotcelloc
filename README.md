@@ -68,22 +68,22 @@ each collection can have any number of files.
 
 ##### Toplevel options
 
-menuSiteTitle - this is the title that will be displayed on the top right of
+**menuSiteTitle** - this is the title that will be displayed on the top right of
 your site. Any text string is permitted.
 
-maxMoviesPerRenderedPage - to not overload a browser on large collections by
+**maxMoviesPerRenderedPage** - to not overload a browser on large collections by
 trying to display one thousand images at once, rotcelloc uses a form of
 infinite scrolling to limit the load. It only displays maxMoviesPerRenderedPage
 at one time, when the user is reaching the bottom of the result, it renders the
 next batch of the same number. A reasonable place to start is 100.
 
-maxMoviesPerRenderedPageMobile - this is the same as the above, except this
+**maxMoviesPerRenderedPageMobile** - this is the same as the above, except this
 version only applies to mobile browsers. Those are often running on limited
 connections and generally have weaker hardware than their desktop counterparts
 (and they also show fewer results on-screen at a time). It is therefore
 useful to limit them more than desktops. A reasonable place to start is 40.
 
-language - set this to the language you want rotcelloc to use. The supported
+**language** - set this to the language you want rotcelloc to use. The supported
 languages can be found in i18n/. Additional translations are welcome.
 
 ##### Collection options
@@ -91,17 +91,17 @@ languages can be found in i18n/. Additional translations are welcome.
 The name of a collection is its key. Its value is another object/hash of key-value
 pairs. The following keys are premitted:
 
-"type" (*required*) - this key which defines what kind of collection it is. These can be
+**"type"** (*required*) - this key which defines what kind of collection it is. These can be
 "movies", "series" or "games". This is needed because it tells rotcelloc how to
 retrieve metadata information.
 
-"defaultSort" (optional) - this key sets the default sorting for this
+**"defaultSort"** (optional) - this key sets the default sorting for this
 collection. It accepts "year" and "rating". If this is not set then it will be
 automatic (which is "alphanumeric" sorting for collections without any
 disneyClassicNo, and a special disney classic sorting + alphanumeric for those
 that have disneyClassicNo entries).
 
-"sources" (*required*) - this is an array that lists all files that are to be
+**"sources"** (*required*) - this is an array that lists all files that are to be
 included into this collection. Each array entry can contain the following keys:
 
 - "source" (optional) - the source to load from. Defaults to "file". Can also
@@ -131,53 +131,53 @@ any it does not know what to do about.
 
 ##### Columns valid for all types
 
-title - The title of the item (ie. game, movie or TV series title)
+**title** - The title of the item (ie. game, movie or TV series title)
 
-origTitle - The original title of the item (ie. if the title is localized. Not
+**origTitle** - The original title of the item (ie. if the title is localized. Not
 required, but can make it easier to download metadata)
 
-altTitle - An alternate title for the item (ie. the English title if the
+**altTitle** - An alternate title for the item (ie. the English title if the
 origTitle is not in English, and the title is localized. Having this can make
 it easier to download metadata in these cases)
 
-year - the year the item was released (while not required, it is a recommended
+**year** - the year the item was released (while not required, it is a recommended
 field as it makes the metadata extractor much more accurate).
 
-genre - a comma-separated list of genres. `rotcelloc` can also be configured to
+**genre** - a comma-separated list of genres. `rotcelloc` can also be configured to
 generate this from the downloaded metadata by setting a key in the config.
 
-note - a generic text field for additional information you want to be displayed
+**note** - a generic text field for additional information you want to be displayed
 with the entry. This field is searchable in the webapp.
 
-rating - your custom rating for this game (1-6)
+**rating** - your custom rating for this game (1-6)
 
-customCover - a complete URL for a HTTP resource to download the cover for this
+**customCover** - a complete URL for a HTTP resource to download the cover for this
 item from. If omitted the cover will be auto-detected. This field can be useful
 in the few cases where `rotcelloc` is unable to find a cover on its own.
 
 ##### Columns only valid for movies and TV series
 
-seasons - a comman-separated list of the seasons of a TV series that you own
+**seasons** - a comman-separated list of the seasons of a TV series that you own
 
-imdbID - the IMDB id for this item. This is to help `rotcelloc` find metadata
+**imdbID** - the IMDB id for this item. This is to help `rotcelloc` find metadata
 for the item, or force it to use a certain entry if it detects the wrong one.
 As we use the OMDB, if this is omitted we will do what we can to autodetect it
 using OMDB (which usually works very well).
 
-actors - a list of actors for the item, will be extracted from metadata if
+**actors** - a list of actors for the item, will be extracted from metadata if
 omitted
 
-disneyClassicNo - this is a special entry, it sets the «Disney Classics»
+**disneyClassicNo** - this is a special entry, it sets the «Disney Classics»
 number. It is used to provide special sorting for Disney Classics, and to
 display the number.
 
-format - the format of the item, ie. BluRay, DVD
+**format** - the format of the item, ie. BluRay, DVD
 
 ##### Columns only valid for games
 
-platform - which platform the game is on, ie. Linux, Windows, PS3, Vita.
+**platform** - which platform the game is on, ie. Linux, Windows, PS3, Vita.
 
-format - the format of the game, ie. DVD, Steam, GOG, PSN, BluRay etc.
+**format** - the format of the game, ie. DVD, Steam, GOG, PSN, BluRay etc.
 
 ## Standing on the shoulders of giants
 
