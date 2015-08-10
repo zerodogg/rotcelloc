@@ -1,0 +1,144 @@
+/*
+ * rotcelloc webapp styling
+ *
+ * Part of rotcelloc - the hacker's movie, tv-series and game collection
+ * manager
+ *
+ * Copyright (C) Eskild Hustvedt 2015
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+@import '../deps/bootstrap-variables.scss';
+
+body
+{
+    padding-top: 70px;
+    padding-bottom: 1em;
+}
+.searchForm
+{
+    .row-padding
+    {
+        margin-bottom:1em;
+    }
+    .btn
+    {
+        // Disable border radius for prettier multi-line button groups
+        border-radius:0 !important;
+    }
+}
+.col-entry
+{
+    .poster
+    {
+        margin-top:1em;
+    }
+    .plot
+    {
+        font-style:italic;
+    }
+    .meta-label
+    {
+        display:inline-block;
+        min-width:93px;
+    }
+}
+.searchbar-label-inline
+{
+    display:inline-block;
+    margin-right:1em;
+}
+.searchbar-label
+{
+    display:block;
+}
+.searchbar-label, .searchbar-label-inline
+{
+    font-weight:bold;
+}
+.genre-select-line
+{
+    margin-bottom:5px;
+}
+#searchBox
+{
+    margin-left:1em;
+}
+.italic
+{
+    font-style:italic;
+}
+.pagetitle-nav
+{
+    font-weight:bold;
+}
+@media (max-width: $grid-float-breakpoint-max)
+{
+    .navbar-fixed-top
+    {
+        position: relative;
+        top: auto;
+    }
+    body
+    {
+        padding-top: 0px;
+    }
+    #searchBox
+    {
+        margin-top:4px;
+    }
+}
+@media(min-width: $screen-sm-min)
+{
+    .poster
+    {
+        min-height:237px;
+        img
+        {
+            max-height:237px;
+        }
+    }
+}
+@media(min-width: $screen-lg-min)
+{
+    .poster
+    {
+        min-height:394px;
+        img
+        {
+            max-height:394px;
+        }
+    }
+}
+main
+{
+    min-height:600px;
+}
+.loading
+{
+    main
+    {
+        min-height:auto;
+    }
+    footer
+    {
+        visibility:hidden;
+    }
+}
+footer
+{
+    font-style:italic;
+    margin-top:2em;
+    margin-bottom:1em;
+}

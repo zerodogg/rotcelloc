@@ -1,0 +1,2464 @@
+#!/usr/bin/env node
+/*
+ * rotcelloc command-line management app
+ *
+ * Part of rotcelloc - the hacker's movie, tv-series and game collection
+ * manager
+ *
+ * Copyright (C) Eskild Hustvedt 2015
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * vim: ft=javascript :
+ */
+// jshint esnext: true, eqnull: true
+
+"use strict";
+
+// Load modules
+try
+{
+    var
+        // For parsing the collection files
+        parse         = require('csv-parse'),
+        // Needed to perform filesystem operations
+        fs            = require('fs'),
+        // Used to retrieve movie art
+        movieArt      = require('movie-art'),
+        // Used to make async stuff be synchronous for command-line use
+        wait          = require('wait.for'),
+        // Perform HTTP requests
+        httpreq       = require('httpreq'),
+        // Used to clean up paths
+        path          = require('path'),
+        // Various helpers
+        _             = require('lodash'),
+        // Additional HTTP requests
+        request       = require('request'),
+        // Perform glob operations to easily perform actions on covers
+        glob          = require('glob'),
+        // Command-line parameter parsing
+        commander     = require('commander'),
+        // Used to call system commands
+        child_process = require('child_process'),
+        // Used for printf-like formatting
+        util          = require('util'),
+        // Scrapes Steam to retreive the list of games a Steam user owns
+        steam         = require('happy-steam-scraper'),
+        // Used to decode HTML entities
+        he            = require('he'),
+        // Used to sleep to make the Steam API happy
+        sleep         = require('sleep'),
+        // Used to parse APIs that return XML instead of JSON
+        xml2json      = require('xml2json');
+}
+    catch(e)
+{
+    console.log('You are missing some rotcelloc dependencies: '+e.message);
+    console.log('Please install the dependencies with "npm install" and try again');
+    process.exit(1);
+}
+
+var
+    // We will load the persistent cache into this
+    cache = {},
+    // Used for caching during a single run, ie. for http-requests
+    runtimeCache = {},
+    // Stores a parsed version of package.json, basically just used
+    // to lazily get our version number without having to duplicate it
+    // in multiple files.
+    packageJSON = null,
+    // Global i18n handling (including translation function)
+    i18n = {
+        strings: {},
+        translate: function (s)
+        {
+            return this.strings[s] ? this.strings[s] : s;
+        }
+};
+
+/*
+ * This is the API that generates the collection with metadata and posters for
+ * a movie and TV series collection
+ */
+var movieAPI = {
+    /*
+     * Generic handler for any type of movie/tv input file. It generates the
+     * data structure and requests/handles metadata and posters
+     */
+    handleResultSet: function (output,source,config,type)
+    {
+        var entries = [],
+        retValue = {
+            data: output,
+            meta: {
+                genres: [],
+                seenYear: false,
+                hasRating: false,
+                enableNormalized: false
+            }
+        };
+        for(var collectionEntryI in output)
+        {
+            var collectionEntry = output[collectionEntryI];
+            helper.remapCSVFields(collectionEntry);
+
+            if(source)
+            {
+                collectionEntry.bSource = path.basename(source);
+            }
+            if(type)
+            {
+                collectionEntry.type = type;
+            }
+            else if(collectionEntry.type)
+            {
+                type = collectionEntry.type;
+            }
+            if(config.contentType)
+            {
+                collectionEntry.contentType = config.contentType;
+            }
+
+            var meta = movieAPI.getMovieMeta(collectionEntry);
+            if(meta != null)
+            {
+                if(movieAPI.isValidOMDBField(meta.imdbID))
+                {
+                    collectionEntry.imdbID = meta.imdbID;
+                }
+                if(!collectionEntry.actors && movieAPI.isValidOMDBField(meta.Actors))
+                {
+                    collectionEntry.actors = meta.Actors;
+                }
+                if(movieAPI.isValidOMDBField(meta.Metascore))
+                {
+                    collectionEntry.metascore = meta.Metascore;
+                }
+                if(movieAPI.isValidOMDBField(meta.imdbRating))
+                {
+                    collectionEntry.imdbRating = meta.imdbRating;
+                    collectionEntry.imdbVotes  = meta.imdbVotes;
+                }
+                if(movieAPI.isValidOMDBField(meta.Plot))
+                {
+                    collectionEntry.plot = meta.Plot;
+                }
+                if(movieAPI.isValidOMDBField(meta.Director))
+                {
+                    collectionEntry.director = meta.Director;
+                }
+                if(movieAPI.isValidOMDBField(meta.Writer))
+                {
+                    // Translators: used to translate substrings in the «writer» metadata
+                    collectionEntry.writer = meta.Writer.replace(/screenplay/g,i18n.translate('screenplay'))
+                    // Translators: used to translate substrings in the «writer» metadata
+                    .replace(/(motion picture|movie)/g,i18n.translate('motion picture'))
+                    // Translators: used to translate substrings in the «writer» metadata
+                    .replace(/comic( book)?/g,i18n.translate('comic book'))
+                    // Translators: used to translate substrings in the «writer» metadata
+                    .replace(/story/g,i18n.translate('story'))
+                    // Translators: used to translate substrings in the «writer» metadata
+                    .replace(/novel/g,i18n.translate('novel'))
+                    // Translators: used to translate substrings in the «writer» metadata
+                    .replace(/characters/g,i18n.translate('characters'))
+                    // Translators: used to translate substrings in the «writer» metadata
+                    .replace(/book/g,i18n.translate('book'));
+                }
+                if (config.autoGenre &&!collectionEntry.genre && movieAPI.isValidOMDBField(meta.Genre))
+                {
+                    collectionEntry.genre = meta.Genre;
+                }
+                if(!collectionEntry.imdbID && movieAPI.isValidOMDBField(meta.imdbID))
+                {
+                    collectionEntry.imdbID = meta.imdbID;
+                }
+                if(movieAPI.isValidOMDBField(meta.Runtime))
+                {
+                    var runtime = meta.Runtime;
+                    if (/ min/.test(runtime))
+                    {
+                        runtime                    = runtime.replace(/\s+min/,'');
+                        collectionEntry.runtimeMin = runtime;
+                        var floating               = parseInt(runtime)/60;
+                        if(floating > 0)
+                        {
+                            var hours   = parseInt(floating);
+                            var minutes = parseInt((floating-hours)*60);
+                            if(hours > 0)
+                            {
+                                // Translators: Results in [number]h [number]min (ie. X hours and X minutes)
+                                runtime = util.format(i18n.translate('%dh %dmin'),hours,minutes);
+                            }
+                            else
+                            {
+                                // Translators: Results in [number]min (ie. X minutes)
+                                runtime = util.format(i18n.translate('%dmin'),minutes);
+                            }
+                        }
+                    }
+                    collectionEntry.runtime = runtime;
+                }
+            }
+            if(collectionEntry.genre)
+            {
+                retValue.meta.genres = retValue.meta.genres.concat(collectionEntry.genre.split(/,\s*/));
+
+            }
+            if(collectionEntry.rating)
+            {
+                retValue.meta.hasRating = true;
+                retValue.meta.enableNormalized   = true;
+                if(collectionEntry.rating > 6 || collectionEntry.rating < 1)
+                {
+                    printv(1,'Unreasonable rating for "'.collectionEntry.title+'": '+collectionEntry.rating+' (should be 1-6)');
+                }
+                else
+                {
+                    collectionEntry.normalizedRating = parseInt(collectionEntry.rating*16.7);
+                    if(collectionEntry.imdbRating)
+                    {
+                        var decimal = parseInt(collectionEntry.imdbRating*10);
+                        collectionEntry.normalizedRating = parseFloat(collectionEntry.normalizedRating+'.'+decimal);
+                    }
+                }
+            }
+            else if(collectionEntry.imdbRating)
+            {
+                collectionEntry.normalizedRating = parseInt(collectionEntry.imdbRating*10);
+            }
+            else if(collectionEntry.metascore)
+            {
+                collectionEntry.normalizedRating = collectionEntry.metascore;
+                retValue.meta.enableNormalized   = true;
+            }
+            if(!collectionEntry.poster)
+            {
+                var theURL   = movieAPI.getPoster(collectionEntry,type,meta);
+                if(!theURL)
+                {
+                    theURL = 'missing.png';
+                }
+                collectionEntry.poster = encodeURIComponent(path.basename(theURL));
+            }
+            if(meta && !collectionEntry.year && movieAPI.isValidOMDBField(meta.Year))
+            {
+                collectionEntry.year = meta.Year;
+            }
+            if(collectionEntry.year)
+            {
+                collectionEntry.sortYear = parseInt(collectionEntry.year);
+            }
+            if(collectionEntry.year)
+            {
+                retValue.meta.seenYear = true;
+            }
+            if (!commander.includeDebug)
+            {
+                var includedData = {
+                    year: true,
+                    sortYear: true,
+                    poster: true,
+                    type: true,
+                    bSource: true,
+                    actors: true,
+                    metascore: true,
+                    imdbRating: true,
+                    imdbVotes: true,
+                    plot: true,
+                    director: true,
+                    writer: true,
+                    genre: true,
+                    runtime: true,
+                    runtimeMin:true,
+                    origTitle:true,
+                    title: true,
+                    seasons: true,
+                    format: true,
+                    rating: true,
+                    note: true,
+                    altTitle: true,
+                    contentType:true,
+                    disneyClassicNo: true,
+                    imdbID: true,
+                    normalizedRating: true
+                };
+                for (var field in collectionEntry)
+                {
+                    if (!includedData[field])
+                    {
+                        delete collectionEntry[field];
+                    }
+                }
+            }
+        }
+        // Write current cache
+        core.writeCache();
+        return retValue;
+    },
+    /*
+     * Performs final sorting of a movie/tv list and adds the id numbers
+     */
+    sortAndFinalize: function (entries)
+    {
+        entries.sort(function(a,b) {
+                return a.title.localeCompare(b.title);
+        });
+        for (var collectionEntryI in entries)
+        {
+            var collectionEntry = entries[collectionEntryI];
+            collectionEntry.id  = collectionEntryI;
+        }
+        return entries;
+    },
+    /*
+     * Loads a movie file and hands control over to handleResultSet
+     */
+    handleMovieFile: function (csvFile,config)
+    {
+        var input  = fs.readFileSync(csvFile,{ encoding: 'utf-8'} );
+        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
+        return movieAPI.handleResultSet(output,csvFile,config,'movie');
+    },
+    /*
+     * Loads a TV series file and hands control over to handleResultSet
+     */
+    handleSeriesFile: function (csvFile,config)
+    {
+        var input  = fs.readFileSync(csvFile,{ encoding: 'utf-8'} );
+        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
+        return movieAPI.handleResultSet(output,csvFile,config,'tv');
+    },
+    /*
+     * Downloads a poster, either 1) the user specified one, 2) one found using
+     * movieArt (TheMovieDB) or 3) the one provided by the OMDB
+     */
+    getPoster: function (entry,type,meta)
+    {
+        var url;
+        var ckey;
+        var mTitle = entry.title;
+        if(entry.origTitle)
+        {
+            mTitle = entry.origTitle;
+        }
+        ckey = getCacheID(entry,type);
+        if(entry.customCover)
+        {
+            url = entry.customCover;
+            delete entry.customCover;
+            if (fs.existsSync('src/raw/images/orig/'+path.basename(url)))
+            {
+                return url;
+            }
+        }
+        else if(cache.URLs[ckey])
+        {
+            if(cache.URLs[ckey] == 'MISS')
+            {
+                if(! commander.retryMiss)
+                {
+                    return;
+                }
+            }
+            else if (fs.existsSync('src/raw/images/orig/'+path.basename(cache.URLs[ckey])))
+            {
+                if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
+                {
+                    printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.URLs[ckey])+' ('+cache.URLs[ckey]+' and '+cache.fileMap[path.basename(cache.URLs[ckey])]+')');
+                }
+                return cache.URLs[ckey];
+            }
+        }
+        if (!url)
+        {
+            if(entry.year)
+            {
+                try
+                {
+                    url = wait.for(movieArt,mTitle,entry.year,null,type);
+                } catch(e) {}
+            }
+            if (!url)
+            {
+                try
+                {
+                    url = wait.for(movieArt,mTitle,null,null,type);
+                } catch(e) {}
+            }
+            if(!url)
+            {
+                if(type == 'tv')
+                {
+                    type = 'movie';
+                }
+                else
+                {
+                    type = 'tv';
+                }
+                if(entry.year && !url)
+                {
+                    try
+                    {
+                        url = wait.for(movieArt,mTitle,entry.year,null,type);
+                    } catch(e) {}
+                }
+                if (!url)
+                {
+                    try
+                    {
+                        url = wait.for(movieArt,mTitle,null,null,type);
+                    } catch(e) {}
+                }
+                if (!url && meta && movieAPI.isValidOMDBField(meta.Poster))
+                {
+                    url = meta.Poster;
+                }
+            }
+        }
+        helper.downloadAndCacheURL(url,ckey,entry);
+        return url;
+    },
+    /*
+     * Handles downloading and validation of movie metadata
+     */
+    getMovieMeta: function (entry)
+    {
+        var ckey = getCacheID(entry);
+        if (cache.meta[ckey])
+        {
+            if(cache.meta[ckey] == 'MISS')
+            {
+                if(! commander.retryMiss)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                if(cache.meta[ckey].Response != 'True')
+                {
+                    delete cache.meta[ckey];
+                }
+                return cache.meta[ckey];
+            }
+        }
+        var data = movieAPI.fetchFromOMDB(entry);
+        if(data && data.Response == "False")
+        {
+            printv(3,'Could not retrieve data from OMDB on '+ (entry.origTitle ? entry.origTitle : entry.title) );
+            cache.meta[ckey] = 'MISS';
+            return;
+        }
+        if ((entry.type == 'movie' && (!entry.year || parseInt(entry.year) == parseInt(data.Year)))|| (entry.type == 'tv' && data.Type == 'series' || parseInt(entry.year) == parseInt(data.Year)) || (entry.imdbID && data.imdbID == entry.imdbID) )
+        {
+            printv(1,'Fetched meta info for '+entry.title);
+            cache.meta[ckey] = data;
+            return data;
+        }
+        else
+        {
+            if(entry.year && data.Year != entry.year)
+            {
+                var diff = entry.year - data.Year;
+                if (diff <= 2 && diff >= -2)
+                {
+                    printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the OMDB entry claims '+data.Year+' (very similar): ignoring data from server');
+                }
+                else
+                {
+                    printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the OMDB entry claims '+data.Year+': ignoring data from server');
+                }
+            }
+            cache.meta[ckey] = 'MISS';
+        }
+        return;
+    },
+    /*
+     * Checks if a field from OMDB is valid (they can be undefined or the
+     * string 'N/A' if invalid)
+     */
+    isValidOMDBField: function (content)
+    {
+        if(content !== undefined && content !== 'N/A')
+        {
+            return true;
+        }
+        return false;
+    },
+    /*
+     * Downloads data from OMDB and attempts fuzzier searches if no data is
+     * found
+     */
+    fetchFromOMDB: function (entry)
+    {
+        var data = wait.for(movieAPI.performOMDBRequest,entry);
+        if(data && data.Response != "False")
+        {
+            return data;
+        }
+        if(entry.imdbID)
+        {
+            // Try a request without imdbID
+            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, year: entry.year, type: entry.type });
+        }
+        if(data && data.Response != "False")
+        {
+            return data;
+        }
+        if(entry.origTitle)
+        {
+            // Try a request without origTitle
+            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.title, year: entry.year, type: entry.type });
+        }
+        if(data && data.Response != "False")
+        {
+            return data;
+        }
+        if(entry.altTitle)
+        {
+            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.altTitle, type: entry.type });
+        }
+        if(data && data.Response != "False")
+        {
+            return data;
+        }
+        if(entry.year)
+        {
+            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, type: entry.type });
+        }
+        if(data && data.Response != "False")
+        {
+            return data;
+        }
+        if(entry.type)
+        {
+            var entryWithoutType = _.cloneDeep(entry);
+            delete entryWithoutType.type;
+            return movieAPI.fetchFromOMDB(entryWithoutType);
+        }
+
+        var fixedTitle = helper.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
+        if(fixedTitle)
+        {
+            data = wait.for(movieAPI.performOMDBRequest,{ title: fixedTitle, year: entry.year });
+        }
+
+        return data;
+    },
+    /*
+     * Constructs and submits a single OMDB request
+     */
+    performOMDBRequest: function (titleData,cb)
+    {
+        var url          = 'http://www.omdbapi.com',
+            requestQuery = {t: titleData.title, plot: 'short', r: 'json'};
+        if(titleData.imdbID)
+        {
+            delete requestQuery.t;
+            requestQuery.i = titleData.imdbID;
+        }
+        else
+        {
+            if(titleData.origTitle)
+            {
+                requestQuery.t = titleData.origTitle;
+            }
+            if(titleData.year)
+            {
+                requestQuery.y = parseInt(titleData.year);
+            }
+            if(titleData.type == 'tv')
+            {
+                requestQuery.type = 'series';
+            }
+        }
+        var serialish = url+JSON.stringify(requestQuery);
+        if(runtimeCache[serialish])
+        {
+            cb(null,_.clone(runtimeCache[serialish],true));
+            return;
+        }
+        printv(4,'Performing OMDB request: '+ (requestQuery.t ? requestQuery.t : requestQuery.i ));
+        printv(8,'Request key: '+serialish);
+        request({url:url, qs:requestQuery, json:true}, function (error, response, body) {
+                if (!error)
+                {
+                    runtimeCache[serialish] = _.clone(body,true);
+                }
+                cb(error, body);
+        });
+    },
+    /*
+     * Handles a single collection, loading each file, preparing the metadata
+     * and returning the final constructed dataset for the collection
+     */
+    performDatabaseConstruction: function (name,groupConf,writtenFiles,groupNo)
+    {
+        var groupData = [],
+        groupMeta = {
+            sourceToNameMap: {},
+            genres: [],
+            type: groupConf.type,
+            seenYear: false,
+            hasRating: false,
+            hasDisneySort: false,
+            enableNormalized: false
+        };
+        for(var entry of groupConf.sources)
+        {
+            try
+            {
+                printv(3,'  Interpreting file "'+entry.file+'"');
+                var result;
+                if(groupConf.type == 'movies')
+                {
+                    result = movieAPI.handleMovieFile(entry.file,entry);
+                }
+                else if(groupConf.type == 'series')
+                {
+                    result = movieAPI.handleSeriesFile(entry.file,entry);
+                }
+                groupData                           = groupData.concat(result.data);
+                entry.file                          = path.basename(entry.file);
+                groupMeta.sourceToNameMap[entry.file] = entry.name;
+                if(entry.disneySort)
+                {
+                    groupMeta.hasDisneySort = true;
+                }
+                groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
+                if(result.meta.seenYear)
+                {
+                    groupMeta.seenYear = true;
+                }
+                if(result.meta.hasRating)
+                {
+                    groupMeta.hasRating = true;
+                }
+                if(result.meta.enableNormalized)
+                {
+                    groupMeta.enableNormalized = true;
+                }
+            }
+            catch(e)
+            {
+                if(e.stack)
+                {
+                    printv(1,'Error while processing '+entry.file+': '+e.stack);
+                }
+                else
+                {
+                    printv(1,'Error while processing '+entry.file+': '+e);
+                }
+            }
+        }
+        var filename = core.writeHtmlFile(name,groupNo);
+        writtenFiles[filename] = true;
+
+        groupMeta.genres.sort();
+        groupMeta.genres = _.uniq(groupMeta.genres,true);
+
+        return { name: name, data: movieAPI.sortAndFinalize(groupData), meta: groupMeta, groupNo: groupNo };
+    }
+};
+
+/*
+ * This is the API that generates the collection with metadata and posters for
+ * a games collection
+ */
+var gamesAPI = {
+    steamAPIErrLimitReached: false,
+    /*
+     * Generic handler for the file source. Parses and retrieves metadata,
+     * then hands the result back to the caller
+     */
+    handleGamesFile: function (csvFile,config)
+    {
+        var result = [],
+            bSource = csvFile,
+            resultMeta = {
+                genres: [],
+                platforms: [],
+                seenYear: false,
+                hasMetascore: false
+            };
+        var input  = fs.readFileSync(csvFile,{ encoding: 'utf-8'} );
+        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
+
+        for(var collectionEntryI in output)
+        {
+            var data = output[collectionEntryI];
+            helper.remapCSVFields(data);
+            data.bSource = path.basename(csvFile);
+            this.genericGameHandler(data,resultMeta,data);
+            result.push(data);
+        }
+        return { meta: resultMeta, data: result, bSource: path.basename(csvFile) };
+    },
+    /*
+     * Generic handler for the steam source. Requests the list, retrieves metadata
+     * from Steam and TheGamesDB, then hands the result back to the caller
+     */
+    generateSteamListFor: function(user)
+    {
+        var result = [],
+            games = this.retrieveGamesFromSteam(user),
+            bSource = 'steam/'+user,
+            resultMeta = {
+                genres: [],
+                platforms: [],
+                seenYear: false,
+                hasMetascore: false
+            };
+        this.retrieveSteamMetadata(games,user);
+        for(var game of games)
+        {
+            this.doSteamRemap(game);
+            if (
+                // Ignore DLC and season passes
+                /\s(DLC|[Ss]eason\s+[Pp]ass)/.test(game.title) ||
+                // Other DLC matches
+                /\s((Map|Texture)\s*Pack)(\s*\d*)?$/.test(game.title) ||
+                // Ignore games returned from Steam with completely wrong
+                // names
+                /^\s*(Limited\s*Edition)\s*$/i.test(game.title)
+               )
+            {
+                continue;
+            }
+            var data = {};
+            data.title    = game.title;
+            data.steamID  = game.appid;
+            data.format   = 'Steam';
+            data.bSource  = bSource;
+            this.genericGameHandler(data,resultMeta,game);
+            result.push(data);
+        }
+        return { meta: resultMeta, data: result, bSource: bSource  };
+    },
+    /*
+     * Remaps some Steam keys to the names that we use
+     */
+    doSteamRemap: function(steamObj)
+    {
+        steamObj.title = steamObj.name;
+    },
+    /*
+     * Handles metadata preparation and mapping for *any* game
+     */
+    genericGameHandler: function (data,resultMeta,rawData)
+    {
+        var meta = this.getGameMetadata(data);
+        if(meta)
+        {
+            var genres = [];
+            if(data.genres)
+            {
+                genres = data.genres.split(/,s\*/);
+            }
+            else if(meta.steamGenres)
+            {
+                for(var genre of meta.steamGenres)
+                {
+                    genres.push(genre.description);
+                }
+            }
+            else
+            {
+                genres = gamesAPI.deepFetch('array',meta,['Genres','genre']);
+            }
+            if (data.year)
+            {
+                data.sortYear = parseInt(data.year);
+            }
+            else if(meta.ReleaseDate)
+            {
+                data.year = meta.ReleaseDate.split('/')[2];
+                data.sortYear = data.year;
+                resultMeta.seenYear = true;
+            }
+            else if(meta.steamRelDate)
+            {
+                data.Year = meta.steamRelDate.date.replace(/^\S+\s+\S+\s+/,'');
+                data.sortYear = data.year;
+            }
+            data.genre        = genres.join(', ');
+            if(meta.steamOverview)
+            {
+                data.plot         = gamesAPI.plotCleanAndLimit(data.steamOverview);
+                if(!data.plot || data.plot.length === 0 || !/\S/.test(data.plot))
+                {
+                    data.plot = null;
+                }
+            }
+            if (!data.platform && meta.steamPlatforms)
+            {
+                data.platform = meta.steamPlatforms;
+            }
+            if (!data.plot)
+            {
+                data.plot         = gamesAPI.plotCleanAndLimit(meta.Overview);
+            }
+            if (!data.developer)
+            {
+                data.developer    = this.mustBeString(meta.Developer);
+            }
+            data.tgdbID       = meta.id;
+            if(meta.metacritic != null && meta.metacritic.score != null)
+            {
+                data.metascore = meta.metacritic.score;
+                resultMeta.hasMetascore = true;
+            }
+            resultMeta.platforms = resultMeta.platforms.concat(data.platform);
+            resultMeta.genres = resultMeta.genres.concat(genres);
+        }
+        if (!_.isArray(data.platform))
+        {
+            data.platform = [ this.doPlatformRemap(data.platform,true) ];
+        }
+        data.poster   = encodeURIComponent(gamesAPI.getPoster(meta,data,rawData));
+        data.type     = 'game';
+    },
+    /*
+     * Downloads steam metadata for all games retrieved from a steam user
+     */
+    retrieveSteamMetadata: function (games,name)
+    {
+        var apiLimiter = 0,
+            errLimit   = 0,
+            steamSleep = 30,
+            messagePrinted = false,
+            downloaded = 0;
+        if(this.steamAPIErrLimitReached)
+        {
+            return;
+        }
+        for(var i = 0; i < games.length; i++)
+        {
+            var appid = games[i].appid;
+            if(cache.steamMeta[ appid ] === undefined)
+            {
+                if (!messagePrinted)
+                {
+                    printv(1,'Now performing Steam queries for '+name+'. This can take a long time the first time it happens');
+                    messagePrinted = true;
+                }
+                apiLimiter++;
+                if(apiLimiter >= 30)
+                {
+                    apiLimiter = 0;
+                    printv(2,'Sleeping 10 seconds to avoid Steam API limits.');
+                    printv(1,'Status: processed '+ (i + 1)+' of '+games.length+' games for '+name);
+                    core.writeCache();
+                    sleep.sleep(10);
+                }
+                var data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
+                var useful = false;
+                if(data)
+                {
+                    downloaded++;
+                    errLimit = 0;
+                    if(data[appid].success)
+                    {
+                        cache.steamMeta[appid] = data[appid].data;
+                    }
+                    else
+                    {
+                        cache.steamMeta[appid] = 'MISS';
+                    }
+                }
+                else
+                {
+                    errLimit++;
+                    i--;
+                    core.writeCache();
+                    if(errLimit > 5)
+                    {
+                        printv(1,'Aborting Steam retrieval for now, error limit exceeded.');
+                        printv(1,'This can happen from time to time due to request limits on Steam.');
+                        printv(1,'Try again a bit later.');
+                        this.steamAPIErrLimitReached = true;
+                        return;
+                    }
+                    printv(1,'Sleeping '+steamSleep+' seconds to allow the Steam API limits to reset [retry '+errLimit+' of 5]');
+                    sleep.sleep(steamSleep);
+                    if(steamSleep < 120)
+                    {
+                        steamSleep += 30;
+                    }
+                    else
+                    {
+                        steamSleep += 10;
+                    }
+                }
+            }
+        }
+        if(downloaded > 0)
+        {
+            printv(2,'Steam fetching done for '+name);
+        }
+    },
+    /*
+     * Fetches some deep keys if they are available, or undefined if it
+     * can not be found. Also returns data in a specified format
+     */
+    deepFetch: function (type, source, rabbitHole)
+    {
+        for(var entry of rabbitHole)
+        {
+            if(source !== null && source[entry])
+            {
+                source = source[entry];
+            }
+            else
+            {
+                source = null;
+                break;
+            }
+        }
+        if(type == 'array')
+        {
+            return this.mustBeArray(source);
+        }
+        throw('Unhandled type: '+type);
+    },
+    /*
+     * Remaps game platform names, either to pretty versions or to the versions
+     * used by TheGamesDB
+     */
+    doPlatformRemap: function(platform,pretty)
+    {
+        var platforms = {
+            'playstation 2':'Sony Playstation 2',
+            'playstation 3':'Sony Playstation 3',
+            'playstation 4':'Sony Playstation 4',
+            'playstation':'Sony Playstation',
+            'wii':'Nintendo Wii',
+            'gamecube':'Nintendo GameCube',
+            'psx':'Sony Playstation',
+            'ps1':'Sony Playstation',
+            'ps2':'Sony Playstation 2',
+            'ps3':'Sony Playstation 3',
+            'ps4':'Sony Playstation 4',
+            'psp':'Sony PSP',
+            'vita':'Sony Playstation Vita',
+            'psvita':'Sony Playstation Vita',
+            'n64':'Nintendo 64',
+            // Yes, this hurts me as well, but it's, sadly, needed
+            'windows':'PC',
+            'linux':'PC',
+            'mac':'PC',
+            'steam':'PC',
+            'origin':'PC',
+            'gog':'PC',
+            'pce':'TurboGrafx 16',
+            'tg16':'TurboGrafx 16',
+            'tg-16':'TurboGrafx 16',
+            'nes':'Nintendo Entertainment System (NES)',
+            'snes':'Super Nintendo (SNES)',
+            'super nintendo':'Super Nintendo (SNES)',
+            'nintendo entertainment system':'Nintendo Entertainment System (NES)',
+            'smd':'Sega Mega Drive',
+        };
+        if(pretty)
+        {
+            platforms = {
+                'playstation 2':'PS2',
+                'playstation 3':'PS3',
+                'sony playstation 2':'PS2',
+                'sony playstation 3':'PS3',
+                'sony playstation 4':'PS4',
+                'sony playstation vita':'PSVita',
+                'nintendo entertainment system (nes)':'NES',
+                'sony psp':'PSP',
+                'playstation':'PS1',
+                'sony playstation':'PS1',
+                'nintendo wii':'Wii',
+                'nintendo 64':'N64',
+                'nintendo gamecube':'GameCube',
+                'turbografx 16':'TG-16',
+                'pce':'TG-16',
+                'super nintendo (snes)':'SNES',
+                'sega mega drive':'SMD',
+            };
+        }
+        if(platform != null)
+        {
+            var platLower = platform.toLowerCase();
+            if(platforms[platLower])
+            {
+                return platforms[platLower];
+            }
+        }
+        return platform;
+    },
+    /*
+     * Cleans up (by parsing html entities) and limits the length of a plot
+     */
+    plotCleanAndLimit: function (plot)
+    {
+        if(plot !== undefined)
+        {
+            // The double decode here is intentional, Steam's data is oddly
+            // double-encoded
+            plot = he.decode(he.decode(plot.replace(/<[uo]l[^>]+>/g,"\n- ").replace(/([^\.\!\,])<\/[uo]l>/g,'$1.').replace(/<br\s*\/?>/g,"\n").replace(/<[^>]+>/g,'')));
+            if(plot.length >= 200)
+            {
+                plot = plot.replace(/\n\n/,'. ');
+                var split = plot.split(" ");
+                plot = '';
+                var currentSentence = [];
+                for(var comp of split)
+                {
+                    currentSentence.push(comp);
+                    if (/[\?\!\.]$/.test(comp))
+                    {
+                        if(plot.length > 0)
+                        {
+                            plot += ' ';
+                        }
+                        plot += currentSentence.join(' ');
+                        if(plot.length > 200)
+                        {
+                            break;
+                        }
+                        currentSentence = [];
+                    }
+                }
+                return plot+' [...]';
+            }
+        }
+        return plot;
+    },
+    /*
+     * Actually downloads (or reads from cache) the game list
+     * from Steam using the happy steam scraper
+     */
+    retrieveGamesFromSteam: function (user)
+    {
+        var ckey = 'steam//games//'+user,
+            now = Math.floor(Date.now() / 1000);
+        if(cache.arbitrary[ckey])
+        {
+
+            var lastUpdated = cache.arbitrary[ckey+'//_lastUpdated'];
+            if(lastUpdated !== undefined && lastUpdated > (now - (82800*7) ))
+            {
+                return cache.arbitrary[ckey];
+            }
+            else
+            {
+                printv(2,'Updating Steam data for '+user);
+            }
+        }
+        var data = wait.for(steam.gamesFromProfile,user);
+        for(var entry of data)
+        {
+            entry.steamUser = user;
+        }
+        cache.arbitrary[ckey+'//_lastUpdated'] = now;
+        cache.arbitrary[ckey] = data;
+        return data;
+    },
+    /*
+     * Downloads and merges metadata from TheGamesDB and SteamDB
+     */
+    getGameMetadata: function (game)
+    {
+        var baseMeta = this.getGameInfoFromTGD(game);
+        if(game.steamID)
+        {
+            if(baseMeta == null)
+            {
+                baseMeta = {};
+            }
+            var steamMeta = this.getGameInfoFromSteam(game);
+            if(steamMeta)
+            {
+                baseMeta.steamOverview = steamMeta.about_the_game;
+                baseMeta.header_image  = steamMeta.header_image;
+                baseMeta.metacritic    = steamMeta.metacritic;
+                baseMeta.Developer     = steamMeta.developers;
+                baseMeta.steamRelDate  = steamMeta.release_date;
+                baseMeta.steamGenres   = steamMeta.genres;
+                baseMeta.platforms     = steamMeta.platforms;
+                baseMeta.steamID       = steamMeta.steam_appid;
+                baseMeta.steamPlatforms = [];
+                if(steamMeta.platforms)
+                {
+                    if(steamMeta.platforms.linux)
+                    {
+                        baseMeta.steamPlatforms.push('Linux');
+                    }
+                    if(steamMeta.platforms.windows)
+                    {
+                        baseMeta.steamPlatforms.push('Windows');
+                    }
+                    if(steamMeta.platforms.mac)
+                    {
+                        baseMeta.steamPlatforms.push('Mac');
+                    }
+                }
+                else
+                {
+                    baseMeta.steamPlatforms.push('Windows');
+                }
+                if(baseMeta.Platform != 'PC')
+                {
+                    baseMeta.Platform = 'PC';
+                    // Disable use of images about games on other platforms
+                    if(steamMeta.header_image)
+                    {
+                        delete baseMeta.Images;
+                    }
+                }
+            }
+        }
+        return baseMeta;
+    },
+    /*
+     * Returns Steam metadata if it exists
+     */
+    getGameInfoFromSteam: function(game)
+    {
+        if(cache.steamMeta[game.steamID])
+        {
+            return cache.steamMeta[game.steamID];
+        }
+    },
+    /*
+     * Cleans up a game name, removing various markers that can prevent
+     * us finding it in the metadata database, like "GOTY", "Remastered",
+     * "Premium", "HD", "Director's cut", "early access", "for [platform]"
+     * and so on. This gets triggered if retrieval of the full name fails.
+     */
+    performNameReplacements: function (on,doAll,excludeGeneric)
+    {
+        var orig = on;
+        on = on.replace(/([:-]?\s*)\(?((the|steam|new|old)\s+)?(Black|Steam|Linux|Windows|Mac(\s*OS\s*X?)?|EU|PAL|NTSC|US|PS\s*Vita|Special|Collector[`’']?s?|Remastered|Game of the year|Complete|Enhanced|Ultimate|Gold|Extreme|Epic|Uber|Deluxe|Premium|HD|GOTY|Developer|Director|Final|Special|Ultimate|Extended|Anniversary)(\s+\S+)?\s+(journey|edition|version|cut|collection)\)?/ig,'')
+            .replace(/\s*for\s*(Linux|Windows|Mac|PC)/i,'')
+            .replace(/\s*(Linux|Windows|Mac|PC|Playstation|Playstation Vita|PS\s*Vita)\s*(Edition|Version)?$/i,'')
+            .replace(/GOTY/,'')
+            .replace(/[:-]?\s*(Classic|(Un)?stable|(Beta|Alpha)(\s*test)?|Deluxe|Gold|Linux|Mac(\s*OS\s*X?)?|Windows|Redux|Remaster(ed)?|HD|Complete|Trilogy|Collection)\s*$/gi,'')
+            .replace(/[:-]?\s*(Single|Multi)\s*player/gi,'')
+            .replace(/\([^\)]+\)/,'')
+            .replace(/Sid Meier\'s\s*/gi,'')
+            .replace(/\+/g,'')
+            .replace(/[:-]?\s*(Ep(isode)?|Chapter)\s*\d+.*/,'')
+            .replace(/\s*Early\s*Access/gi,'')
+            .replace(/\s*start(er)?\s*pack/gi,'')
+            .replace(/[:-]?\s*(Game\s*of\s*the\s*year\s*)/gi,'')
+            .replace(/free[\s-]*(2|to)[\s-]*play/ig,'');
+        if( (on == orig || doAll) && !excludeGeneric)
+        {
+            var generic = helper.attemptGenericReplacements(on);
+            if(generic)
+            {
+                on = generic;
+            }
+            on = on.replace(/^The\s*/,'');
+        }
+        if(on == orig || doAll)
+        {
+            on = on.replace(/[,\.-\/]/g,' ');
+        }
+        if(on == orig || doAll)
+        {
+            // Converts "CamelCaseName" to "Camel Case Name"
+            on = on.replace(/([a-z])([A-Z])/g,'$1 $2');
+        }
+        if(on === "")
+        {
+            return orig;
+        }
+        if(on != orig)
+        {
+            printv(8,'performNameReplacements: Converted "'+orig+'" to "'+on+'"');
+        }
+        return on.replace(/\s+/g,' ');
+    },
+    /*
+     * Performs requests from TGD, getting fuzzier until it either finds an
+     * entry or fails
+     */
+    getGameInfoFromTGD: function(game)
+    {
+        var ckey = getCacheID(game,'game', { ignoreSteam: true });
+        if(cache.gameMeta[ckey])
+        {
+            if(cache.gameMeta[ckey] == 'MISS')
+            {
+                if(! commander.retryMiss)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                return cache.gameMeta[ckey];
+            }
+        }
+        var data = this.fetchDataFromTGD(game,ckey),
+            newName;
+        if (!data)
+        {
+            newName = helper.attemptGenericReplacements(game.title,false);
+            if(newName != game.title && newName !== null)
+            {
+                data = this.fetchDataFromTGD({
+                        title: newName,
+                        steamID: game.steamID,
+                        platform: game.platform
+                },ckey);
+            }
+        }
+        if (!data)
+        {
+            newName = this.performNameReplacements(game.title,true);
+            if(newName != game.title && newName !== null)
+            {
+                data = this.fetchDataFromTGD({
+                        title: newName,
+                        steamID: game.steamID,
+                        platform: game.platform
+                },ckey);
+            }
+        }
+        if (!data)
+        {
+            newName = this.performNameReplacements(game.title,true,true);
+            if(newName != game.title && newName !== null)
+            {
+                data = this.fetchDataFromTGD({
+                        title: newName,
+                        steamID: game.steamID,
+                        platform: game.platform
+                },ckey);
+            }
+        }
+        if (!data)
+        {
+            newName = this.performNameReplacements(game.title);
+            if(newName != game.title && newName !== null)
+            {
+                data = this.fetchDataFromTGD({
+                        title: newName,
+                        steamID: game.steamID,
+                        platform: game.platform
+                },ckey);
+            }
+        }
+        if (!data)
+        {
+            data = this.fetchDataFromTGD({
+                    title: game.title,
+            },ckey);
+        }
+        if (!data)
+        {
+            data = this.fetchDataFromTGD({
+                    title: newName,
+            },ckey);
+        }
+        if(data)
+        {
+            printv(1,'Fetched meta info for '+ game.title );
+        }
+        else
+        {
+            printv(1,'Could not fetch metadata for '+ game.title);
+        }
+        return data;
+    },
+    /*
+     * Download data from TGD, attempting to match it with the provided game
+     * data. Entries are then scored, and the best entry (if any) gets
+     * returned.
+     */
+    fetchDataFromTGD: function(game,ckey)
+    {
+        var search = this.TGD_search(game.title),
+            meta;
+        if (!search)
+        {
+            cache.gameMeta[ckey] = 'MISS';
+            return;
+        }
+        var platform = gamesAPI.doPlatformRemap(game.platform);
+        if(game.steamID)
+        {
+            platform = 'PC';
+        }
+        if(platform != null)
+        {
+            platform = platform.toLowerCase();
+        }
+        var name = game.title;
+        if(name == null)
+        {
+            throw('fetchDataFromTGD got NULL title');
+        }
+        /*
+         * Pre-process GameTitle
+         */
+        for(var replyPreProcess of search)
+        {
+            replyPreProcess.GameTitle = he.decode(replyPreProcess.GameTitle);
+        }
+        var filteredName = name.replace(/(™|®|©|\(TM\)|\(R\)|\(C\))/g,'');
+        for(var response of search)
+        {
+            var points = 0;
+
+            if(platform && gamesAPI.doPlatformRemap(response.Platform).toLowerCase() != platform)
+            {
+                response.score = 0;
+                continue;
+            }
+
+            if(response.GameTitle == game.title)
+            {
+                points += 20;
+            }
+            else if(response.GameTitle.toLowerCase() == game.title.toLowerCase())
+            {
+                points += 10;
+            }
+            else if(response.GameTitle.toLowerCase().indexOf(filteredName) != -1)
+            {
+                points += 6;
+            }
+            else
+            {
+                var prevLoc = -1,
+                    gtLower = response.GameTitle.toLowerCase();
+                for(var bit of filteredName.toLowerCase().split(/\s+/))
+                {
+                    bit = bit.replace(/\W/,'');
+                    if(bit.length === 0)
+                    {
+                        continue;
+                    }
+                    // The substr is to make sure we only check for instaces
+                    // later in the string than the previous one (so that the
+                    // order of the words is preserved, otherwise we'd get a
+                    // lot of strange hits)
+                    var idx = gtLower.substr(prevLoc+1).indexOf(bit);
+                    if(idx !== -1)
+                    {
+                        prevLoc = idx;
+                    }
+                    else
+                    {
+                        prevLoc = -1;
+                        break;
+                    }
+                }
+                // We're being a bit picky here in that if we get the wrong platform (or no platform)
+                // and the title is much longer than ours, we probably want to skip it
+                if (prevLoc != -1 && !platform && response.GameTitle.length >= (name.length*1.6))
+                {
+                    // We try a final test here. We perform all relevant replacements on both the
+                    // requested name and the response name. Then we see if the response is within
+                    // the limts after performing those replacements. If it is then we grant it
+                    // a single point. This is to be able to handle responses
+                    // that include ie. "limited edition" for short titles.
+                    var replacedGT = this.performNameReplacements(response.GameTitle,false,true),
+                        replacedName = this.performNameReplacements(name,false,true);
+                    if(replacedGT.length < (replacedName.length*1.6) && replacedName.length <= replacedGT.length)
+                    {
+                        printv(5,'Got a fuzzy hit on "'+response.GameTitle+'" for "'+name+'". The length is over 1.6x that of the requested one (and has no platform match). Granting 1 point because it was within limits after performing replacements.');
+                        points = 1;
+                    }
+                    else
+                    {
+                        // Still no hit, so we give it a score of 0 points
+                        printv(5,'Got a fuzzy hit on "'+response.GameTitle+'" for "'+name+'". Ignoring due to the length being over 1.6x that of the requested one (and no platform match)');
+                        points = 0;
+                    }
+                }
+                else if(prevLoc != -1)
+                {
+                    // We grant 1.5 points for unreasonably long titles, and 3
+                    // points for closer matches
+                    if (response.GameTitle.length >= (name.length*1.6))
+                    {
+                        points += 1.5;
+                    }
+                    else
+                    {
+                        points += 3;
+                    }
+                }
+            }
+            // If the name doesn't match nothing else matters
+            if(points === 0)
+            {
+                response.score = points;
+                continue;
+            }
+            if(response.ReleaseDate && response.ReleaseDate.length)
+            {
+                var year = response.ReleaseDate.split('/')[2];
+                if (game.year && year == game.year)
+                {
+                    points += 3;
+                }
+            }
+
+            response.score = points;
+        }
+        search = search.sort(function(a,b) {
+                return b.score - a.score;
+        });
+        while(search.length > 0)
+        {
+            var best = search.shift();
+            if(best.score > 0)
+            {
+                meta = this.TGD_infoByID(best.id);
+                if(meta !== undefined)
+                {
+                    cache.gameMeta[ckey] = meta;
+                    return meta;
+                }
+            }
+        }
+        cache.gameMeta[ckey] = 'MISS';
+        return;
+    },
+    /*
+     * Retrieves a complete entry from TGD, by its TGD id number
+     */
+    TGD_infoByID: function(id)
+    {
+        var result = this.TGD_request('GetGame',{ id: id});
+        if(result && result.Data && result.Data.Game)
+        {
+            result.Data.Game.baseImgUrl = result.Data.baseImgUrl;
+            return result.Data.Game;
+        }
+        return;
+    },
+    /*
+     * Performs a TGD search
+     */
+    TGD_search: function(game)
+    {
+        var result = this.TGD_request('GetGamesList',{ name: game });
+        if(result && result.Data && result.Data.Game)
+        {
+            return this.mustBeArray(result.Data.Game);
+        }
+        return;
+    },
+    /*
+     * Constracts a request for GD
+     */
+    TGD_request: function(call,parameters)
+    {
+        var rqURL = 'http://thegamesdb.net/api/'+call+'.php?',
+            finalParams = [],
+            result;
+        for(var key in parameters)
+        {
+            finalParams.push(encodeURIComponent(key)+'='+encodeURIComponent(parameters[key]));
+        }
+        rqURL += finalParams.join('&');
+        result = this.XMLtoJSONRequest(rqURL);
+        return result;
+    },
+    /*
+     * Performs a HTTP request that returns XML and then converts it to a
+     * JSON-style object.
+     */
+    XMLtoJSONRequest: function(url)
+    {
+        if(runtimeCache[url])
+        {
+            return _.clone(runtimeCache[url],true);
+        }
+        printv(4,'Performing XMLtoJSONRequest to: '+url);
+        var data;
+        try
+        {
+            data = wait.forMethod(httpreq,'get',url);
+        }
+        catch(e)
+        {
+            printv(1,'Got error while performing an XMLtoJSONRequest to "'+url+'": '+e.message);
+        }
+        try
+        {
+            data = xml2json.toJson(data.body);
+        }
+        catch(e)
+        {
+            // Errors might mean malformed XML, just return nothing
+            return;
+        }
+        var result = JSON.parse(data);
+        runtimeCache[url] = _.clone(result,true);
+        return result;
+    },
+    /*
+     * Performs final sorting and deduplication of a games list and adds the id
+     * numbers
+     */
+    sortAndFinalize: function (entries,config)
+    {
+        var seen = {};
+        var finalEntries = [];
+        // Deduplicate
+        for (var collectionEntry of entries)
+        {
+            var ckey = getCacheID(collectionEntry);
+            if(seen[ckey] === undefined)
+            {
+                seen[ckey] = collectionEntry;
+                finalEntries.push(collectionEntry);
+            }
+            else
+            {
+                seen[ckey].bSource += ', '+collectionEntry.bSource;
+            }
+        }
+        // Sort
+        if(config.defaultSort === undefined || config.defaultSort !== 'year')
+        {
+            finalEntries.sort(function(a,b) {
+                    return a.title.localeCompare(b.title);
+            });
+        }
+        else
+        {
+            finalEntries.sort(function(a,b) {
+                    if(a.year && b.year && a.year != b.year)
+                    {
+                        return b.year - a.year;
+                    }
+                    if(a.year && !b.year)
+                    {
+                        return -1;
+                    }
+                    if (!a.year && b.year)
+                    {
+                        return 1;
+                    }
+                    return a.title.localeCompare(b.title);
+            });
+        }
+        // Generate ID numbers
+        for (var collectionEntryI in finalEntries)
+        {
+            var collEntry = finalEntries[collectionEntryI];
+            collEntry.id  = collectionEntryI;
+        }
+        return finalEntries;
+    },
+    /*
+     * Retrieves a poster for a game, either from TheGamesDB or Steam.
+     *
+     * TODO: Support custom posters
+     */
+    getPoster: function(entry,gameEntry,rawEntry)
+    {
+        try
+        {
+            if(entry == null)
+            {
+                entry = {};
+            }
+            var image;
+            if(entry.GameTitle)
+            {
+                entry.title = entry.GameTitle;
+            }
+            else if(gameEntry.title)
+            {
+                entry.title = gameEntry.title;
+            }
+            var ckey = getCacheID(entry,'game');
+            if(entry && entry.Images && entry.Images.boxart)
+            {
+                var iter = this.mustBeArray(entry.Images.boxart);
+                for (var img of iter)
+                {
+                    image = img['$t']; // jshint ignore:line
+                    if(img.side == 'front')
+                    {
+                        break;
+                    }
+                }
+                if(image && entry.baseImgUrl)
+                {
+                    image = entry.baseImgUrl+image;
+                }
+            }
+            else if(entry && entry.header_image)
+            {
+                image = entry.header_image;
+            }
+            else if(rawEntry && rawEntry.appid)
+            {
+                image = gameEntry.logo;
+            }
+            if(image)
+            {
+                helper.downloadAndCacheURL(image,ckey,entry);
+                return path.basename(image);
+            }
+        }
+        catch (e)
+        {
+            if(e.stack)
+            {
+                printv(1,'Error while finding poster for '+entry.title+': '+e.stack);
+            }
+            else
+            {
+                printv(1,'Error while finding poster for '+entry.title+': '+e);
+            }
+        }
+        return 'missing.png';
+    },
+    /*
+     * Convers thing into an array if it isn't already
+     */
+    mustBeArray: function (thing)
+    {
+        if (!_.isArray(thing))
+        {
+            return [ thing ];
+        }
+        return thing;
+    },
+    /*
+     * Converts thing to a string if it isn't already
+     */
+    mustBeString: function(thing)
+    {
+        if(thing === undefined)
+        {
+            return thing;
+        }
+        if (_.isArray(thing))
+        {
+            return thing.join(', ');
+        }
+        if(typeof(thing) != "string")
+        {
+            if(thing.toString)
+            {
+                return thing.toString();
+            }
+            throw('Unable to ensure that "'+thing+'" is a string');
+        }
+        return thing;
+    },
+    /*
+     * Handles a single collection, loading each file and requesting each steam
+     * user, preparing the metadata and returning the final constructed dataset
+     * for the collection
+     */
+    performDatabaseConstruction: function (name,groupConf,writtenFiles,groupNo)
+    {
+        var groupData = [],
+        groupMeta = {
+            sourceToNameMap: {},
+            genres: [],
+            platforms: [],
+            type: groupConf.type,
+            hasMetascore: false,
+            seenYear: false
+        };
+        for(var entry of groupConf.sources)
+        {
+            try
+            {
+                var result;
+                if(entry.source == 'steam')
+                {
+                    printv(3,'  Generating Steam profile for "'+entry.user+'"');
+                    result = gamesAPI.generateSteamListFor(entry.user);
+                }
+                else if(entry.file)
+                {
+                    printv(3,'  Interpreting file "'+entry.file+'"');
+                    result = gamesAPI.handleGamesFile(entry.file);
+                    entry.file = path.basename(entry.file);
+                }
+                else
+                {
+                    throw('Unhandled source: '+entry.source);
+                }
+                groupMeta.sourceToNameMap[result.bSource] = entry.name;
+                groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
+                groupMeta.platforms = groupMeta.platforms.concat(result.meta.platforms);
+                groupData = groupData.concat(result.data);
+                if(result.meta.seenYear)
+                {
+                    groupMeta.seenYear= result.meta.seenYear;
+                }
+                if(result.meta.hasMetascore)
+                {
+                    groupMeta.hasMetascore = result.meta.hasMetascore;
+                }
+                entry.bSource = result.bSource;
+            }
+            catch(e)
+            {
+                if(e.stack)
+                {
+                    printv(1,'Error while processing '+entry.source+': '+e.stack);
+                }
+                else
+                {
+                    printv(1,'Error while processing '+entry.source+': '+e);
+                }
+            }
+        }
+        var filename = core.writeHtmlFile(name,groupNo);
+        writtenFiles[filename] = true;
+
+        groupMeta.genres.sort();
+        groupMeta.genres = _.filter( _.uniq(groupMeta.genres,true), function (genre) { return genre != null; });
+        for(var remapI in groupMeta.platforms)
+        {
+            groupMeta.platforms[remapI] = this.doPlatformRemap(groupMeta.platforms[remapI],true);
+        }
+        groupMeta.platforms.sort();
+        groupMeta.platforms = _.filter( _.uniq(groupMeta.platforms,true), function (platform) { return platform != null; });
+
+        return { name: name, data: gamesAPI.sortAndFinalize(groupData,groupConf), meta: groupMeta, groupNo: groupNo };
+    }
+};
+
+/*
+ * Various helper functions for the rest of the program
+ */
+var helper = {
+    /*
+     * Downloads a URL synchronously and returns the JSON data from it
+     */
+    GETJSON: function (url)
+    {
+        printv(4,'Performing GET request for JSON to '+url);
+        var data;
+        try
+        {
+            data = wait.forMethod(httpreq,'get',url);
+        }
+        catch(e)
+        {
+            printv(5,'Exception while performing request: '+e.message);
+            return null;
+        }
+        if (data.body == 'null')
+        {
+            printv(5,'URL returned literal null');
+            return;
+        }
+        try
+        {
+            var req = JSON.parse(data.body);
+            printv(5,'Successfully parsed JSON');
+            return req;
+        }
+        catch(e)
+        {
+            printv(5, 'Error during JSON parsing: '+e.message);
+            return;
+        }
+    },
+    /*
+     * Remaps fields on an object (CSV-file) from various variations that we
+     * accept into the actual fields we use internally
+     */
+    remapCSVFields: function (content)
+    {
+        var map = {
+            'Tittel':'title',
+            'Namn':'title',
+            'Plattform':'platform',
+            'Sesongar':'seasons',
+            'Sesonger':'seasons',
+            'Original Tittel':'origTitle',
+            'Original tittel':'origTitle',
+            'Årstall':'year',
+            'Sjanger':'genre',
+            'Format':'format',
+            'Klassikernummer':'disneyClassicNo',
+            'Kover':'customCover',
+            'Cover':'customCover',
+            'Skuespillere':'actors',
+            'Omslag':'customCover',
+            'Alternativ tittel':'altTitle',
+            'Alternativ Tittel':'altTitle',
+            'IMDB ID':'imdbID',
+            'Rating':'rating',
+            'Terningkast':'rating',
+            'Notat':'note'
+        };
+        // Remap according to the mapping table
+        for(var key in map)
+        {
+            var sourceKey = key;
+            if(content[key] === undefined)
+            {
+                sourceKey += ':';
+            }
+            if(content[sourceKey] !== undefined)
+            {
+                if(content[sourceKey].length)
+                {
+                    content[ map[key] ] = content[sourceKey];
+                }
+                delete content[sourceKey];
+            }
+        }
+        // Lowercase unmapped keys
+        for(key in content)
+        {
+            if(key === "")
+            {
+                printv(1,'Warning: '+content.title+' has an empty key ("")');
+                continue;
+            }
+            if (/^[A-Z]/.test(key))
+            {
+                content[key.toLowerCase()] = content[key];
+                delete content[key];
+            }
+        }
+    },
+    /*
+     * Does some generic replacements on a title, converting roman numerals to
+     * the Arabic numerals (and the other way around), and converting & to and
+     * or and to &
+     */
+    attemptGenericReplacements: function (origTitle)
+    {
+        if(origTitle == null)
+        {
+            throw('attemptGenericReplacements got null origTitle');
+        }
+        var fixedTitle;
+        var replacements = [
+            {
+                index: 'III',
+                replacement: '3',
+                regex: /III/
+            },
+            {
+                index: '3',
+                replacement: 'III',
+                regex: /3/
+            },
+            {
+                index: 'II',
+                replacement: '2',
+                regex: /II/
+            },
+            {
+                index: '2',
+                replacement: 'II',
+                regex: /2/
+            },
+            {
+                index: 'IV',
+                replacement: '4',
+                regex: /IV/
+            },
+            {
+                index: '4',
+                replacement: 'IV',
+                regex: /4/
+            },
+            {
+                index: ' and ',
+                replacement: ' & ',
+                regex: / and /
+            },
+            {
+                index: ' & ',
+                replacement: ' and ',
+                regex: / & /
+            },
+            {
+                index: ' 1:',
+                replacement: ' I:',
+                regex: / 1:/
+            },
+            {
+                index: 'two',
+                replacement: '2',
+            },
+            {
+                index: 'three',
+                replacement: '3',
+            },
+            {
+                index: 'four',
+                replacement: '4',
+            },
+            {
+                index: 'five',
+                replacement: '5',
+            },
+        ];
+        for (var attempt of replacements)
+        {
+            if(origTitle.indexOf(attempt.index) != -1)
+            {
+                return origTitle.replace(attempt.regex,attempt.replacement);
+            }
+        }
+        return null;
+    },
+    /*
+     * Downloads a URL to a file and caches some metadata for it
+     *
+     * Used for poster downloading.
+     */
+    downloadAndCacheURL: function (url,ckey,entry)
+    {
+        if(url === undefined || !/^http/.test(url) || /originalnull/.test(url))
+        {
+            printv(1,'Failed to retrieve poster for '+entry.title+( entry.origTitle ? ' ('+entry.origTitle+')' : ''));
+            cache.URLs[ckey] = 'MISS';
+            return;
+        }
+        if(ckey == null || ckey === "")
+        {
+            console.log('WARNING: downloadAndCacheURL received null/empty ckey');
+        }
+        cache.URLs[ckey] = url;
+        if (!fs.existsSync('src/raw/images/orig/'+path.basename(url)))
+        {
+            if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
+            {
+                printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.URLs[ckey])+' ('+cache.URLs[ckey]+' and '+cache.fileMap[path.basename(cache.URLs[ckey])]+')');
+            }
+            else
+            {
+                printv(4,'Downloading: '+url+' to '+'src/raw/images/orig/'+path.basename(url));
+                var data = wait.forMethod(httpreq,'get',url, {binary: true });
+                if(data.statusCode === 200)
+                {
+                    fs.writeFileSync('src/raw/images/orig/'+path.basename(url),data.body);
+                    printv(1,'Downloaded poster for '+entry.title);
+                }
+                else
+                {
+                    printv(1,'Failed to download poster from '+url+': '+data.statusCode);
+                    return;
+                }
+            }
+        }
+        if (!cache.fileMap[ path.basename(cache.URLs[ckey]) ])
+        {
+            cache.fileMap[path.basename(cache.URLs[ckey])] = url;
+        }
+    }
+};
+
+/*
+ * Core bits of software not directly related to games, movies or tv, and not
+ * quite helpers for other things
+ */
+var core = {
+    /*
+     * Writes a out the final dataset and HTML fiels for a collection group
+     */
+    writeOutResult: function (groupMeta,groupData,groupNo,name,config,writtenFiles)
+    {
+        var filename = core.writeHtmlFile(name,groupNo);
+        writtenFiles[filename] = true;
+
+        groupMeta.genres.sort();
+        groupMeta.genres = _.uniq(groupMeta.genres,true);
+
+        var dataset = {
+            i18n: i18n.strings,
+            config: config,
+            data: groupData,
+            meta: groupMeta,
+            // dVer is the dataset version, it is validated in the front-end JS
+            // to make sure that it doesn't try to render an unsupported dataset
+            // version. Should only be bumped on a non-backwards compatible change.
+            // The test in rotcelloc.js also needs to be modified in that case.
+            dVer: 0,
+            version: packageJSON.version
+        };
+        fs.writeFileSync('src/static/'+name.toLowerCase()+'.dataset.json',JSON.stringify(dataset));
+    },
+    /*
+     * Writes out an HTML file for a collection group
+     */
+    writeHtmlFile: function (name,groupNo)
+    {
+        if(name == null || groupNo == null)
+        {
+            throw('writeHtmlFile received null arguments');
+        }
+        var filename = name.toLowerCase()+'.html';
+        if(groupNo == 1)
+        {
+            filename = 'index.html';
+        }
+        fs.writeFileSync('src/render/'+filename,'---\nlayout: default\ntitle: '+name+'\nmenuOrder: '+groupNo+'\n---\n<div class="searchForm" id="searchForm"></div>\n<div id="collResultTarget" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>');
+        return filename;
+    },
+    /*
+     * Loads the config, the i18n data, then hands control over to the various
+     * APIs to let them build the actual databases.
+     */
+    constructDatabase:function()
+    {
+        var config  = {},
+            nameMap = {};
+        if (!fs.existsSync('config.json'))
+        {
+            console.log('Error: you must configure rotcelloc first. Aborting.');
+            console.log('See the user guide in README.md');
+            process.exit(1);
+        }
+        try
+        {
+            config  = JSON.parse(fs.readFileSync('config.json'));
+        }
+        catch(e)
+        {
+            throw('Failed to parse config.json: '+e.stack);
+        }
+
+        core.loadCache();
+        if(config.language && fs.existsSync('i18n/'+config.language+'.po'))
+        {
+            child_process.execFileSync('./node_modules/po2json/bin/po2json', [ '--format','mf','--fallback-to-msgid', 'i18n/'+config.language+'.po','i18n/'+config.language+'.json' ], { stdio: 'inherit' });
+            i18n.strings = JSON.parse(fs.readFileSync('i18n/'+config.language+'.json'));
+        }
+        var groupNo = 0,
+            writtenFiles = {};
+        for (var name in config.collections)
+        {
+            groupNo++;
+            printv(2,' Constructing group "'+name+'"');
+            var groupConf = config.collections[name];
+            var result;
+            if(groupConf.type == 'series' || groupConf.type == 'movies')
+            {
+                result = movieAPI.performDatabaseConstruction(name,groupConf,writtenFiles,groupNo);
+            }
+            else if(groupConf.type == 'games')
+            {
+                result = gamesAPI.performDatabaseConstruction(name,groupConf,writtenFiles,groupNo);
+            }
+            else
+            {
+                throw('Unhandled group type: '+groupConf.type+' for '+groupConf.name);
+            }
+            core.writeOutResult(result.meta, result.data, groupNo, name, config, writtenFiles);
+            // Write current cache
+            core.writeCache();
+        }
+
+        // Remove old *html files
+        var files = wait.for(glob,'src/render/*html');
+        for (var file of files)
+        {
+            if (!writtenFiles[path.basename(file)])
+            {
+                fs.unlinkSync(file);
+            }
+        }
+    },
+    /*
+     * Expires unused entries from the database. Will perform a database
+     * construction first
+     */
+    performCacheExpiry: function ()
+    {
+        printv(1,'First generating database to get cache usage information ...');
+        // Reset verbosity so that we don't get a lot of messages while performing
+        // the database construction
+        var verbosity = commander.verbose;
+        commander.verbose = 0;
+        // Construct the database
+        core.constructDatabase();
+        // Reset the verbosity
+        commander.verbose = verbosity;
+
+        var cacheTypes = [ 'URLs', 'meta','gameMeta' ],
+            ckey;
+        printv(2,'Searching for and purging unused cache keys...');
+        for (var type of cacheTypes)
+        {
+            if(cache[type])
+            {
+                for(ckey in cache[type])
+                {
+                    if (!runtimeCache._cacheReads[ckey])
+                    {
+                        printv(1,'Expired unused key "'+ckey+'" of the type '+type);
+                        delete(cache[type][ckey]);
+                    }
+                }
+            }
+        }
+        printv(2,'Searching for and purging unused files...');
+        var reverseFileMap = {};
+        for(ckey in cache.URLs)
+        {
+            reverseFileMap[ cache.URLs[ckey] ] = ckey;
+        }
+        var files = wait.for(glob,'src/raw/images/orig/*');
+        for(var file of files)
+        {
+            var baseFile = path.basename(file);
+            var remove = null;
+            if (!cache.fileMap[baseFile])
+            {
+                remove = "not in fileMap";
+            }
+            else
+            {
+                var url = cache.fileMap[baseFile];
+                if (!reverseFileMap[url])
+                {
+                    remove = "not in reverseFileMap ["+url+"]";
+                }
+            }
+            if(remove)
+            {
+                fs.unlinkSync(file);
+                printv(1,'Removed file: '+file);
+                printv(2,'Reason for removal: '+remove);
+            }
+        }
+        var resizedFiles = wait.for(glob,'src/raw/images/*');
+        for(var resizedFile of resizedFiles)
+        {
+            if(fs.statSync(resizedFile).isFile())
+            {
+                var baseResizedFile = path.basename(resizedFile);
+                if (! fs.existsSync('src/raw/images/orig/'+baseResizedFile))
+                {
+                    fs.unlinkSync(resizedFile);
+                    printv(1,'Removed file: '+resizedFile);
+                }
+            }
+        }
+        core.writeCache();
+    },
+    /*
+     * Load the cache file
+     */
+    loadCache: function()
+    {
+        if(fs.existsSync('.cache.json'))
+        {
+            printv(3,'Loading cache from .cache.json');
+            cache = JSON.parse(fs.readFileSync('.cache.json'));
+        }
+        if (!cache.URLs)
+        {
+            cache = { URLs: cache };
+        }
+        if (!cache.fileMap || commander.expireCovers)
+        {
+            cache.fileMap = {};
+        }
+        if (!cache.meta || commander.expireMeta)
+        {
+            cache.meta = {};
+        }
+        if (!cache.gameMeta || commander.expireMeta)
+        {
+            cache.gameMeta = {};
+        }
+        if (!cache.steamMeta || commander.expireMeta)
+        {
+            cache.steamMeta = {};
+        }
+        if (!cache.arbitrary || commander.expireMeta)
+        {
+            cache.arbitrary = {};
+        }
+    },
+    /*
+     * Write the cache file
+     * */
+    writeCache: function ()
+    {
+        fs.writeFileSync('.cache.json.out',JSON.stringify(cache));
+        fs.renameSync('.cache.json.out','.cache.json');
+    },
+    /*
+     * Expire stuff from the cache that matches "byvalue"
+     */
+    cacheExpiry: function(byvalue,onlyMiss)
+    {
+        byvalue = byvalue.toLowerCase();
+        core.loadCache();
+        for (var type of [ 'meta', 'URLs', 'gameMeta','arbitrary' ])
+        {
+            var result = cache[type];
+            for (var entry in result)
+            {
+                if(entry.toLowerCase().indexOf(byvalue) != -1 || byvalue === '')
+                {
+                    if(onlyMiss && result[entry] != 'MISS')
+                    {
+                        continue;
+                    }
+                    console.log(type+': removed "'+entry+'"');
+                    delete result[entry];
+                }
+            }
+        }
+        core.writeCache();
+    }
+};
+
+
+/*
+ * Generates and returns a cache ID string that will be unique to this entry
+ * and can be used to store and retrieve data in the persistent cache
+ */
+function getCacheID (entry,type,opts)
+{
+    var ckey = '';
+    if(type === undefined)
+    {
+        type = entry.type;
+    }
+    if(entry.origTitle)
+    {
+        ckey = entry.origTitle;
+    }
+    else if(entry.title)
+    {
+        ckey = entry.title;
+    }
+    else
+    {
+        ckey = entry.name;
+    }
+    if(entry.altTitle)
+    {
+        ckey += '//'+entry.altTitle;
+    }
+    ckey += '//'+entry.year;
+    if(type == 'tv')
+    {
+        ckey += 'tvserie';
+    }
+    else if(type == 'game')
+    {
+        ckey += '//game';
+        if(entry.platform)
+        {
+            ckey += '//'+entry.platform;
+        }
+        if(entry.steamID && (!opts || !opts.ignoreSteam))
+        {
+            ckey += '//steam-'+entry.steamID;
+        }
+    }
+    if(runtimeCache._cacheReads)
+    {
+        runtimeCache._cacheReads[ckey] = true;
+    }
+    return ckey;
+}
+/*
+ * Prints a message if the verbosity level is high enough
+ */
+function printv(reqVerb,message)
+{
+    if(commander.verbose >= reqVerb)
+    {
+        if (reqVerb > 1 && !/^\s+/.test(message))
+        {
+            var spaces = '';
+            for(var n = 1; reqVerb >= n; n++)
+            {
+                spaces += ' ';
+            }
+            message = spaces+message;
+        }
+        console.log(message);
+    }
+}
+/*
+ * Main entry points. Parses and performs actions depending on the command-line
+ * parameters
+ */
+function main()
+{
+    try
+    {
+        packageJSON = JSON.parse(fs.readFileSync('package.json'));
+    }
+    catch(e)
+    {
+        packageJSON = { 'version':'UNKNOWN' };
+    }
+
+    commander
+    .version(packageJSON.version)
+    .option('-g, --database-only', 'only generate the database, don\'t also build the site')
+    .option('-s, --site-only','only generate the site, don\'t also build the database')
+    .option('-q, --quiet','be quiet (overrides any --verbose arguments)')
+    .option('-v, --verbose','increase verbosity', function (v,total) { return total + 1;},1)
+    .option('--retry-miss','retry fetching data or covers where those have failed previously')
+    .option('-d, --server','run a local development server')
+    .option('--include-debug','include debugging metadata')
+    .option('--expire-meta','expire all cached metadata from the cache')
+    .option('--expire-covers','expire all cached covers from the cache')
+    .option('--expire-matching [match]','expire all cached data where the key case insensitively matches [match] and exit')
+    .option('--expire-matching-miss [match]','same as above, but only expire cached failures')
+    .option('--expire-unused','expire all unused cache entries (implies -g)')
+    .option('--steam-dump [user]','Dump Steam games belonging to [user]')
+    .parse(process.argv);
+
+    if(commander.quiet)
+    {
+        commander.verbose = 0;
+    }
+    else if (!commander.verbose)
+    {
+        commander.verbose = 1;
+    }
+    if(commander.expireUnused)
+    {
+        commander.databaseOnly = true;
+        runtimeCache._cacheReads = {};
+    }
+
+    process.chdir(path.dirname(fs.realpathSync(process.argv[1])));
+
+    if (!fs.existsSync('src/render/rotcelloc.js'))
+    {
+        console.log('Run me from the right directory (root of the tree)');
+        process.exit(1);
+    }
+
+    /* Handle exclusive options */
+    if(commander.expireMatching)
+    {
+        core.cacheExpiry(commander.expireMatching);
+        process.exit(0);
+    }
+    else if(commander.expireMatchingMiss !== undefined)
+    {
+        core.cacheExpiry(commander.expireMatchingMiss,true);
+        process.exit(0);
+    }
+    else if(commander.steamDump)
+    {
+        core.loadCache();
+        var list = gamesAPI.generateSteamListFor('arderath');
+        core.writeCache();
+        process.exit(0);
+    }
+
+    if(commander.siteOnly && commander.databaseOnly)
+    {
+        printv(1,'Asked not to do anything at all.');
+        process.exit(1);
+    }
+
+    if(commander.siteOnly && (commander.expireMeta || commander.expireCovers))
+    {
+        printv(1,'Can not use --expire-* with --site-only');
+        process.exit(1);
+    }
+
+    if(commander.expireUnused)
+    {
+        core.performCacheExpiry();
+        process.exit(0);
+    }
+
+    printv(1,'rotcelloc version '+packageJSON.version+' running');
+
+    if (!commander.siteOnly)
+    {
+        printv(1,'Building database...');
+        core.constructDatabase();
+        printv(1,'Preparing images...');
+        var files = wait.for(glob,'src/raw/images/orig/*');
+        for(var file of files)
+        {
+            if(! fs.existsSync('src/raw/images/'+path.basename(file)))
+            {
+                printv(3,'Creating resized version of '+path.basename(file));
+                child_process.execFileSync('convert', [ '-resize', '270x', file, 'src/raw/images/'+path.basename(file) ], { stdio: 'inherit' });
+            }
+        }
+    }
+
+    if(!commander.databaseOnly)
+    {
+        var docpadConf = require('./.docpad.js');
+
+        if(fs.existsSync('./out'))
+        {
+            printv(1,'Cleaning up old files...');
+            child_process.execFileSync('rm',['-rf','out']);
+        }
+        if (!fs.existsSync('src/deps/bootstrap-variables.scss'))
+        {
+            printv(1,'Fetching dependency: bootstrap-variables.scss');
+            child_process.execFileSync('wget', [ 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+docpadConf.templateData.site.bootstrapVersion+')/assets/stylesheets/bootstrap/_variables.scss', '-O', 'src/deps/bootstrap-variables.scss' ]);
+        }
+        if(commander.server)
+        {
+            printv(1,'Running docpad development server...');
+            child_process.execFileSync('docpad', [ 'run', '--config','./.docpad.js', '--no-color','--offline','--silent' ], { stdio: 'inherit' } );
+        }
+        else
+        {
+            printv(1,'Generating site with docpad...');
+            var params = [ 'generate', '--config','./.docpad.js','--no-color', '--offline','--silent', '--env', 'static' ];
+            if(commander.verbose < 3)
+            {
+                params.push('--debug',4);
+            }
+            try
+            {
+                child_process.execFileSync('docpad', params, { stdio: 'inherit' } );
+            }
+            catch(e)
+            {
+                process.exit(1);
+            }
+
+            var htmlFiles = child_process.execFileSync('find',[ 'out', '-name', '*.html', '-print0' ]);
+            htmlFiles = htmlFiles.toString().split(/\0/);
+            htmlFiles.pop(); // Remove empty last element
+            htmlFiles.unshift('-pi','-e','s/^\\s+//');
+            child_process.execFileSync('perl',htmlFiles);
+        }
+    }
+}
+
+/*
+ * Executes "main" inside a fiber instance, which is then used by waitfor to
+ * make functions that are normally async execute synchronously.
+ */
+wait.launchFiber(main);

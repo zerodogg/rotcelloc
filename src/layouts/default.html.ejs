@@ -1,0 +1,89 @@
+<%
+/*
+ * rotcelloc HTML template
+ *
+ * Part of rotcelloc - the hacker's movie, tv-series and game collection
+ * manager
+ *
+ * Copyright (C) Eskild Hustvedt 2015
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+%><!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title><%= document.title ? document.title : 'Samlingar' %></title>
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= site.bootstrapVersion %>/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= site.bootstrapVersion %>/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="style.css">
+        <meta name="generator" content="rotcelloc" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noindex, nofollow" />
+        <%- getBlock("styles").toHTML() %><%
+if (!site.bootstrapVersion)
+{
+    console.log('\n\n====\nERROR: You must use ./rotcelloc to build the app, running "docpad" directly is unsupported\n====\n');
+    process.exit(1);
+}
+        %>
+        <!--[if lte IE 8]>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.1.5/es5-shim.min.js"></script>
+        <![endif]-->
+    </head>
+    <body class="loading<%= document.rootStyle ? ' '+document.rootStyle : '' %>">
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+                        <span class="sr-only" id="menuToggle"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <span class="navbar-brand visible-xs"><%- getConfig().menuSiteTitle %></span>
+                </div>
+                <div class="collapse navbar-collapse" id="navbar">
+                    <ul class="nav navbar-nav">
+                    <%
+                    var menuContent = generateMenu(document.url);
+                    if(menuContent.length > 1)
+                    {
+                        for(entry of generateMenu(document.url))
+                        {
+                            var currUrl = entry.url.replace(/^\//,'');
+                            currUrl = currUrl == 'index.html' ? './' : currUrl;
+                        %>
+                            <li class="<%= entry.state == 'current' ? 'active' : ''%>"><a href="<%= currUrl %>"><%= entry.title %></a></li>
+                     <% }
+                    }%>
+                    </ul>
+                    <span class="navbar-right navbar-brand hidden-xs"><%- getConfig().menuSiteTitle %></span>
+                </div>
+            </div>
+        </nav>
+        <main class="container">
+            <%- content %>
+        </main>
+        <footer class="container">
+            <%- generatorFooter() %>
+        </footer>
+        <script src="https://code.jquery.com/jquery-<%= site.jQueryVersion %>.min.js"></script>
+        <script src="https://netdna.bootstrapcdn.com/bootstrap/<%= site.bootstrapVersion %>/js/bootstrap.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.min.js"></script>
+        <script src="rotcelloc.js" async></script>
+        <%- getBlock("scripts").toHTML() %>
+    </body>
+</html>
+
