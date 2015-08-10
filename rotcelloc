@@ -2421,7 +2421,13 @@ function main()
 
     if(!commander.databaseOnly)
     {
-        var docpadConf = require('./.docpad.js');
+        var docpadConf = require(helper.resolvePath('.docpad.js'));
+
+        var docpad = 'docpad';
+        if(fs.existsSync(helper.resolvePath('node_modules/docpad/bin/docpad')))
+        {
+            docpad = 'node_modules/docpad/bin/docpad';
+        }
 
         if(fs.existsSync(helper.resolvePath('out')))
         {
@@ -2436,7 +2442,7 @@ function main()
         if(commander.server)
         {
             printv(1,'Running docpad development server...');
-            child_process.execFileSync('docpad', [ 'run', '--config','./.docpad.js', '--no-color','--offline','--silent' ], { stdio: 'inherit' } );
+            child_process.execFileSync(docpad, [ 'run', '--config',helper.resolvePath('.docpad.js'), '--no-color','--offline','--silent' ], { stdio: 'inherit' } );
         }
         else
         {
@@ -2448,7 +2454,7 @@ function main()
             }
             try
             {
-                child_process.execFileSync('docpad', params, { stdio: 'inherit' } );
+                child_process.execFileSync(docpad, params, { stdio: 'inherit' } );
             }
             catch(e)
             {
