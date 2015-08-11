@@ -2478,7 +2478,7 @@ function main()
             child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolvePath('src/images/'+path.basename(file)) ], { stdio: 'inherit' });
         }
     }
-    printv(1,'Finalizing site...');
+    printv(1,'Preparing webapp...');
     webappGen.finalize();
 
 }
