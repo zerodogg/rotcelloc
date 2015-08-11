@@ -2414,7 +2414,7 @@ function main()
             if(! fs.existsSync(helper.resolvePath('src/raw/images/'+path.basename(file))))
             {
                 printv(3,'Creating resized version of '+path.basename(file));
-                child_process.execFileSync('convert', [ '-resize', '270x', helper.resolvePath(file), 'src/raw/images/'+path.basename(file) ], { stdio: 'inherit' });
+                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolvePath('src/raw/images/'+path.basename(file)) ], { stdio: 'inherit' });
             }
         }
     }
