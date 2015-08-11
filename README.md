@@ -212,6 +212,12 @@ command-line parameters
 [movie-art](https://www.npmjs.com/package/movie-art) - used to retrieve posters
 from TMDb
 
+[ejs](http://ejs.co/) - used for templating
+
+[UglifyJS](https://github.com/mishoo/UglifyJS) - used to minify JS
+
+[SASS](http://sass-lang.com/) - used to compile SCSS to CSS
+
 [jQuery](http://jquery.com/) - used for DOM-traversal and manipulation in the
 webapp
 

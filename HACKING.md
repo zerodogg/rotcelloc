@@ -12,9 +12,8 @@ and gives the user a nice UI for it.
 ## command-line application (rotcelloc)
 
 The command-line application that does all of the parsing of a
-collection, downloads metadata and posters, builds the JSON-database and writes
-out the html fragments used to build the pages. It then uses docpad to build
-the static webapp.
+collection, downloads metadata and posters, builds the JSON-database, compiles
+JS and CSS, and then renders the HTML through our EJS-template.
 
 ## webapp
 

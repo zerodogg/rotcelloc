@@ -16,6 +16,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 translations:
-	xgettext --copyright-holder 'Eskild Hustvedt' --package-name Rotcelloc --keyword=translate --from-code utf-8 --language JavaScript --add-comments=Translators: src/render/rotcelloc.js ./rotcelloc ./.docpad.js -o i18n/translate.pot
+	xgettext --copyright-holder 'Eskild Hustvedt' --package-name Rotcelloc --keyword=translate --from-code utf-8 --language JavaScript --add-comments=Translators: src/rotcelloc.js ./rotcelloc -o i18n/translate.pot
 	perl -pi -e 's/^# SOME DESCRIPTIVE TITLE./# Rotcelloc/g' i18n/translate.pot
 	for f in i18n/*po; do msgmerge -U $$f i18n/translate.pot;done

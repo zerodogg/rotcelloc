@@ -25,24 +25,17 @@
     <head>
         <meta charset="utf-8" />
         <title><%= document.title ? document.title : 'Samlingar' %></title>
-        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= site.bootstrapVersion %>/css/bootstrap.min.css">
-        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= site.bootstrapVersion %>/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="style.css">
         <meta name="generator" content="rotcelloc" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noindex, nofollow" />
-        <%- getBlock("styles").toHTML() %><%
-if (!site.bootstrapVersion)
-{
-    console.log('\n\n====\nERROR: You must use ./rotcelloc to build the app, running "docpad" directly is unsupported\n====\n');
-    process.exit(1);
-}
-        %>
         <!--[if lte IE 8]>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/es5-shim/4.1.5/es5-shim.min.js"></script>
         <![endif]-->
     </head>
-    <body class="loading<%= document.rootStyle ? ' '+document.rootStyle : '' %>">
+    <body class="loading">
         <nav class="navbar navbar-default navbar-fixed-top">
             <div class="container-fluid">
                 <div class="navbar-header">
@@ -52,15 +45,14 @@ if (!site.bootstrapVersion)
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <span class="navbar-brand visible-xs"><%- getConfig().menuSiteTitle %></span>
+                    <span class="navbar-brand visible-xs"><%- config.menuSiteTitle %></span>
                 </div>
                 <div class="collapse navbar-collapse" id="navbar">
                     <ul class="nav navbar-nav">
                     <%
-                    var menuContent = generateMenu(document.url);
-                    if(menuContent.length > 1)
+                    if(menu.length > 1)
                     {
-                        for(entry of generateMenu(document.url))
+                        for(entry of menu)
                         {
                             var currUrl = entry.url.replace(/^\//,'');
                             currUrl = currUrl == 'index.html' ? './' : currUrl;
@@ -69,7 +61,7 @@ if (!site.bootstrapVersion)
                      <% }
                     }%>
                     </ul>
-                    <span class="navbar-right navbar-brand hidden-xs"><%- getConfig().menuSiteTitle %></span>
+                    <span class="navbar-right navbar-brand hidden-xs"><%- config.menuSiteTitle %></span>
                 </div>
             </div>
         </nav>
@@ -77,13 +69,12 @@ if (!site.bootstrapVersion)
             <%- content %>
         </main>
         <footer class="container">
-            <%- generatorFooter() %>
+            <%- footer %>
         </footer>
-        <script src="https://code.jquery.com/jquery-<%= site.jQueryVersion %>.min.js"></script>
-        <script src="https://netdna.bootstrapcdn.com/bootstrap/<%= site.bootstrapVersion %>/js/bootstrap.min.js"></script>
+        <script src="https://code.jquery.com/jquery-<%= versions.jQueryVersion %>.min.js"></script>
+        <script src="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/js/bootstrap.min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.min.js"></script>
         <script src="rotcelloc.js" async></script>
-        <%- getBlock("scripts").toHTML() %>
     </body>
 </html>
 

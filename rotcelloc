@@ -61,7 +61,11 @@ try
         // Used to sleep to make the Steam API happy
         sleep         = require('sleep'),
         // Used to parse APIs that return XML instead of JSON
-        xml2json      = require('xml2json');
+        xml2json      = require('xml2json'),
+        // Used to compile our template
+        ejs           = require('ejs'),
+        // Used to minify JS
+        UglifyJS      = require("uglify-js");
 }
     catch(e)
 {
@@ -358,7 +362,7 @@ var movieAPI = {
         {
             url = entry.customCover;
             delete entry.customCover;
-            if (fs.existsSync('src/raw/images/orig/'+path.basename(url)))
+            if (fs.existsSync('src/images/orig/'+path.basename(url)))
             {
                 return url;
             }
@@ -372,7 +376,7 @@ var movieAPI = {
                     return;
                 }
             }
-            else if (fs.existsSync('src/raw/images/orig/'+path.basename(cache.URLs[ckey])))
+            else if (fs.existsSync('src/images/orig/'+path.basename(cache.URLs[ckey])))
             {
                 if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
                 {
@@ -604,7 +608,7 @@ var movieAPI = {
      * Handles a single collection, loading each file, preparing the metadata
      * and returning the final constructed dataset for the collection
      */
-    performDatabaseConstruction: function (name,groupConf,writtenFiles,groupNo)
+    performDatabaseConstruction: function (name,groupConf,groupNo)
     {
         var groupData = [],
         groupMeta = {
@@ -663,8 +667,6 @@ var movieAPI = {
                 }
             }
         }
-        var filename = core.writeHtmlFile(name,groupNo);
-        writtenFiles[filename] = true;
 
         groupMeta.genres.sort();
         groupMeta.genres = _.uniq(groupMeta.genres,true);
@@ -1672,7 +1674,7 @@ var gamesAPI = {
      * user, preparing the metadata and returning the final constructed dataset
      * for the collection
      */
-    performDatabaseConstruction: function (name,groupConf,writtenFiles,groupNo)
+    performDatabaseConstruction: function (name,groupConf,groupNo)
     {
         var groupData = [],
         groupMeta = {
@@ -1729,8 +1731,6 @@ var gamesAPI = {
                 }
             }
         }
-        var filename = core.writeHtmlFile(name,groupNo);
-        writtenFiles[filename] = true;
 
         groupMeta.genres.sort();
         groupMeta.genres = _.filter( _.uniq(groupMeta.genres,true), function (genre) { return genre != null; });
@@ -1945,7 +1945,7 @@ var helper = {
             console.log('WARNING: downloadAndCacheURL received null/empty ckey');
         }
         cache.URLs[ckey] = url;
-        if (!fs.existsSync('src/raw/images/orig/'+path.basename(url)))
+        if (!fs.existsSync('src/images/orig/'+path.basename(url)))
         {
             if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
             {
@@ -1953,11 +1953,11 @@ var helper = {
             }
             else
             {
-                printv(4,'Downloading: '+url+' to '+'src/raw/images/orig/'+path.basename(url));
+                printv(4,'Downloading: '+url+' to '+'src/images/orig/'+path.basename(url));
                 var data = wait.forMethod(httpreq,'get',url, {binary: true });
                 if(data.statusCode === 200)
                 {
-                    fs.writeFileSync('src/raw/images/orig/'+path.basename(url),data.body);
+                    fs.writeFileSync('src/images/orig/'+path.basename(url),data.body);
                     printv(1,'Downloaded poster for '+entry.title);
                 }
                 else
@@ -1989,10 +1989,9 @@ var core = {
     /*
      * Writes a out the final dataset and HTML fiels for a collection group
      */
-    writeOutResult: function (groupMeta,groupData,groupNo,name,config,writtenFiles)
+    writeOutResult: function (groupMeta,groupData,groupNo,name,config,results)
     {
-        var filename = core.writeHtmlFile(name,groupNo);
-        writtenFiles[filename] = true;
+        var filename = webappGen.writePageFor(name,groupNo,results);
 
         groupMeta.genres.sort();
         groupMeta.genres = _.uniq(groupMeta.genres,true);
@@ -2009,24 +2008,7 @@ var core = {
             dVer: 0,
             version: packageJSON.version
         };
-        fs.writeFileSync(helper.resolvePath('src/static/'+name.toLowerCase()+'.dataset.json'),JSON.stringify(dataset));
-    },
-    /*
-     * Writes out an HTML file for a collection group
-     */
-    writeHtmlFile: function (name,groupNo)
-    {
-        if(name == null || groupNo == null)
-        {
-            throw('writeHtmlFile received null arguments');
-        }
-        var filename = name.toLowerCase()+'.html';
-        if(groupNo == 1)
-        {
-            filename = 'index.html';
-        }
-        fs.writeFileSync(helper.resolvePath('src/render/'+filename),'---\nlayout: default\ntitle: '+name+'\nmenuOrder: '+groupNo+'\n---\n<div class="searchForm" id="searchForm"></div>\n<div id="collResultTarget" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>');
-        return filename;
+        fs.writeFileSync(helper.resolvePath('out/'+name.toLowerCase()+'.dataset.json'),JSON.stringify(dataset));
     },
     /*
      * Loads the config, the i18n data, then hands control over to the various
@@ -2058,7 +2040,7 @@ var core = {
             i18n.strings = JSON.parse(fs.readFileSync('i18n/'+config.language+'.json'));
         }
         var groupNo = 0,
-            writtenFiles = {};
+            results = [];
         for (var name in config.collections)
         {
             groupNo++;
@@ -2067,29 +2049,28 @@ var core = {
             var result;
             if(groupConf.type == 'series' || groupConf.type == 'movies')
             {
-                result = movieAPI.performDatabaseConstruction(name,groupConf,writtenFiles,groupNo);
+                result = movieAPI.performDatabaseConstruction(name,groupConf,groupNo);
             }
             else if(groupConf.type == 'games')
             {
-                result = gamesAPI.performDatabaseConstruction(name,groupConf,writtenFiles,groupNo);
+                result = gamesAPI.performDatabaseConstruction(name,groupConf,groupNo);
             }
             else
             {
                 throw('Unhandled group type: '+groupConf.type+' for '+groupConf.name);
             }
-            core.writeOutResult(result.meta, result.data, groupNo, name, config, writtenFiles);
+            results.push({
+                    result: result,
+                    groupNo: groupNo,
+                    name: name,
+                    config: config,
+            });
             // Write current cache
             core.writeCache();
         }
-
-        // Remove old *html files
-        var files = wait.for(glob,helper.resolvePath('src/render/*html'));
-        for (var file of files)
+        for(var entry of results)
         {
-            if (!writtenFiles[path.basename(file)])
-            {
-                fs.unlinkSync(file);
-            }
+            core.writeOutResult(entry.result.meta, entry.result.data, entry.groupNo, entry.name, entry.config, results);
         }
     },
     /*
@@ -2131,7 +2112,7 @@ var core = {
         {
             reverseFileMap[ cache.URLs[ckey] ] = ckey;
         }
-        var files = wait.for(glob,helper.resolvePath('src/raw/images/orig/*'));
+        var files = wait.for(glob,helper.resolvePath('src/images/orig/*'));
         for(var file of files)
         {
             var baseFile = path.basename(file);
@@ -2155,13 +2136,13 @@ var core = {
                 printv(2,'Reason for removal: '+remove);
             }
         }
-        var resizedFiles = wait.for(glob,helper.resolvePath('src/raw/images/*'));
+        var resizedFiles = wait.for(glob,helper.resolvePath('src/images/*'));
         for(var resizedFile of resizedFiles)
         {
             if(fs.statSync(resizedFile).isFile())
             {
                 var baseResizedFile = path.basename(resizedFile);
-                if (! fs.existsSync(helper.resolvePath('src/raw/images/orig/'+baseResizedFile)))
+                if (! fs.existsSync(helper.resolvePath('src/images/orig/'+baseResizedFile)))
                 {
                     fs.unlinkSync(resizedFile);
                     printv(1,'Removed file: '+resizedFile);
@@ -2240,6 +2221,87 @@ var core = {
     }
 };
 
+/*
+ * Web application generator components
+ */
+var webappGen = {
+    versions: {
+        jQueryVersion: '2.1.4',
+        bootstrapVersion: '3.3.5'
+    },
+    createFilename: function(name,groupNo)
+    {
+        var filename;
+        if(groupNo == 1)
+        {
+            filename = 'index.html';
+        }
+        else
+        {
+            filename = name.toLowerCase().replace(/\s+/g,'_');
+            filename += '.html';
+        }
+        return filename;
+    },
+    writePageFor: function (name,groupNo,results)
+    {
+        var filename = webappGen.createFilename(name,groupNo);
+        var template = fs.readFileSync(helper.resolvePath('src/template.ejs'));
+        template = template.toString();
+        var footer = util.format(i18n.translate('Generated by <a href="%s">%s</a> version %s. Software licensed under the <a target="_blank" href="%s">%s</a>. Content is copyrighted by their respective owners.'),'http://random.zerodogg.org/','rotcelloc',packageJSON.version,'https://gnu.org/licenses/agpl-3.0-standalone.html','GNU AGPLv3');
+        var menu = [];
+        for(var entry of results)
+        {
+            var fname = webappGen.createFilename(entry.name,entry.groupNo);
+            menu.push({
+                    url: fname,
+                    state: entry.groupNo == groupNo ? 'current' : '',
+                    title: entry.name
+            });
+        }
+        var content = ejs.render(template, {
+                document: {
+                    title: name,
+                },
+                versions: webappGen.versions,
+                config: JSON.parse(fs.readFileSync(helper.resolvePath('config.json'))),
+                footer: footer,
+                menu: menu,
+                content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>',
+            },
+            {
+                rmWhitespace: true
+            }
+        );
+        fs.writeFileSync(helper.resolvePath('out/'+filename),content);
+    },
+    finalize: function ()
+    {
+
+        if (!fs.existsSync(helper.resolvePath('src/deps/bootstrap-variables.scss')))
+        {
+            printv(1,'Fetching dependency: bootstrap-variables.scss');
+            child_process.execFileSync('wget', [ 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+webappGen.versions.bootstrapVersion+')/assets/stylesheets/bootstrap/_variables.scss', '-O', helper.resolvePath('src/deps/bootstrap-variables.scss') ]);
+        }
+
+        printv(3,'Copying images...');
+        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=images/orig', './src/images/', './out/images/' ]);
+        printv(3,'Compiling JS and CSS...');
+        var uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
+                outSourceMap: 'rotcelloc.js.map',
+            });
+        fs.writeFileSync(helper.resolvePath('out/rotcelloc.js'),uglified.code);
+        fs.writeFileSync(helper.resolvePath('out/rotcelloc.js.map'),uglified.map);
+        child_process.execFileSync('sass',[ '--scss','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolvePath('out/style.css') ]);
+
+        printv(3,'Finalizing HTML...');
+        var htmlFiles = child_process.execFileSync('find',[ helper.resolvePath('out'), '-name', '*.html', '-print0' ]);
+        htmlFiles = htmlFiles.toString().split(/\0/);
+        htmlFiles.pop(); // Remove empty last element
+        htmlFiles.unshift('-pi','-e','s/^\\s+//');
+        child_process.execFileSync('perl',htmlFiles);
+    }
+};
 
 /*
  * Generates and returns a cache ID string that will be unique to this entry
@@ -2327,12 +2389,9 @@ function main()
 
     commander
     .version(packageJSON.version)
-    .option('-g, --database-only', 'only generate the database, don\'t also build the site')
-    .option('-s, --site-only','only generate the site, don\'t also build the database')
     .option('-q, --quiet','be quiet (overrides any --verbose arguments)')
     .option('-v, --verbose','increase verbosity', function (v,total) { return total + 1;},1)
     .option('--retry-miss','retry fetching data or covers where those have failed previously')
-    .option('-d, --server','run a local development server')
     .option('--include-debug','include debugging metadata')
     .option('--expire-meta','expire all cached metadata from the cache')
     .option('--expire-covers','expire all cached covers from the cache')
@@ -2352,13 +2411,12 @@ function main()
     }
     if(commander.expireUnused)
     {
-        commander.databaseOnly = true;
         runtimeCache._cacheReads = {};
     }
 
     process.chdir(path.dirname(fs.realpathSync(process.argv[1])));
 
-    if (!fs.existsSync(helper.resolvePath('src/render/rotcelloc.js')))
+    if (!fs.existsSync(helper.resolvePath('src/rotcelloc.js')))
     {
         console.log('Run me from the right directory (root of the tree)');
         process.exit(1);
@@ -2383,18 +2441,6 @@ function main()
         process.exit(0);
     }
 
-    if(commander.siteOnly && commander.databaseOnly)
-    {
-        printv(1,'Asked not to do anything at all.');
-        process.exit(1);
-    }
-
-    if(commander.siteOnly && (commander.expireMeta || commander.expireCovers))
-    {
-        printv(1,'Can not use --expire-* with --site-only');
-        process.exit(1);
-    }
-
     if(commander.expireUnused)
     {
         core.performCacheExpiry();
@@ -2403,71 +2449,38 @@ function main()
 
     printv(1,'rotcelloc version '+packageJSON.version+' running');
 
-    if (!commander.siteOnly)
+    if(fs.existsSync(helper.resolvePath('out')))
     {
-        printv(1,'Building database...');
-        core.constructDatabase();
-        printv(1,'Preparing images...');
-        var files = wait.for(glob,helper.resolvePath('src/raw/images/orig/*'));
-        for(var file of files)
+        printv(1,'Cleaning up old files...');
+        var oldFiles = wait.for(glob,helper.resolvePath('out/*'));
+        for (var oldFile of oldFiles)
         {
-            if(! fs.existsSync(helper.resolvePath('src/raw/images/'+path.basename(file))))
+            if(fs.statSync(oldFile).isFile())
             {
-                printv(3,'Creating resized version of '+path.basename(file));
-                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolvePath('src/raw/images/'+path.basename(file)) ], { stdio: 'inherit' });
+                fs.unlinkSync(oldFile);
             }
         }
     }
-
-    if(!commander.databaseOnly)
+    if (!fs.existsSync('out'))
     {
-        var docpadConf = require(helper.resolvePath('.docpad.js'));
+        fs.mkdirSync('out');
+    }
 
-        var docpad = 'docpad';
-        if(fs.existsSync(helper.resolvePath('node_modules/docpad/bin/docpad')))
+    printv(1,'Building database...');
+    core.constructDatabase();
+    printv(1,'Preparing images...');
+    var files = wait.for(glob,helper.resolvePath('src/images/orig/*'));
+    for(var file of files)
+    {
+        if(! fs.existsSync(helper.resolvePath('src/images/'+path.basename(file))))
         {
-            docpad = 'node_modules/docpad/bin/docpad';
-        }
-
-        if(fs.existsSync(helper.resolvePath('out')))
-        {
-            printv(1,'Cleaning up old files...');
-            child_process.execFileSync('rm',['-rf',helper.resolvePath('out')]);
-        }
-        if (!fs.existsSync(helper.resolvePath('src/deps/bootstrap-variables.scss')))
-        {
-            printv(1,'Fetching dependency: bootstrap-variables.scss');
-            child_process.execFileSync('wget', [ 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+docpadConf.templateData.site.bootstrapVersion+')/assets/stylesheets/bootstrap/_variables.scss', '-O', helper.resolvePath('src/deps/bootstrap-variables.scss') ]);
-        }
-        if(commander.server)
-        {
-            printv(1,'Running docpad development server...');
-            child_process.execFileSync(docpad, [ 'run', '--config',helper.resolvePath('.docpad.js'), '--no-color','--offline','--silent' ], { stdio: 'inherit' } );
-        }
-        else
-        {
-            printv(1,'Generating site with docpad...');
-            var params = [ 'generate', '--config',helper.resolvePath('.docpad.js'),'--no-color', '--offline','--silent', '--env', 'static' ];
-            if(commander.verbose < 3)
-            {
-                params.push('--debug',4);
-            }
-            try
-            {
-                child_process.execFileSync(docpad, params, { stdio: 'inherit' } );
-            }
-            catch(e)
-            {
-                process.exit(1);
-            }
-
-            var htmlFiles = child_process.execFileSync('find',[ helper.resolvePath('out'), '-name', '*.html', '-print0' ]);
-            htmlFiles = htmlFiles.toString().split(/\0/);
-            htmlFiles.pop(); // Remove empty last element
-            htmlFiles.unshift('-pi','-e','s/^\\s+//');
-            child_process.execFileSync('perl',htmlFiles);
+            printv(3,'Creating resized version of '+path.basename(file));
+            child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolvePath('src/images/'+path.basename(file)) ], { stdio: 'inherit' });
         }
     }
+    printv(1,'Finalizing site...');
+    webappGen.finalize();
+
 }
 
 /*
