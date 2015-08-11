@@ -20,10 +20,6 @@ generate the collection on your local machine and upload it to a web server.
 Run `npm install` to install all dependencies. Then follow the rest of the user
 guide to configure your instance.
 
-**Note**: you will have to manually install a patched version of "movie-art"
-for the time being, as upstream does not yet have the patches we require.
-Install the patched version from https://github.com/zerodogg/movie-art/tree/tv-support
-
 ### Creating a collection
 
 Rotcelloc uses CSV-files that you write yourself to manage your collection.
