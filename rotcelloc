@@ -1351,16 +1351,20 @@ var gamesAPI = {
                     gtLower = response.GameTitle.toLowerCase();
                 for(var bit of filteredName.toLowerCase().split(/\s+/))
                 {
-                    bit = bit.replace(/\W/,'');
-                    if(bit.length === 0)
-                    {
-                        continue;
-                    }
                     // The substr is to make sure we only check for instaces
                     // later in the string than the previous one (so that the
                     // order of the words is preserved, otherwise we'd get a
                     // lot of strange hits)
                     var idx = gtLower.substr(prevLoc+1).indexOf(bit);
+                    if(idx === -1)
+                    {
+                        bit = bit.replace(/\W/,'');
+                        if(bit.length === 0)
+                        {
+                            continue;
+                        }
+                        idx = gtLower.substr(prevLoc+1).indexOf(bit);
+                    }
                     if(idx !== -1)
                     {
                         prevLoc = idx;
