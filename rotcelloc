@@ -2446,6 +2446,7 @@ var webappGen = {
         printv(3,'Compiling JS and CSS...');
         var uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
                 outSourceMap: 'rotcelloc.js.map',
+                sourceMapIncludeSources: true
             });
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js'),uglified.code);
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js.map'),uglified.map);
