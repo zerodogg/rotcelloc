@@ -2070,10 +2070,10 @@ var core = {
         }
 
         core.loadCache();
-        if(config.language && fs.existsSync('i18n/'+config.language+'.po'))
+        if(config.language && fs.existsSync(helper.resolvePath('i18n/'+config.language+'.po')))
         {
-            child_process.execFileSync('./node_modules/po2json/bin/po2json', [ '--format','mf','--fallback-to-msgid', 'i18n/'+config.language+'.po','i18n/'+config.language+'.json' ], { stdio: 'inherit' });
-            i18n.strings = JSON.parse(fs.readFileSync('i18n/'+config.language+'.json'));
+            child_process.execFileSync(helper.resolvePath('/node_modules/po2json/bin/po2json'), [ '--format','mf','--fallback-to-msgid', helper.resolvePath('i18n/'+config.language+'.po'), helper.resolvePath('i18n/'+config.language+'.json') ], { stdio: 'inherit' });
+            i18n.strings = JSON.parse(fs.readFileSync(helper.resolvePath('i18n/'+config.language+'.json')));
         }
         var groupNo = 0,
             results = [];
