@@ -2259,6 +2259,46 @@ var core = {
         {
             process.exit(1);
         }
+    },
+    /*
+     * Wrapper that performs the actual building
+     */
+    build: function ()
+    {
+        core.verifyDeps();
+        printv(1,'rotcelloc version '+packageJSON.version+' running');
+
+        if(fs.existsSync(helper.resolvePath('out')))
+        {
+            printv(1,'Cleaning up old files...');
+            var oldFiles = wait.for(glob,helper.resolvePath('out/*'));
+            for (var oldFile of oldFiles)
+            {
+                if(fs.statSync(oldFile).isFile())
+                {
+                    fs.unlinkSync(oldFile);
+                }
+            }
+        }
+        if (!fs.existsSync('out'))
+        {
+            fs.mkdirSync('out');
+        }
+
+        printv(1,'Building database...');
+        core.constructDatabase();
+        printv(1,'Preparing images...');
+        var files = wait.for(glob,helper.resolvePath('src/images/orig/*'));
+        for(var file of files)
+        {
+            if(! fs.existsSync(helper.resolvePath('src/images/'+path.basename(file))))
+            {
+                printv(3,'Creating resized version of '+path.basename(file));
+                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolvePath('src/images/'+path.basename(file)) ], { stdio: 'inherit' });
+            }
+        }
+        printv(1,'Preparing webapp...');
+        webappGen.finalize();
     }
 };
 
@@ -2334,13 +2374,6 @@ var webappGen = {
         fs.writeFileSync(helper.resolvePath('out/rotcelloc.js'),uglified.code);
         fs.writeFileSync(helper.resolvePath('out/rotcelloc.js.map'),uglified.map);
         child_process.execFileSync('sass',[ '--scss','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolvePath('out/style.css') ]);
-
-        printv(3,'Finalizing HTML...');
-        var htmlFiles = child_process.execFileSync('find',[ helper.resolvePath('out'), '-name', '*.html', '-print0' ]);
-        htmlFiles = htmlFiles.toString().split(/\0/);
-        htmlFiles.pop(); // Remove empty last element
-        htmlFiles.unshift('-pi','-e','s/^\\s+//');
-        child_process.execFileSync('perl',htmlFiles);
     }
 };
 
@@ -2488,40 +2521,7 @@ function main()
         process.exit(0);
     }
 
-    printv(1,'rotcelloc version '+packageJSON.version+' running');
-
-    if(fs.existsSync(helper.resolvePath('out')))
-    {
-        printv(1,'Cleaning up old files...');
-        var oldFiles = wait.for(glob,helper.resolvePath('out/*'));
-        for (var oldFile of oldFiles)
-        {
-            if(fs.statSync(oldFile).isFile())
-            {
-                fs.unlinkSync(oldFile);
-            }
-        }
-    }
-    if (!fs.existsSync('out'))
-    {
-        fs.mkdirSync('out');
-    }
-
-    printv(1,'Building database...');
-    core.constructDatabase();
-    printv(1,'Preparing images...');
-    var files = wait.for(glob,helper.resolvePath('src/images/orig/*'));
-    for(var file of files)
-    {
-        if(! fs.existsSync(helper.resolvePath('src/images/'+path.basename(file))))
-        {
-            printv(3,'Creating resized version of '+path.basename(file));
-            child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolvePath('src/images/'+path.basename(file)) ], { stdio: 'inherit' });
-        }
-    }
-    printv(1,'Preparing webapp...');
-    webappGen.finalize();
-
+    core.build();
 }
 
 /*
