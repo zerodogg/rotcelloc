@@ -9,7 +9,7 @@ Rotcelloc will download posters for your collection, download metadata (plot
 summary, developer or director name, metascore) and generate a pretty (static)
 web application that can be used to view, search, filter and sort your
 collection in many ways. All functionality (search, filter, sort) in the web
-application is performed in javascript on the client, so there are ny
+application is performed in javascript on the client, so there are no
 requirements for the web server and no server side configuration needed. Simply
 generate the collection on your local machine and upload it to a web server.
 
