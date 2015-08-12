@@ -15,6 +15,28 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+ifndef prefix
+# This little trick ensures that make install will succeed both for a local
+# user and for root. It will also succeed for distro installs as long as
+# prefix is set by the builder.
+prefix=$(shell perl -e 'if($$< == 0 or $$> == 0) { print "/usr" } else { print "$$ENV{HOME}/.local"}')
+
+# Some additional magic here, what it does is set BINDIR to ~/bin IF we're not
+# root AND ~/bin exists, if either of these checks fail, then it falls back to
+# the standard $(prefix)/bin. This is also inside ifndef prefix, so if a
+# prefix is supplied (for instance meaning this is a packaging), we won't run
+# this at all
+BINDIR ?= $(shell perl -e 'if(($$< > 0 && $$> > 0) and -e "$$ENV{HOME}/bin") { print "$$ENV{HOME}/bin";exit; } else { print "$(prefix)/bin"}')
+endif
+
+BINDIR ?= $(prefix)/bin
+
+# Install symlinks
+localinstall:
+	mkdir -p "$(BINDIR)"
+	ln -sf $(shell pwd)/rotcelloc $(BINDIR)/
+# Update PO(T)-files
 translations:
 	xgettext --copyright-holder 'Eskild Hustvedt' --package-name Rotcelloc --keyword=translate --from-code utf-8 --language JavaScript --add-comments=Translators: src/rotcelloc.js ./rotcelloc -o i18n/translate.pot
 	perl -pi -e 's/^# SOME DESCRIPTIVE TITLE./# Rotcelloc/g' i18n/translate.pot
