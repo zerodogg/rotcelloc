@@ -1994,7 +1994,7 @@ var helper = {
             {
                 outputDir = path.dirname(commander.config);
             }
-            else if(fs.existsSync(process.cwd()+'/config.json'))
+            else if(fs.existsSync(process.cwd()+'/rotcelloc.config.json'))
             {
                 outputDir = process.cwd();
             }
@@ -2016,7 +2016,7 @@ var helper = {
         {
             return runtimeCache.__config;
         }
-        var configJSON = helper.resolveOutPath('config.json'),
+        var configJSON = helper.resolveOutPath('rotcelloc.config.json'),
             config;
         if(commander.config)
         {
@@ -2029,7 +2029,7 @@ var helper = {
         }
         else if (!fs.existsSync(configJSON))
         {
-            printv(4,helper.resolveOutPath('config.json')+': does not exist');
+            printv(4,helper.resolveOutPath('rotcelloc.config.json')+': does not exist');
             console.log('Error: you must configure rotcelloc first (or provide a --config). Aborting.');
             console.log('See the user guide in README.md');
             process.exit(1);
@@ -2040,7 +2040,7 @@ var helper = {
         }
         catch(e)
         {
-            throw('Failed to parse config.json: '+e.stack);
+            throw('Failed to parse rotcelloc.config.json: '+e.stack);
         }
         runtimeCache.__config = config;
         return config;
@@ -2549,7 +2549,7 @@ function main()
     .option('--expire-matching-miss [match]','same as above, but only expire cached failures')
     .option('--expire-unused','expire all unused cache entries (implies -g)')
     .option('--steam-dump [user]','Dump Steam games belonging to [user]')
-    .option('--config [file]','Read [file] instead of ./config.json')
+    .option('--config [file]','Read [file] instead of ./rotcelloc.config.json')
     .parse(process.argv);
 
     if(commander.quiet)

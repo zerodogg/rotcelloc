@@ -62,13 +62,13 @@ The configuration file does not have to live in the same directory as
 the application. Your working directory does have to be the same directory as
 the config file is in when you run rotcelloc.
 
-To get a basis file to work with, copy config.json.tpl to config.json in the
-directory you want to use it from, and then edit the latter file. You can add
-as many "collections" as you wish, and each collection can have any number of
-files.
+To get a basis file to work with, copy rotcelloc.config.json.tpl to
+rotcelloc.config.json in the directory you want to use it from, and then edit
+the latter file. You can add as many "collections" as you wish, and each
+collection can have any number of files.
 
 When you compile the collection webapp it will be output to an
-"out"-subdirectory of the directory that the config.json lives in.
+"out"-subdirectory of the directory that the rotcelloc.config.json lives in.
 
 ##### Toplevel options
 
