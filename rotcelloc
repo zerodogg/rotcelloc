@@ -335,7 +335,7 @@ var movieAPI = {
      */
     handleMovieFile: function (csvFile,config)
     {
-        var input  = fs.readFileSync(csvFile,{ encoding: 'utf-8'} );
+        var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
         var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
         return movieAPI.handleResultSet(output,csvFile,config,'movie');
     },
@@ -344,7 +344,7 @@ var movieAPI = {
      */
     handleSeriesFile: function (csvFile,config)
     {
-        var input  = fs.readFileSync(csvFile,{ encoding: 'utf-8'} );
+        var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
         var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
         return movieAPI.handleResultSet(output,csvFile,config,'tv');
     },
@@ -699,7 +699,7 @@ var gamesAPI = {
                 seenYear: false,
                 hasMetascore: false
             };
-        var input  = fs.readFileSync(csvFile,{ encoding: 'utf-8'} );
+        var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
         var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
 
         for(var collectionEntryI in output)
@@ -2002,6 +2002,8 @@ var helper = {
             {
                 outputDir = __dirname;
             }
+            outputDir = fs.realpathSync(outputDir);
+            printv(5,'Resolved output directory to '+outputDir);
         }
         return outputDir+'/'+file;
     },
