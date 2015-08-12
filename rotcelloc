@@ -2548,8 +2548,8 @@ function main()
     .option('--expire-matching [match]','expire all cached data where the key case insensitively matches [match] and exit')
     .option('--expire-matching-miss [match]','same as above, but only expire cached failures')
     .option('--expire-unused','expire all unused cache entries (implies -g)')
-    .option('--steam-dump [user]','Dump Steam games belonging to [user]')
-    .option('--config [file]','Read [file] instead of ./rotcelloc.config.json')
+    .option('--steam-dump [user]','dump Steam games belonging to [user]')
+    .option('--config [file]','read [file] instead of ./rotcelloc.config.json')
     .parse(process.argv);
 
     if(commander.quiet)
