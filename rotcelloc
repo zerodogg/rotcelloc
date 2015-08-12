@@ -65,7 +65,9 @@ try
         // Used to compile our template
         ejs           = require('ejs'),
         // Used to minify JS
-        UglifyJS      = require("uglify-js");
+        UglifyJS      = require("uglify-js"),
+        // Converts PO files to a JSON structure
+        po2json       = require('po2json');
 }
     catch(e)
 {
@@ -2072,8 +2074,10 @@ var core = {
         core.loadCache();
         if(config.language && fs.existsSync(helper.resolvePath('i18n/'+config.language+'.po')))
         {
-            child_process.execFileSync(helper.resolvePath('/node_modules/po2json/bin/po2json'), [ '--format','mf','--fallback-to-msgid', helper.resolvePath('i18n/'+config.language+'.po'), helper.resolvePath('i18n/'+config.language+'.json') ], { stdio: 'inherit' });
-            i18n.strings = JSON.parse(fs.readFileSync(helper.resolvePath('i18n/'+config.language+'.json')));
+            i18n.strings = po2json.parseFileSync(helper.resolvePath('i18n/'+config.language+'.po'), {
+                    format: 'mf',
+                    'fallback-to-msgid':true
+            });
         }
         var groupNo = 0,
             results = [];
