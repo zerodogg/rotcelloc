@@ -10,3 +10,4 @@ src/render/*html
 i18n/*.json
 .sass-cache
 .images
+examples/.gitignore
