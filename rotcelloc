@@ -83,6 +83,8 @@ var
     // to lazily get our version number without having to duplicate it
     // in multiple files.
     packageJSON = null,
+    // Output directory
+    outputDir = null,
     // Global i18n handling (including translation function)
     i18n = {
         strings: {},
@@ -1984,7 +1986,18 @@ var helper = {
      */
     resolveOutPath: function(file)
     {
-        return helper.resolvePath(file);
+        if(outputDir === null)
+        {
+            if(fs.existsSync(process.cwd()+'/config.json'))
+            {
+                outputDir = process.cwd();
+            }
+            else
+            {
+                outputDir = __dirname;
+            }
+        }
+        return outputDir+'/'+file;
     },
     /*
      * Check if a command is available in PATH
@@ -2042,6 +2055,7 @@ var core = {
             nameMap = {};
         if (!fs.existsSync(helper.resolveOutPath('config.json')))
         {
+            printv(4,helper.resolveOutPath('config.json')+': does not exist');
             console.log('Error: you must configure rotcelloc first. Aborting.');
             console.log('See the user guide in README.md');
             process.exit(1);
@@ -2507,8 +2521,6 @@ function main()
     {
         runtimeCache._cacheReads = {};
     }
-
-    process.chdir(path.dirname(fs.realpathSync(process.argv[1])));
 
     if (!fs.existsSync(helper.resolvePath('src/rotcelloc.js')))
     {
