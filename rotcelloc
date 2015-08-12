@@ -2012,6 +2012,10 @@ var helper = {
      */
     getConfig: function ()
     {
+        if(runtimeCache.__config)
+        {
+            return runtimeCache.__config;
+        }
         var configJSON = helper.resolveOutPath('config.json'),
             config;
         if(commander.config)
@@ -2026,7 +2030,7 @@ var helper = {
         else if (!fs.existsSync(configJSON))
         {
             printv(4,helper.resolveOutPath('config.json')+': does not exist');
-            console.log('Error: you must configure rotcelloc first. Aborting.');
+            console.log('Error: you must configure rotcelloc first (or provide a --config). Aborting.');
             console.log('See the user guide in README.md');
             process.exit(1);
         }
@@ -2038,6 +2042,7 @@ var helper = {
         {
             throw('Failed to parse config.json: '+e.stack);
         }
+        runtimeCache.__config = config;
         return config;
     },
     /*
@@ -2315,6 +2320,9 @@ var core = {
     build: function ()
     {
         core.verifyDeps();
+        // Load the config. Also verifies that it actually exists and outputs
+        // an error if it doesn't.
+        helper.getConfig();
         printv(1,'rotcelloc version '+packageJSON.version+' running');
 
         if(fs.existsSync(helper.resolveOutPath('out')))
