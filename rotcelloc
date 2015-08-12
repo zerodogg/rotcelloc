@@ -2093,7 +2093,7 @@ var core = {
             dVer: 0,
             version: packageJSON.version
         };
-        fs.writeFileSync(helper.resolveOutPath('out/'+name.toLowerCase()+'.dataset.json'),JSON.stringify(dataset));
+        fs.writeFileSync(helper.resolveOutPath('out/'+name.toLowerCase().replace(/\s+/g,'_')+'.dataset.json'),JSON.stringify(dataset));
     },
     /*
      * Loads the config, the i18n data, then hands control over to the various

@@ -94,7 +94,7 @@ uglify: true
             {
                 return;
             }
-            $.getJSON(pagetype.toLowerCase()+'.dataset.json',function (data)
+            $.getJSON(pagetype.toLowerCase().replace(/\s+/g,'_')+'.dataset.json',function (data)
             {
                     rotcelloc.data    = data;
                     rotcelloc.pagetype    = pagetype;
