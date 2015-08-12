@@ -2362,7 +2362,9 @@ var webappGen = {
         if (!fs.existsSync(helper.resolvePath('src/deps/bootstrap-variables.scss')))
         {
             printv(1,'Fetching dependency: bootstrap-variables.scss');
-            child_process.execFileSync('wget', [ 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+webappGen.versions.bootstrapVersion+')/assets/stylesheets/bootstrap/_variables.scss', '-O', helper.resolvePath('src/deps/bootstrap-variables.scss') ]);
+            var bootstrapVars = wait.forMethod(httpreq,'get', 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+webappGen.versions.bootstrapVersion+'/assets/stylesheets/bootstrap/_variables.scss');
+            fs.writeFileSync(helper.resolvePath('src/deps/bootstrap-variables.scss'), bootstrapVars.body);
+            printv(1,'Continuing...');
         }
 
         printv(3,'Copying images...');
