@@ -1978,6 +1978,21 @@ var helper = {
     resolvePath: function(file)
     {
         return __dirname+'/'+file;
+    },
+    /*
+     * Check if a command is available in PATH
+     */
+    inPath: function (command)
+    {
+        for(var directory of process.env.PATH.split(':'))
+        {
+            // This should also check if it is executable
+            if(fs.existsSync(directory+'/'+command))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 };
 
@@ -2218,6 +2233,32 @@ var core = {
             }
         }
         core.writeCache();
+    },
+    /*
+     * Verifies command-line dependencies
+     */
+    verifyDeps: function ()
+    {
+        var errOut = false;
+        if (!helper.inPath('sass'))
+        {
+            console.log('Error: "sass" is missing, it is required to compile the CSS\nPlease install sass (either through the package manager or with "gem install sass")');
+            errOut = true;
+        }
+        if (!helper.inPath('convert'))
+        {
+            console.log('Error: "convert" is missing, it is required to resize images\nPlease install imagemagick');
+            errOut = true;
+        }
+        if (!helper.inPath('rsync'))
+        {
+            console.log('Error: "rsync" is missing, it is required to copy files\nPlease install rsync');
+            errOut = true;
+        }
+        if(errOut)
+        {
+            process.exit(1);
+        }
     }
 };
 
