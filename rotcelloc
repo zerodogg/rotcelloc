@@ -362,7 +362,7 @@ var movieAPI = {
         {
             url = entry.customCover;
             delete entry.customCover;
-            if (fs.existsSync('src/images/orig/'+path.basename(url)))
+            if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
             {
                 return url;
             }
@@ -376,7 +376,7 @@ var movieAPI = {
                     return;
                 }
             }
-            else if (fs.existsSync('src/images/orig/'+path.basename(cache.URLs[ckey])))
+            else if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(cache.URLs[ckey]))))
             {
                 if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
                 {
@@ -1945,7 +1945,7 @@ var helper = {
             console.log('WARNING: downloadAndCacheURL received null/empty ckey');
         }
         cache.URLs[ckey] = url;
-        if (!fs.existsSync('src/images/orig/'+path.basename(url)))
+        if (!fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
         {
             if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
             {
@@ -1953,11 +1953,11 @@ var helper = {
             }
             else
             {
-                printv(4,'Downloading: '+url+' to '+'src/images/orig/'+path.basename(url));
+                printv(4,'Downloading: '+url+' to '+'.images/orig/'+path.basename(url));
                 var data = wait.forMethod(httpreq,'get',url, {binary: true });
                 if(data.statusCode === 200)
                 {
-                    fs.writeFileSync('src/images/orig/'+path.basename(url),data.body);
+                    fs.writeFileSync(helper.resolveOutPath('.images/orig/'+path.basename(url)),data.body);
                     printv(1,'Downloaded poster for '+entry.title);
                 }
                 else
@@ -1973,11 +1973,18 @@ var helper = {
         }
     },
     /*
-     * Resolve the path to a file relative to our directory
+     * Resolve the path to a file relative to our source directory
      */
     resolvePath: function(file)
     {
         return __dirname+'/'+file;
+    },
+    /*
+     * Resolve a path relative to our output directory
+     */
+    resolveOutPath: function(file)
+    {
+        return helper.resolvePath(file);
     },
     /*
      * Check if a command is available in PATH
@@ -2023,7 +2030,7 @@ var core = {
             dVer: 0,
             version: packageJSON.version
         };
-        fs.writeFileSync(helper.resolvePath('out/'+name.toLowerCase()+'.dataset.json'),JSON.stringify(dataset));
+        fs.writeFileSync(helper.resolveOutPath('out/'+name.toLowerCase()+'.dataset.json'),JSON.stringify(dataset));
     },
     /*
      * Loads the config, the i18n data, then hands control over to the various
@@ -2033,7 +2040,7 @@ var core = {
     {
         var config  = {},
             nameMap = {};
-        if (!fs.existsSync(helper.resolvePath('config.json')))
+        if (!fs.existsSync(helper.resolveOutPath('config.json')))
         {
             console.log('Error: you must configure rotcelloc first. Aborting.');
             console.log('See the user guide in README.md');
@@ -2041,7 +2048,7 @@ var core = {
         }
         try
         {
-            config  = JSON.parse(fs.readFileSync(helper.resolvePath('config.json')));
+            config  = JSON.parse(fs.readFileSync(helper.resolveOutPath('config.json')));
         }
         catch(e)
         {
@@ -2127,7 +2134,7 @@ var core = {
         {
             reverseFileMap[ cache.URLs[ckey] ] = ckey;
         }
-        var files = wait.for(glob,helper.resolvePath('src/images/orig/*'));
+        var files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
         for(var file of files)
         {
             var baseFile = path.basename(file);
@@ -2151,13 +2158,13 @@ var core = {
                 printv(2,'Reason for removal: '+remove);
             }
         }
-        var resizedFiles = wait.for(glob,helper.resolvePath('src/images/*'));
+        var resizedFiles = wait.for(glob,helper.resolveOutPath('.images/*'));
         for(var resizedFile of resizedFiles)
         {
             if(fs.statSync(resizedFile).isFile())
             {
                 var baseResizedFile = path.basename(resizedFile);
-                if (! fs.existsSync(helper.resolvePath('src/images/orig/'+baseResizedFile)))
+                if (! fs.existsSync(helper.resolveOutPath('.images/orig/'+baseResizedFile)))
                 {
                     fs.unlinkSync(resizedFile);
                     printv(1,'Removed file: '+resizedFile);
@@ -2268,10 +2275,10 @@ var core = {
         core.verifyDeps();
         printv(1,'rotcelloc version '+packageJSON.version+' running');
 
-        if(fs.existsSync(helper.resolvePath('out')))
+        if(fs.existsSync(helper.resolveOutPath('out')))
         {
             printv(1,'Cleaning up old files...');
-            var oldFiles = wait.for(glob,helper.resolvePath('out/*'));
+            var oldFiles = wait.for(glob,helper.resolveOutPath('out/*'));
             for (var oldFile of oldFiles)
             {
                 if(fs.statSync(oldFile).isFile())
@@ -2280,21 +2287,29 @@ var core = {
                 }
             }
         }
-        if (!fs.existsSync('out'))
+        if (!fs.existsSync(helper.resolveOutPath('out')))
         {
-            fs.mkdirSync('out');
+            fs.mkdirSync(helper.resolveOutPath('out'));
+        }
+        if (!fs.existsSync(helper.resolveOutPath('.images')))
+        {
+            fs.mkdirSync(helper.resolveOutPath('.images'));
+        }
+        if (!fs.existsSync(helper.resolveOutPath('.images/orig')))
+        {
+            fs.mkdirSync(helper.resolveOutPath('.images/orig'));
         }
 
         printv(1,'Building database...');
         core.constructDatabase();
         printv(1,'Preparing images...');
-        var files = wait.for(glob,helper.resolvePath('src/images/orig/*'));
+        var files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
         for(var file of files)
         {
-            if(! fs.existsSync(helper.resolvePath('src/images/'+path.basename(file))))
+            if(! fs.existsSync(helper.resolveOutPath('.images/'+path.basename(file))))
             {
                 printv(3,'Creating resized version of '+path.basename(file));
-                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolvePath('src/images/'+path.basename(file)) ], { stdio: 'inherit' });
+                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolveOutPath('.images/'+path.basename(file)) ], { stdio: 'inherit' });
             }
         }
         printv(1,'Preparing webapp...');
@@ -2345,7 +2360,7 @@ var webappGen = {
                     title: name,
                 },
                 versions: webappGen.versions,
-                config: JSON.parse(fs.readFileSync(helper.resolvePath('config.json'))),
+                config: JSON.parse(fs.readFileSync(helper.resolveOutPath('config.json'))),
                 footer: footer,
                 menu: menu,
                 content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>',
@@ -2354,7 +2369,7 @@ var webappGen = {
                 rmWhitespace: true
             }
         );
-        fs.writeFileSync(helper.resolvePath('out/'+filename),content);
+        fs.writeFileSync(helper.resolveOutPath('out/'+filename),content);
     },
     finalize: function ()
     {
@@ -2368,14 +2383,17 @@ var webappGen = {
         }
 
         printv(3,'Copying images...');
-        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=images/orig', './src/images/', './out/images/' ]);
+        // Copies the downloaded posters
+        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=images/orig', helper.resolveOutPath('.images/'), helper.resolveOutPath('./out/images/') ]);
+        // Copies the "missing" image
+        child_process.execFileSync('rsync', [ '-a',helper.resolvePath('src/images/'), helper.resolveOutPath('./out/images/') ]);
         printv(3,'Compiling JS and CSS...');
         var uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
                 outSourceMap: 'rotcelloc.js.map',
             });
-        fs.writeFileSync(helper.resolvePath('out/rotcelloc.js'),uglified.code);
-        fs.writeFileSync(helper.resolvePath('out/rotcelloc.js.map'),uglified.map);
-        child_process.execFileSync('sass',[ '--scss','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolvePath('out/style.css') ]);
+        fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js'),uglified.code);
+        fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js.map'),uglified.map);
+        child_process.execFileSync('sass',[ '--scss','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolveOutPath('out/style.css') ]);
     }
 };
 
