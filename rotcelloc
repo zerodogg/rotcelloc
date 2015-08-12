@@ -2590,7 +2590,7 @@ function main()
     else if(commander.steamDump)
     {
         core.loadCache();
-        var list = gamesAPI.generateSteamListFor('arderath');
+        var list = gamesAPI.generateSteamListFor(commander.steamDump);
         core.writeCache();
         process.exit(0);
     }
