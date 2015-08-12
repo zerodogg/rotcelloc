@@ -2401,6 +2401,12 @@ var webappGen = {
         child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=images/orig', helper.resolveOutPath('.images/'), helper.resolveOutPath('./out/images/') ]);
         // Copies the "missing" image
         child_process.execFileSync('rsync', [ '-a',helper.resolvePath('src/images/'), helper.resolveOutPath('./out/images/') ]);
+        // Copy .gitignore if neded
+        if (!fs.existsSync(helper.resolveOutPath('.gitignore')))
+        {
+            printv(4,'Copied .gitignore to '+helper.resolveOutPath('.gitignore'));
+            child_process.execFileSync('rsync', [ '-a',helper.resolvePath('.gitignore'), helper.resolveOutPath('.gitignore') ]);
+        }
         printv(3,'Compiling JS and CSS...');
         var uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
                 outSourceMap: 'rotcelloc.js.map',
