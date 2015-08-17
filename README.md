@@ -177,6 +177,10 @@ display the number.
 
 **format** - the format of the item, ie. BluRay, DVD
 
+**watched** - a boolean, set to "yes" if you have watched the title or "no" if you
+haven't. Can be omitted. Having at least one watched=no entry allows filtering for
+"titles you have not watched" in the webapp.
+
 ##### Columns only valid for games
 
 **platform** - which platform the game is on, ie. Linux, Windows, PS3, Vita.

@@ -20,7 +20,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * vim: ft=javascript :
  */
 // jshint esnext: true, eqnull: true
 
@@ -114,6 +113,7 @@ var movieAPI = {
                 genres: [],
                 seenYear: false,
                 hasRating: false,
+                hasWatchedBool: false,
                 enableNormalized: false
             }
         };
@@ -137,6 +137,11 @@ var movieAPI = {
             if(config.contentType)
             {
                 collectionEntry.contentType = config.contentType;
+            }
+            if(collectionEntry.watched != null)
+            {
+                retValue.meta.hasWatchedBool = true;
+                collectionEntry.watched      = helper.parseBool(collectionEntry.watched);
             }
 
             var meta = movieAPI.getMovieMeta(collectionEntry);
@@ -300,6 +305,7 @@ var movieAPI = {
                     contentType:true,
                     disneyClassicNo: true,
                     imdbID: true,
+                    watched: true,
                     normalizedRating: true
                 };
                 for (var field in collectionEntry)
@@ -621,6 +627,7 @@ var movieAPI = {
             type: groupConf.type,
             seenYear: false,
             hasRating: false,
+            hasWatchedBool: false,
             hasDisneySort: false,
             enableNormalized: false
         };
@@ -653,6 +660,10 @@ var movieAPI = {
                 if(result.meta.hasRating)
                 {
                     groupMeta.hasRating = true;
+                }
+                if(result.meta.hasWatchedBool)
+                {
+                    groupMeta.hasWatchedBool = true;
                 }
                 if(result.meta.enableNormalized)
                 {
@@ -1809,6 +1820,7 @@ var helper = {
             'Format':'format',
             'Klassikernummer':'disneyClassicNo',
             'Kover':'customCover',
+            'Sett':'watched',
             'Cover':'customCover',
             'Skuespillere':'actors',
             'Omslag':'customCover',
@@ -2063,6 +2075,27 @@ var helper = {
             }
         }
         return false;
+    },
+    /*
+     * Parse a boolean-ish string
+     */
+    parseBool: function (boolStr)
+    {
+        boolStr = boolStr.toLowerCase();
+        // Translators: Used in boolean values in files
+        if(boolStr === 1 || boolStr == 'true' || boolStr == 'yes' || boolStr == i18n.translate('Yes').toLowerCase())
+        {
+            return true;
+        }
+        // Translators: Used in boolean values in files
+        else if(boolStr === 0 || boolStr == 'false' || boolStr == 'no' || boolStr == i18n.translate('No').toLowerCase())
+        {
+            return false;
+        }
+        else
+        {
+            throw('Unrecognized boolean value: '+boolStr);
+        }
     }
 };
 

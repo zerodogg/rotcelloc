@@ -22,7 +22,8 @@
  */
 (function ($){
     "use strict";
-    var rotcelloc = {
+    var BOT_LOAD_TRIGGER_PX = 1000,
+        rotcelloc = {
         /*
          * Initializes the page:
          * - Sets up object variables
@@ -56,7 +57,7 @@
                 }
 
                 $(window).scroll(function(){
-                        if (rotcelloc.currentResults.length && $(window).scrollTop() + $(window).height() >= $(document).height() - 1000)
+                        if (rotcelloc.currentResults.length && $(window).scrollTop() + $(window).height() >= $(document).height() - BOT_LOAD_TRIGGER_PX)
                         {
                             rotcelloc.showNextResults();
                         }
@@ -335,6 +336,7 @@
                 order           = $('#order option:selected()').attr('data-value'),
                 $genre          = $('#genre .active input'),
                 $plotSearch     = $('#plotSearch .active input'),
+                $watchedSearch     = $('#watchedSearch .active input'),
                 genreSearchType = $('#genre_searchtype option:selected()').attr('data-value'),
                 text            = $('#searchBox').val();
             var group           = $group.attr('data-value'),
@@ -362,6 +364,10 @@
             if($plotSearch && $plotSearch.attr('data-value') == 'true')
             {
                 query.plotSearch = true;
+            }
+            if($watchedSearch && $watchedSearch.attr('data-value') == 'true')
+            {
+                query.watchedSearch = true;
             }
             if($genre && $genre.length)
             {
@@ -394,6 +400,13 @@
                 var searchScore = 10,
                     collectionEntry = rotcelloc.workingData[collectionN],
                     hit;
+                if (query.watchedSearch)
+                {
+                    if (collectionEntry.watched === undefined || collectionEntry.watched === true)
+                    {
+                        continue;
+                    }
+                }
                 if(query.group)
                 {
                     if (/,/.test(collectionEntry.bSource))
@@ -694,8 +707,25 @@
                         name: rotcelloc.translate('No')
                     }
                 ],
-            };
-            var orderButtons = {
+            },
+                watchedSearchBool = {
+                id: 'watchedSearch',
+                buttons: [
+                    {
+                        id: 'only_unwatched_yes',
+                        value: 'true',
+                        active: false,
+                        name: rotcelloc.translate('Yes')
+                    },
+                    {
+                        id: 'only_unwatched_no',
+                        value: 'false',
+                        active: true,
+                        name: rotcelloc.translate('No')
+                    }
+                ],
+            },
+                orderButtons = {
                 id: 'order',
                 buttons: [
                     {
@@ -720,7 +750,7 @@
             {
                 orderButtons.buttons[0].name = rotcelloc.translate('Alphabetic');
             }
-            if (rotcelloc.workingMeta.seenYear)
+            if (rotcelloc.workingMeta.watchedYear)
             {
                 orderButtons.buttons.push(
                     {
@@ -897,7 +927,12 @@
 
                 html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label genre-select-line form-inline">'+rotcelloc.renderSelectElement(genreType)+':</div>'+rotcelloc.renderRadioOrCheckButtons(genreButtons)+'</div></div>';
             }
-            html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label-inline">'+rotcelloc.translate('Search in plot descriptions')+'</div>'+rotcelloc.renderRadioOrCheckButtons(plotSearchBool)+'</div></div>';
+            html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label-inline">'+rotcelloc.translate('Search in plot descriptions')+'</div>'+rotcelloc.renderRadioOrCheckButtons(plotSearchBool);
+            if(rotcelloc.workingMeta.hasWatchedBool === true)
+            {
+                html += '<div class="searchbar-additional searchbar-label-inline">'+rotcelloc.translate('Only display unwatched titles')+'</div>'+rotcelloc.renderRadioOrCheckButtons(watchedSearchBool);
+            }
+            html += '</div></div>';
             if(hasMore)
             {
                 html += '</div>';
