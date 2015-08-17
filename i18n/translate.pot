@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Rotcelloc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-08-11 23:28+0200\n"
+"POT-Creation-Date: 2015-08-17 16:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,202 +17,208 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/rotcelloc.js:41
+#: src/rotcelloc.js:40
 msgid "Show/hide menu"
 msgstr ""
 
-#: src/rotcelloc.js:148
+#: src/rotcelloc.js:147
 msgid "Seasons"
 msgstr ""
 
-#: src/rotcelloc.js:152
+#: src/rotcelloc.js:151
 msgid "Original title"
 msgstr ""
 
-#: src/rotcelloc.js:156
+#: src/rotcelloc.js:155
 msgid "Disney classics no."
 msgstr ""
 
-#: src/rotcelloc.js:160
+#: src/rotcelloc.js:159
 msgid "Genre"
 msgstr ""
 
-#: src/rotcelloc.js:162
+#: src/rotcelloc.js:161
 msgid "Show more information"
 msgstr ""
 
-#: src/rotcelloc.js:220
+#: src/rotcelloc.js:219
 msgid "Alternativ title"
 msgstr ""
 
-#: src/rotcelloc.js:224
+#: src/rotcelloc.js:223
 msgid "Runtime"
 msgstr ""
 
-#: src/rotcelloc.js:228 src/rotcelloc.js:872
+#: src/rotcelloc.js:227 src/rotcelloc.js:900
 msgid "Platform"
 msgstr ""
 
-#: src/rotcelloc.js:232
+#: src/rotcelloc.js:231
 msgid "Developer"
 msgstr ""
 
-#: src/rotcelloc.js:236
+#: src/rotcelloc.js:235
 msgid "Actors"
 msgstr ""
 
-#: src/rotcelloc.js:240
+#: src/rotcelloc.js:239
 msgid "Director"
 msgstr ""
 
-#: src/rotcelloc.js:244
+#: src/rotcelloc.js:243
 msgid "Writer"
 msgstr ""
 
-#: src/rotcelloc.js:248 src/rotcelloc.js:868
+#: src/rotcelloc.js:247 src/rotcelloc.js:896
 msgid "Group"
 msgstr ""
 
-#: src/rotcelloc.js:263 src/rotcelloc.js:768
+#: src/rotcelloc.js:262 src/rotcelloc.js:796
 msgid "Custom rating"
 msgstr ""
 
-#: src/rotcelloc.js:267 src/rotcelloc.js:778
+#: src/rotcelloc.js:266 src/rotcelloc.js:806
 msgid "Metascore"
 msgstr ""
 
-#: src/rotcelloc.js:271 src/rotcelloc.js:787
+#: src/rotcelloc.js:270 src/rotcelloc.js:815
 msgid "IMDB rating"
 msgstr ""
 
-#: src/rotcelloc.js:271
+#: src/rotcelloc.js:270
 msgid "votes"
 msgstr ""
 
-#: src/rotcelloc.js:275
+#: src/rotcelloc.js:274
 msgid "Format"
 msgstr ""
 
-#: src/rotcelloc.js:277
+#: src/rotcelloc.js:276
 msgid "Links"
 msgstr ""
 
-#: src/rotcelloc.js:318
+#: src/rotcelloc.js:317
 msgid "Note"
 msgstr ""
 
-#: src/rotcelloc.js:690
+#. Translators: Used in boolean values in files
+#: src/rotcelloc.js:701 src/rotcelloc.js:718 rotcelloc:2086
 msgid "Yes"
 msgstr ""
 
-#: src/rotcelloc.js:696
+#. Translators: Used in boolean values in files
+#: src/rotcelloc.js:707 src/rotcelloc.js:724 rotcelloc:2091
 msgid "No"
 msgstr ""
 
-#: src/rotcelloc.js:707
+#: src/rotcelloc.js:735
 msgid "Automatic"
 msgstr ""
 
-#: src/rotcelloc.js:717 src/rotcelloc.js:723
+#: src/rotcelloc.js:745 src/rotcelloc.js:751
 msgid "Alphabetic"
 msgstr ""
 
-#: src/rotcelloc.js:731
+#: src/rotcelloc.js:759
 msgid "Year"
 msgstr ""
 
-#: src/rotcelloc.js:740
+#: src/rotcelloc.js:768
 msgid "Random"
 msgstr ""
 
-#: src/rotcelloc.js:749
+#: src/rotcelloc.js:777
 msgid "Length"
 msgstr ""
 
-#: src/rotcelloc.js:758
+#: src/rotcelloc.js:786
 msgid "Rating (smart)"
 msgstr ""
 
-#: src/rotcelloc.js:797 src/rotcelloc.js:818
+#: src/rotcelloc.js:825 src/rotcelloc.js:846
 msgid "All"
 msgstr ""
 
-#: src/rotcelloc.js:858
+#: src/rotcelloc.js:886
 msgid "Show filter"
 msgstr ""
 
-#: src/rotcelloc.js:861
+#: src/rotcelloc.js:889
 msgid "Order"
 msgstr ""
 
-#: src/rotcelloc.js:861
+#: src/rotcelloc.js:889
 msgid "Search"
 msgstr ""
 
-#: src/rotcelloc.js:883
+#: src/rotcelloc.js:911
 msgid "In genre (all selected)"
 msgstr ""
 
-#: src/rotcelloc.js:889
+#: src/rotcelloc.js:917
 msgid "In genre (any selected)"
 msgstr ""
 
-#: src/rotcelloc.js:895
+#: src/rotcelloc.js:923
 msgid "Not in genre"
 msgstr ""
 
-#: src/rotcelloc.js:902
+#: src/rotcelloc.js:930
 msgid "Search in plot descriptions"
 msgstr ""
 
+#: src/rotcelloc.js:933
+msgid "Only display unwatched titles"
+msgstr ""
+
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:169
+#: rotcelloc:178
 msgid "screenplay"
 msgstr ""
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:171
+#: rotcelloc:180
 msgid "motion picture"
 msgstr ""
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:173
+#: rotcelloc:182
 msgid "comic book"
 msgstr ""
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:175
+#: rotcelloc:184
 msgid "story"
 msgstr ""
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:177
+#: rotcelloc:186
 msgid "novel"
 msgstr ""
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:179
+#: rotcelloc:188
 msgid "characters"
 msgstr ""
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:181
+#: rotcelloc:190
 msgid "book"
 msgstr ""
 
 #. Translators: Results in [number]h [number]min (ie. X hours and X minutes)
-#: rotcelloc:206
+#: rotcelloc:215
 #, javascript-format
 msgid "%dh %dmin"
 msgstr ""
 
 #. Translators: Results in [number]min (ie. X minutes)
-#: rotcelloc:211
+#: rotcelloc:220
 #, javascript-format
 msgid "%dmin"
 msgstr ""
 
-#: rotcelloc:2251
+#: rotcelloc:2434
 #, javascript-format
 msgid ""
 "Generated by <a href=\"%s\">%s</a> version %s. Software licensed under the "
@@ -220,6 +226,6 @@ msgid ""
 "respective owners."
 msgstr ""
 
-#: rotcelloc:2270
+#: rotcelloc:2453
 msgid "Loading collection..."
 msgstr ""
