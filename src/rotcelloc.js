@@ -1,6 +1,4 @@
-/***
-uglify: true
-******/
+/* vim: set foldnestmax=3 : */
 /*
  * rotcelloc client-side component
  *
