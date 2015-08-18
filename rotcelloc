@@ -2605,7 +2605,7 @@ function main()
     .option('--expire-covers','expire all cached covers from the cache')
     .option('--expire-matching [match]','expire all cached data where the key case insensitively matches [match] and exit')
     .option('--expire-matching-miss [match]','same as above, but only expire cached failures')
-    .option('--expire-unused','expire all unused cache entries (implies -g)')
+    .option('--expire-unused','expire all unused cache entries')
     .option('--steam-dump [user]','dump Steam games belonging to [user]')
     .option('--config [file]','read [file] instead of ./rotcelloc.config.json')
     .parse(process.argv);
