@@ -30,7 +30,7 @@ try
 {
     var
         // For parsing the collection files
-        parse         = require('csv-parse'),
+        parse         = require('csv').parse,
         // Needed to perform filesystem operations
         fs            = require('fs'),
         // Used to retrieve movie art
