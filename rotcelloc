@@ -395,23 +395,27 @@ var movieAPI = {
                 return cache.URLs[ckey];
             }
         }
-        if (!url)
+        if(!helper.isValidCoverURL(url))
         {
-            if(entry.year)
+            if(!helper.isValidCoverURL(url) && meta && movieAPI.isValidOMDBField(meta.Poster) && entry.imdbID)
+            {
+                url = meta.Poster;
+            }
+            if(!helper.isValidCoverURL(url) && entry.year)
             {
                 try
                 {
                     url = wait.for(movieArt,mTitle,entry.year,null,type);
                 } catch(e) {}
             }
-            if (!url)
+            if(!helper.isValidCoverURL(url))
             {
                 try
                 {
                     url = wait.for(movieArt,mTitle,null,null,type);
                 } catch(e) {}
             }
-            if(!url)
+            if(!helper.isValidCoverURL(url))
             {
                 if(type == 'tv')
                 {
@@ -428,21 +432,23 @@ var movieAPI = {
                         url = wait.for(movieArt,mTitle,entry.year,null,type);
                     } catch(e) {}
                 }
-                if (!url)
+                if(!helper.isValidCoverURL(url))
                 {
                     try
                     {
                         url = wait.for(movieArt,mTitle,null,null,type);
                     } catch(e) {}
                 }
-                if (!url && meta && movieAPI.isValidOMDBField(meta.Poster))
+                if(!helper.isValidCoverURL(url) && meta && movieAPI.isValidOMDBField(meta.Poster))
                 {
                     url = meta.Poster;
                 }
             }
         }
-        helper.downloadAndCacheURL(url,ckey,entry);
-        return url;
+        if (helper.downloadAndCacheURL(url,ckey,entry))
+        {
+            return url;
+        }
     },
     /*
      * Handles downloading and validation of movie metadata
@@ -1637,8 +1643,10 @@ var gamesAPI = {
             }
             if(image)
             {
-                helper.downloadAndCacheURL(image,ckey,entry);
-                return path.basename(image);
+                if (helper.downloadAndCacheURL(image,ckey,entry))
+                {
+                    return path.basename(image);
+                }
             }
         }
         catch (e)
@@ -1954,7 +1962,7 @@ var helper = {
      */
     downloadAndCacheURL: function (url,ckey,entry)
     {
-        if(url === undefined || !/^http/.test(url) || /originalnull/.test(url))
+        if(!helper.isValidCoverURL(url))
         {
             printv(1,'Failed to retrieve poster for '+entry.title+( entry.origTitle ? ' ('+entry.origTitle+')' : ''));
             cache.URLs[ckey] = 'MISS';
@@ -1991,6 +1999,18 @@ var helper = {
         {
             cache.fileMap[path.basename(cache.URLs[ckey])] = url;
         }
+        return true;
+    },
+    /*
+     * Checks if url is a valid url to a cover
+     */
+    isValidCoverURL: function (url)
+    {
+        if (url == null || !/^http/.test(url) || /originalnull/i.test(url))
+        {
+            return false;
+        }
+        return true;
     },
     /*
      * Resolve the path to a file relative to our source directory
