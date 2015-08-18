@@ -1,0 +1,110 @@
+#!/usr/bin/env node
+/*
+ * rotcelloc IMDB csv converter
+ *
+ * Part of rotcelloc - the hacker's movie, tv-series and game collection
+ * manager
+ *
+ * Copyright (C) Eskild Hustvedt 2015
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+var csv = require('csv')
+    fs            = require('fs'),
+    wait          = require('wait.for');
+
+function usage ()
+{
+    console.log('USAGE: imdbConvert inputFile.csv outputFile1.csv outputFile2.csv');
+    console.log('inputFile.csv is a IMDB list export');
+    console.log('outputFile*.csv are the output files in the rotcelloc format');
+    console.log('If the list contains both TV series and movies then you need two');
+    console.log('output files, the first will be for movies, the second for TV series');
+}
+
+function main ()
+{
+    var infile = process.argv[2];
+    var outfile1 = process.argv[3];
+    var outfile2 = process.argv[4];
+
+    var input  = fs.readFileSync(infile,{ encoding: 'utf-8'} );
+    var output = wait.for(csv.parse,input, {comment: '#', trim: true, columns: true});
+    var data = {
+        tv: [],
+        movies: []
+    };
+    var seenTypes = {
+        movie: false,
+        tv: false
+    };
+    var outputConfig = { header: true, delimiter: ';', columns: [ 'Title','Year','rating','note','imdbID'] };
+    for(var entry of output)
+    {
+        var outEntry = {
+            'imdbID':entry.const,
+            'Title':entry.Title,
+            'Year':entry.Year,
+        };
+        if(entry['You rated'])
+        {
+            var personalRating = entry['You rated']/(10/6)
+            outEntry.rating = personalRating;
+        }
+        if(entry.description.length > 0)
+        {
+            outEntry.note = entry.description;
+        }
+        if(/Series/i.test(entry['Title type']))
+        {
+            seenTypes.tv = true;
+            data.tv.push(outEntry);
+        }
+        else
+        {
+            seenTypes.movie = true;
+            data.movies.push(outEntry);
+        }
+    }
+    if(seenTypes.movie && seenTypes.tv && outfile2 === undefined)
+    {
+        console.log('ERROR: This file contains both TV and movies, you need two output files\n');
+        usage();
+        process.exit(1);
+    }
+    if(seenTypes.movie && seenTypes.tv)
+    {
+        fs.writeFileSync(outfile1,wait.for(csv.stringify,data.movies, outputConfig));
+        fs.writeFileSync(outfile2,wait.for(csv.stringify,data.tv, outputConfig));
+    }
+    else if(seenTypes.tv)
+    {
+        fs.writeFileSync(outfile1,wait.for(csv.stringify,data.tv, outputConfig));
+    }
+    else if(seenTypes.movie)
+    {
+        fs.writeFileSync(outfile1,wait.for(csv.stringify,data.movies, outputConfig));
+    }
+    else
+    {
+        console.log('ERROR: did not find any entries');
+    }
+}
+/*
+ * Executes "main" inside a fiber instance, which is then used by waitfor to
+ * make functions that are normally async execute synchronously.
+ */
+wait.launchFiber(main);
