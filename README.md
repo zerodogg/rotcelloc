@@ -55,20 +55,20 @@ write one and send a pull request.
 
 Rotcelloc needs a configuration file to know which files to load your
 collection from, what kind of collection it is as well as the name of the
-collection. The configuration file is in the JSON format which requires some
-care when writing.
+collection. The configuration file is in the CSON format. See
+http://coffeescript.org/#objects_and_arrays for a quick reference.
 
 The configuration file does not have to live in the same directory as
 the application. Your working directory does have to be the same directory as
 the config file is in when you run rotcelloc.
 
-To get a basis file to work with, copy rotcelloc.config.json.tpl to
-rotcelloc.config.json in the directory you want to use it from, and then edit
+To get a basis file to work with, copy rotcelloc.config.cson.tpl to
+rotcelloc.config.cson in the directory you want to use it from, and then edit
 the latter file. You can add as many "collections" as you wish, and each
 collection can have any number of files.
 
 When you compile the collection webapp it will be output to an
-"out"-subdirectory of the directory that the rotcelloc.config.json lives in.
+"out"-subdirectory of the directory that the rotcelloc.config.cson lives in.
 
 ##### Toplevel options
 
@@ -93,7 +93,7 @@ languages can be found in i18n/. Additional translations are welcome.
 ##### Collection options
 
 The name of a collection is its key. Its value is another object/hash of key-value
-pairs. The following keys are premitted:
+pairs. The following keys are permitted:
 
 **"type"** (*required*) - this key which defines what kind of collection it is. These can be
 "movies", "series" or "games". This is needed because it tells rotcelloc how to
@@ -125,7 +125,7 @@ See the examples/ directory for examples of more advanced configurations.
 
 ### CSV-file format
 
-rotcelloc expects a ;-separated JSON file. You can have comments in the file if
+rotcelloc expects a ;-separated CSV file. You can have comments in the file if
 you want, using a hash (#). All columns are optional except for the title. The
 column titles are case insensitive (will all be converted to lowercase
 internally). You can add any columns you wish and Rotcelloc will simply ignore

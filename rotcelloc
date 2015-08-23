@@ -66,7 +66,9 @@ try
         // Used to minify JS
         UglifyJS      = require("uglify-js"),
         // Converts PO files to a JSON structure
-        po2json       = require('po2json');
+        po2json       = require('po2json'),
+        // Loads CSON files
+        CSON          = require('cson');
 }
     catch(e)
 {
@@ -2052,31 +2054,31 @@ var helper = {
         {
             return runtimeCache.__config;
         }
-        var configJSON = helper.resolveOutPath('rotcelloc.config.json'),
+        var configCSON = helper.resolveOutPath('rotcelloc.config.cson'),
             config;
         if(commander.config)
         {
-            configJSON = commander.config;
-            if (!fs.existsSync(configJSON))
+            configCSON = commander.config;
+            if (!fs.existsSync(configCSON))
             {
-                console.log(configJSON+': does not exist');
+                console.log(configCSON+': does not exist');
                 process.exit(1);
             }
         }
-        else if (!fs.existsSync(configJSON))
+        else if (!fs.existsSync(configCSON))
         {
-            printv(4,helper.resolveOutPath('rotcelloc.config.json')+': does not exist');
+            printv(4,helper.resolveOutPath('rotcelloc.config.cson')+': does not exist');
             console.log('Error: you must configure rotcelloc first (or provide a --config). Aborting.');
             console.log('See the user guide in README.md');
             process.exit(1);
         }
         try
         {
-            config  = JSON.parse(fs.readFileSync(configJSON));
+            config  = CSON.parse(fs.readFileSync(configCSON));
         }
         catch(e)
         {
-            throw('Failed to parse rotcelloc.config.json: '+e.stack);
+            throw('Failed to parse rotcelloc.config.cson: '+e.stack);
         }
         runtimeCache.__config = config;
         return config;
