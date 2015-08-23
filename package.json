@@ -14,7 +14,7 @@
     "he": "^0.5.0",
     "httpreq": "^0.4.12",
     "lodash": "^3.10.0",
-    "movie-art": "https://github.com/zerodogg/movie-art#tv-support",
+    "movie-art": "https://github.com/lacymorrow/movie-art#8a9904ef80a0b1fee4ad47bd08df7f0961296917",
     "po2json": "^0.4.1",
     "request": "^2.59.0",
     "uglify-js": "^2.4.24",
