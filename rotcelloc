@@ -2504,7 +2504,7 @@ var webappGen = {
 
         printv(3,'Copying images...');
         // Copies the downloaded posters
-        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=images/orig', helper.resolveOutPath('.images/'), helper.resolveOutPath('./out/images/') ]);
+        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=orig/', helper.resolveOutPath('.images/'), helper.resolveOutPath('./out/images/') ]);
         // Copies the "missing" image
         child_process.execFileSync('rsync', [ '-a',helper.resolvePath('src/images/'), helper.resolveOutPath('./out/images/') ]);
         // Copy .gitignore if neded
