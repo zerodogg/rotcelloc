@@ -2032,7 +2032,7 @@ var helper = {
             {
                 outputDir = path.dirname(commander.config);
             }
-            else if(fs.existsSync(process.cwd()+'/rotcelloc.config.json'))
+            else if(fs.existsSync(process.cwd()+'/rotcelloc.config.cson'))
             {
                 outputDir = process.cwd();
             }
