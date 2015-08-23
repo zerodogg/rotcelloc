@@ -43,8 +43,6 @@ try
         path          = require('path'),
         // Various helpers
         _             = require('lodash'),
-        // Additional HTTP requests
-        request       = require('request'),
         // Perform glob operations to easily perform actions on covers
         glob          = require('glob'),
         // Command-line parameter parsing
@@ -612,13 +610,26 @@ var movieAPI = {
         }
         printv(4,'Performing OMDB request: '+ (requestQuery.t ? requestQuery.t : requestQuery.i ));
         printv(8,'Request key: '+serialish);
-        request({url:url, qs:requestQuery, json:true}, function (error, response, body) {
-                if (!error)
+        httpreq.get(url, {
+                parameters: requestQuery
+            },function (err,res)
+            {
+                if (!err)
                 {
-                    runtimeCache[serialish] = _.clone(body,true);
+                    console.log(res.body);
+                    try
+                    {
+                        res = JSON.parse(res.body);
+                        runtimeCache[serialish] = _.clone(res,true);
+                    }
+                    catch(e)
+                    {
+                        err = e;
+                    }
                 }
-                cb(error, body);
-        });
+                cb(err,res);
+            }
+        );
     },
     /*
      * Handles a single collection, loading each file, preparing the metadata
