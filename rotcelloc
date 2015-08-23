@@ -57,8 +57,6 @@ try
         steam         = require('happy-steam-scraper'),
         // Used to decode HTML entities
         he            = require('he'),
-        // Used to sleep to make the Steam API happy
-        sleep         = require('sleep'),
         // Used to parse APIs that return XML instead of JSON
         xml2json      = require('xml2json'),
         // Used to compile our template
@@ -886,7 +884,7 @@ var gamesAPI = {
                     printv(2,'Sleeping 10 seconds to avoid Steam API limits.');
                     printv(1,'Status: processed '+ (i + 1)+' of '+games.length+' games for '+name);
                     core.writeCache();
-                    sleep.sleep(10);
+                    helper.sleep(10);
                 }
                 var data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
                 var useful = false;
@@ -917,7 +915,7 @@ var gamesAPI = {
                         return;
                     }
                     printv(1,'Sleeping '+steamSleep+' seconds to allow the Steam API limits to reset [retry '+errLimit+' of 5]');
-                    sleep.sleep(steamSleep);
+                    helper.sleep(steamSleep);
                     if(steamSleep < 120)
                     {
                         steamSleep += 30;
@@ -2118,6 +2116,17 @@ var helper = {
         {
             throw('Unrecognized boolean value: '+boolStr);
         }
+    },
+    /*
+     * A simple "sleep" function that takes a sleep time in seconds and then
+     * uses wait.for and a setTimeout to do the sleeping
+     */
+    sleep: function (sleepTime)
+    {
+        sleepTime = sleepTime*1000;
+        wait.for(function (cb) {
+                setTimeout(function() { cb(); }, sleepTime);
+        });
     }
 };
 

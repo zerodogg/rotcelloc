@@ -17,7 +17,6 @@
     "movie-art": "https://github.com/zerodogg/movie-art#tv-support",
     "po2json": "^0.4.1",
     "request": "^2.59.0",
-    "sleep": "^2.0.0",
     "uglify-js": "^2.4.24",
     "wait.for": "^0.6.6",
     "xml2json": "^0.7.1"
