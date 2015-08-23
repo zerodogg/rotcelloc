@@ -2381,8 +2381,14 @@ var core = {
         core.verifyDeps();
         // Load the config. Also verifies that it actually exists and outputs
         // an error if it doesn't.
-        helper.getConfig();
+        var config = helper.getConfig();
         printv(1,'rotcelloc version '+packageJSON.version+' running');
+
+        if (commander.deploy && config.deployTo == null)
+        {
+            console.log('ERROR: deployTo is not set in the config. Can not deploy.');
+            process.exit(1);
+        }
 
         if(fs.existsSync(helper.resolveOutPath('out')))
         {
@@ -2423,6 +2429,11 @@ var core = {
         }
         printv(1,'Preparing webapp...');
         webappGen.finalize();
+        if(commander.deploy)
+        {
+            printv(1,'Deploying with rsync...');
+            child_process.execFileSync('rsync', [ '--checksum', '-avh', '--progress', '--partial', '--inplace','--exclude=images/orig', '--delete-excluded', '--delete','out/',config.deployTo ], { stdio: 'inherit' });
+        }
     }
 };
 
@@ -2601,6 +2612,7 @@ function main()
     .version(packageJSON.version)
     .option('-q, --quiet','be quiet (overrides any --verbose arguments)')
     .option('-v, --verbose','increase verbosity', function (v,total) { return total + 1;},1)
+    .option('--deploy','build the collection and webapp and then deploy as defined in the config')
     .option('--retry-miss','retry fetching data or covers where those have failed previously')
     .option('--include-debug','include debugging metadata')
     .option('--expire-meta','expire all cached metadata from the cache')

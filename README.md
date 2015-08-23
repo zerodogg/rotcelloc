@@ -90,6 +90,13 @@ useful to limit them more than desktops. A reasonable place to start is 40.
 **language** - set this to the language you want rotcelloc to use. The supported
 languages can be found in i18n/. Additional translations are welcome.
 
+**deployTo** - set this if you want to use rotcelloc to deploy the site (using
+--deply).  This is used as the target for rsync. Be careful with the target,
+all other files in the deployment target will be deleted. It can be a remote
+target in the form remote:/directory or a local target in the form /directory.
+If you don't want to use --deploy, you can either delete this entry, or set it
+to null.
+
 ##### Collection options
 
 The name of a collection is its key. Its value is another object/hash of key-value

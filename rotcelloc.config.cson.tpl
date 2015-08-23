@@ -25,6 +25,12 @@ maxMoviesPerRenderedPageMobile: 40
 # available locales.
 language: "en"
 
+# Where to deploy when rotcelloc is executed with --deploy. This is used as the
+# target for rsync. Be careful with the target, all other files in the
+# deployment target will be deleted. It can be a remote target in the form
+# remote:/directory or a local target in the form /directory.
+deployTo: null
+
 # Your collections
 collections:
 	# The name of a collection
