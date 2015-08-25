@@ -106,7 +106,7 @@ var movieAPI = {
     {
         var entries = [],
         retValue = {
-            data: output,
+            data: [],
             meta: {
                 genres: [],
                 seenYear: false,
@@ -119,7 +119,11 @@ var movieAPI = {
         {
             var collectionEntry = output[collectionEntryI];
             helper.remapCSVFields(collectionEntry);
-
+            if(collectionEntry.title == null || !/\S/.test(collectionEntry.title))
+            {
+                printv(0,'Warning: entry on line '+ (collectionEntryI+1)+' in '+source+' has no title - skipping');
+                continue;
+            }
             if(source)
             {
                 collectionEntry.bSource = path.basename(source);
@@ -314,6 +318,7 @@ var movieAPI = {
                     }
                 }
             }
+            retValue.data.push(collectionEntry);
         }
         // Write current cache
         core.writeCache();
@@ -521,7 +526,15 @@ var movieAPI = {
      */
     fetchFromOMDB: function (entry)
     {
-        var data = wait.for(movieAPI.performOMDBRequest,entry);
+        var data;
+        try
+        {
+            data = wait.for(movieAPI.performOMDBRequest,entry);
+        }
+        catch(e)
+        {
+            data = null;
+        };
         if(data && data.Response != "False")
         {
             return data;
