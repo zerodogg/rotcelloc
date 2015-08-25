@@ -615,6 +615,10 @@ var movieAPI = {
                 requestQuery.type = 'series';
             }
         }
+        if(requestQuery.t == null && requestQuery.i == null)
+        {
+            return cb('t+i are null');
+        }
         var serialish = url+JSON.stringify(requestQuery);
         if(runtimeCache[serialish])
         {
@@ -629,7 +633,6 @@ var movieAPI = {
             {
                 if (!err)
                 {
-                    console.log(res.body);
                     try
                     {
                         res = JSON.parse(res.body);
