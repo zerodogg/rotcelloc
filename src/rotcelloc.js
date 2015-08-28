@@ -750,7 +750,7 @@
             {
                 orderButtons.buttons[0].name = rotcelloc.translate('Alphabetic');
             }
-            if (rotcelloc.workingMeta.watchedYear)
+            if (rotcelloc.workingMeta.seenYear)
             {
                 orderButtons.buttons.push(
                     {
