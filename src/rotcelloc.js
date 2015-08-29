@@ -975,7 +975,7 @@
             {
                 html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+rotcelloc.translate('Platform')+':</div>'+rotcelloc.renderRadioOrCheckButtons(platformButtons)+'</div></div>';
             }
-            if(formatButtons.buttons.length)
+            if(formatButtons.buttons.length > 1)
             {
                 html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+rotcelloc.translate('Format')+':</div>'+rotcelloc.renderRadioOrCheckButtons(formatButtons)+'</div></div>';
             }
