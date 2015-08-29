@@ -846,7 +846,7 @@
                     }
                 );
             }
-            if(rotcelloc.workingMeta.hasRating)
+            if(rotcelloc.workingMeta.fields.rating)
             {
                 orderButtons.buttons.push(
                     {
@@ -856,7 +856,7 @@
                     }
                 );
             }
-            if (rotcelloc.workingMeta.type != 'games' || rotcelloc.workingMeta.hasMetascore)
+            if (rotcelloc.workingMeta.fields.metascore)
             {
                 orderButtons.buttons.push(
                     {
@@ -1008,7 +1008,7 @@
                 html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label genre-select-line form-inline">'+rotcelloc.renderSelectElement(genreType)+':</div>'+rotcelloc.renderRadioOrCheckButtons(genreButtons)+'</div></div>';
             }
             html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label-inline">'+rotcelloc.translate('Search in plot descriptions')+'</div>'+rotcelloc.renderRadioOrCheckButtons(plotSearchBool);
-            if(rotcelloc.workingMeta.hasWatchedBool === true)
+            if(rotcelloc.workingMeta.fields.watched === true)
             {
                 html += '<div class="searchbar-additional searchbar-label-inline">'+rotcelloc.translate('Only display unwatched titles')+'</div>'+rotcelloc.renderRadioOrCheckButtons(watchedSearchBool);
             }

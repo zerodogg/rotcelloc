@@ -110,8 +110,6 @@ var movieAPI = {
             meta: {
                 genres: [],
                 formats: [],
-                hasRating: false,
-                hasWatchedBool: false,
                 enableNormalized: false,
                 fields: {}
             }
@@ -143,7 +141,6 @@ var movieAPI = {
             }
             if(collectionEntry.watched != null)
             {
-                retValue.meta.hasWatchedBool = true;
                 collectionEntry.watched      = helper.parseBool(collectionEntry.watched);
             }
 
@@ -238,7 +235,6 @@ var movieAPI = {
             }
             if(collectionEntry.rating)
             {
-                retValue.meta.hasRating = true;
                 retValue.meta.enableNormalized   = true;
                 if(collectionEntry.rating > 6 || collectionEntry.rating < 1)
                 {
@@ -660,9 +656,8 @@ var movieAPI = {
             sourceToNameMap: {},
             genres: [],
             formats: [],
+            fields: {},
             type: groupConf.type,
-            hasRating: false,
-            hasWatchedBool: false,
             hasDisneySort: false,
             enableNormalized: false
         };
@@ -683,7 +678,7 @@ var movieAPI = {
                 groupData                           = groupData.concat(result.data);
                 entry.file                          = path.basename(entry.file);
                 groupMeta.sourceToNameMap[entry.file] = entry.name;
-                groupMeta.fields = result.meta.fields;
+                _.merge(groupMeta.fields,result.meta.fields);
                 if(entry.disneySort)
                 {
                     groupMeta.hasDisneySort = true;
@@ -692,14 +687,6 @@ var movieAPI = {
                 if(result.meta.formats)
                 {
                     groupMeta.formats = groupMeta.formats.concat(result.meta.formats);
-                }
-                if(result.meta.hasRating)
-                {
-                    groupMeta.hasRating = true;
-                }
-                if(result.meta.hasWatchedBool)
-                {
-                    groupMeta.hasWatchedBool = true;
                 }
                 if(result.meta.enableNormalized)
                 {
@@ -749,7 +736,6 @@ var gamesAPI = {
             resultMeta = {
                 genres: [],
                 platforms: [],
-                hasMetascore: false,
                 fields: {}
             };
         var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
@@ -761,7 +747,6 @@ var gamesAPI = {
             helper.remapCSVFields(data);
             data.bSource = path.basename(csvFile);
             this.genericGameHandler(data,resultMeta,data);
-            helper.storeFieldBools(data,resultMeta);
             result.push(data);
         }
         return { meta: resultMeta, data: result, bSource: path.basename(csvFile) };
@@ -777,8 +762,8 @@ var gamesAPI = {
             bSource = 'steam/'+user,
             resultMeta = {
                 genres: [],
-                platforms: [],
-                hasMetascore: false
+                fields: {},
+                platforms: []
             };
         this.retrieveSteamMetadata(games,user);
         for(var game of games)
@@ -876,7 +861,6 @@ var gamesAPI = {
             if(meta.metacritic != null && meta.metacritic.score != null)
             {
                 data.metascore = meta.metacritic.score;
-                resultMeta.hasMetascore = true;
             }
             resultMeta.platforms = resultMeta.platforms.concat(data.platform);
             resultMeta.genres = resultMeta.genres.concat(genres);
@@ -887,6 +871,7 @@ var gamesAPI = {
         }
         data.poster   = encodeURIComponent(gamesAPI.getPoster(meta,data,rawData));
         data.type     = 'game';
+        helper.storeFieldBools(data,resultMeta);
     },
     /*
      * Downloads steam metadata for all games retrieved from a steam user
@@ -1743,8 +1728,8 @@ var gamesAPI = {
             sourceToNameMap: {},
             genres: [],
             platforms: [],
-            type: groupConf.type,
-            hasMetascore: false,
+            fields: {},
+            type: groupConf.type
         };
         for(var entry of groupConf.sources)
         {
@@ -1769,12 +1754,8 @@ var gamesAPI = {
                 groupMeta.sourceToNameMap[result.bSource] = entry.name;
                 groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
                 groupMeta.platforms = groupMeta.platforms.concat(result.meta.platforms);
-                groupMeta.fields = result.meta.fields;
+                _.merge(groupMeta.fields,result.meta.fields);
                 groupData = groupData.concat(result.data);
-                if(result.meta.hasMetascore)
-                {
-                    groupMeta.hasMetascore = result.meta.hasMetascore;
-                }
                 entry.bSource = result.bSource;
             }
             catch(e)
