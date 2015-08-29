@@ -531,7 +531,7 @@ var movieAPI = {
         catch(e)
         {
             data = null;
-        };
+        }
         if(data && data.Response != "False")
         {
             return data;
