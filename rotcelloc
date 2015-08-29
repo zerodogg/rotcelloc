@@ -109,10 +109,10 @@ var movieAPI = {
             data: [],
             meta: {
                 genres: [],
-                seenYear: false,
                 hasRating: false,
                 hasWatchedBool: false,
-                enableNormalized: false
+                enableNormalized: false,
+                fields: {}
             }
         };
         for(var collectionEntryI in output)
@@ -275,10 +275,6 @@ var movieAPI = {
             {
                 collectionEntry.sortYear = parseInt(collectionEntry.year);
             }
-            if(collectionEntry.year)
-            {
-                retValue.meta.seenYear = true;
-            }
             if (!commander.includeDebug)
             {
                 var includedData = {
@@ -318,6 +314,7 @@ var movieAPI = {
                     }
                 }
             }
+            helper.storeFieldBools(collectionEntry,retValue.meta);
             retValue.data.push(collectionEntry);
         }
         // Write current cache
@@ -658,7 +655,6 @@ var movieAPI = {
             sourceToNameMap: {},
             genres: [],
             type: groupConf.type,
-            seenYear: false,
             hasRating: false,
             hasWatchedBool: false,
             hasDisneySort: false,
@@ -681,15 +677,12 @@ var movieAPI = {
                 groupData                           = groupData.concat(result.data);
                 entry.file                          = path.basename(entry.file);
                 groupMeta.sourceToNameMap[entry.file] = entry.name;
+                groupMeta.fields = result.meta.fields;
                 if(entry.disneySort)
                 {
                     groupMeta.hasDisneySort = true;
                 }
                 groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
-                if(result.meta.seenYear)
-                {
-                    groupMeta.seenYear = true;
-                }
                 if(result.meta.hasRating)
                 {
                     groupMeta.hasRating = true;
@@ -740,8 +733,8 @@ var gamesAPI = {
             resultMeta = {
                 genres: [],
                 platforms: [],
-                seenYear: false,
-                hasMetascore: false
+                hasMetascore: false,
+                fields: {}
             };
         var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
         var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
@@ -752,6 +745,7 @@ var gamesAPI = {
             helper.remapCSVFields(data);
             data.bSource = path.basename(csvFile);
             this.genericGameHandler(data,resultMeta,data);
+            helper.storeFieldBools(data,resultMeta);
             result.push(data);
         }
         return { meta: resultMeta, data: result, bSource: path.basename(csvFile) };
@@ -768,7 +762,6 @@ var gamesAPI = {
             resultMeta = {
                 genres: [],
                 platforms: [],
-                seenYear: false,
                 hasMetascore: false
             };
         this.retrieveSteamMetadata(games,user);
@@ -836,7 +829,6 @@ var gamesAPI = {
             {
                 data.year = meta.ReleaseDate.split('/')[2];
                 data.sortYear = data.year;
-                resultMeta.seenYear = true;
             }
             else if(meta.steamRelDate)
             {
@@ -1737,7 +1729,6 @@ var gamesAPI = {
             platforms: [],
             type: groupConf.type,
             hasMetascore: false,
-            seenYear: false
         };
         for(var entry of groupConf.sources)
         {
@@ -1762,11 +1753,8 @@ var gamesAPI = {
                 groupMeta.sourceToNameMap[result.bSource] = entry.name;
                 groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
                 groupMeta.platforms = groupMeta.platforms.concat(result.meta.platforms);
+                groupMeta.fields = result.meta.fields;
                 groupData = groupData.concat(result.data);
-                if(result.meta.seenYear)
-                {
-                    groupMeta.seenYear= result.meta.seenYear;
-                }
                 if(result.meta.hasMetascore)
                 {
                     groupMeta.hasMetascore = result.meta.hasMetascore;
@@ -2154,6 +2142,17 @@ var helper = {
         wait.for(function (cb) {
                 setTimeout(function() { cb(); }, sleepTime);
         });
+    },
+    /*
+     * Sets booleans for fields. Reads fields from "entry" and stashes it into
+     * meta.fields.[]
+     */
+    storeFieldBools: function (entry, meta)
+    {
+        for(var field in entry)
+        {
+            meta.fields[field] = true;
+        }
     }
 };
 
