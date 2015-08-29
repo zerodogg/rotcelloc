@@ -109,6 +109,7 @@ var movieAPI = {
             data: [],
             meta: {
                 genres: [],
+                formats: [],
                 hasRating: false,
                 hasWatchedBool: false,
                 enableNormalized: false,
@@ -229,7 +230,11 @@ var movieAPI = {
             if(collectionEntry.genre)
             {
                 retValue.meta.genres = retValue.meta.genres.concat(collectionEntry.genre.split(/,\s*/));
-
+            }
+            if(collectionEntry.format)
+            {
+                collectionEntry.format = collectionEntry.format.split(/,\s*/);
+                retValue.meta.formats = retValue.meta.formats.concat(collectionEntry.format);
             }
             if(collectionEntry.rating)
             {
@@ -654,6 +659,7 @@ var movieAPI = {
         groupMeta = {
             sourceToNameMap: {},
             genres: [],
+            formats: [],
             type: groupConf.type,
             hasRating: false,
             hasWatchedBool: false,
@@ -683,6 +689,10 @@ var movieAPI = {
                     groupMeta.hasDisneySort = true;
                 }
                 groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
+                if(result.meta.formats)
+                {
+                    groupMeta.formats = groupMeta.formats.concat(result.meta.formats);
+                }
                 if(result.meta.hasRating)
                 {
                     groupMeta.hasRating = true;
@@ -711,6 +721,12 @@ var movieAPI = {
 
         groupMeta.genres.sort();
         groupMeta.genres = _.uniq(groupMeta.genres,true);
+
+        if(groupMeta.formats)
+        {
+            groupMeta.formats.sort();
+            groupMeta.formats = _.uniq(groupMeta.formats,true);
+        }
 
         return { name: name, data: movieAPI.sortAndFinalize(groupData), meta: groupMeta, groupNo: groupNo };
     }

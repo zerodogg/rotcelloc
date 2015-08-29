@@ -334,6 +334,7 @@
                 $group          = $('#group .active input'),
                 platform        = $('#platform .active input').attr('data-value'),
                 order           = $('#order option:selected()').attr('data-value'),
+                $format         = $('#format .active input'),
                 $genre          = $('#genre .active input'),
                 $plotSearch     = $('#plotSearch .active input'),
                 $watchedSearch     = $('#watchedSearch .active input'),
@@ -375,6 +376,15 @@
                 $genre.each(function()
                 {
                     query.genres.push($(this).attr('data-value'));
+                });
+                query.genreSearchType = genreSearchType;
+            }
+            if($format && $format.length)
+            {
+                query.formats = [];
+                $format.each(function()
+                {
+                    query.formats.push($(this).attr('data-value'));
                 });
                 query.genreSearchType = genreSearchType;
             }
@@ -431,6 +441,55 @@
                         {
                             continue;
                         }
+                    }
+                }
+                if(query.formats)
+                {
+                    hit = true;
+                    if (!collectionEntry.format)
+                    {
+                        continue;
+                    }
+                    for (var formatI in query.formats)
+                    {
+                        var queryFormat = query.formats[formatI];
+                        var found = false;
+                        for(format = 0; format < collectionEntry.format.length; format++)
+                        {
+                            if(collectionEntry.format[format] == queryFormat)
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            hit = false;
+                        }
+                    }
+                    if (!hit)
+                    {
+                        continue;
+                    }
+                }
+                if(query.format)
+                {
+                    hit = false;
+                    var format;
+                    if(collectionEntry.format)
+                    {
+                        for(format = 0; format < collectionEntry.format.length; format++)
+                        {
+                            if(collectionEntry.format[format] == query.format)
+                            {
+                                hit = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!hit)
+                    {
+                        continue;
                     }
                 }
                 if(query.platform)
@@ -873,8 +932,25 @@
                     });
                 }
             }
+            var formatButtons = {
+                id: 'format',
+                type: 'checkbox',
+                buttons: []
+            };
+            if(rotcelloc.workingMeta.formats && rotcelloc.workingMeta.formats.length)
+            {
+                for(var formatN = 0; formatN < rotcelloc.workingMeta.formats.length; formatN++)
+                {
+                    var format = rotcelloc.workingMeta.formats[formatN];
+                    formatButtons.buttons.push({
+                        id: 'format_'+format,
+                        value: format,
+                        name: format
+                    });
+                }
+            }
             var hasMore = false;
-            if(groupButtons.buttons.length > 2 || genreButtons.buttons.length)
+            if(groupButtons.buttons.length > 2 || genreButtons.buttons.length || formatButtons.buttons.length)
             {
                 hasMore = true;
             }
@@ -898,6 +974,10 @@
             if(platformButtons.buttons.length > 2)
             {
                 html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+rotcelloc.translate('Platform')+':</div>'+rotcelloc.renderRadioOrCheckButtons(platformButtons)+'</div></div>';
+            }
+            if(formatButtons.buttons.length)
+            {
+                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+rotcelloc.translate('Format')+':</div>'+rotcelloc.renderRadioOrCheckButtons(formatButtons)+'</div></div>';
             }
             if(genreButtons.buttons.length)
             {

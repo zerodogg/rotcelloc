@@ -182,7 +182,8 @@ omitted
 number. It is used to provide special sorting for Disney Classics, and to
 display the number.
 
-**format** - the format of the item, ie. BluRay, DVD
+**format** - the format of the item, ie. BluRay, DVD. Can be a comma-separated
+list if you have the item in multiple formats.
 
 **watched** - a boolean, set to "yes" if you have watched the title or "no" if you
 haven't. Can be omitted. Having at least one watched=no entry allows filtering for
