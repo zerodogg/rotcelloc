@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 /*
+ * vim: set ft=javascript :
+ *
  * rotcelloc command-line management app
  *
  * Part of rotcelloc - the hacker's movie, tv-series and game collection
@@ -1204,7 +1206,9 @@ var gamesAPI = {
             .replace(/\s*Early\s*Access/gi,'')
             .replace(/\s*start(er)?\s*pack/gi,'')
             .replace(/[:-]?\s*(Game\s*of\s*the\s*year\s*)/gi,'')
-            .replace(/free[\s-]*(2|to)[\s-]*play/ig,'');
+            .replace(/free[\s-]*(2|to)[\s-]*play/ig,'')
+            // This removes additional data from games with multiple names, ie. "Resident Evil 5 / Biohazard 5" -> " Resident Evil 5"
+            .replace(/\s+\/\s+.+/,'');
         if( (on == orig || doAll) && !excludeGeneric)
         {
             var generic = helper.attemptGenericReplacements(on);
