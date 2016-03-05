@@ -64,7 +64,9 @@ try
         // Converts PO files to a JSON structure
         po2json       = require('po2json'),
         // Loads CSON files
-        CSON          = require('cson');
+        CSON          = require('cson'),
+        // Used for hasing
+        crypto        = require('crypto');
 }
     catch(e)
 {
@@ -2150,6 +2152,16 @@ var helper = {
         {
             meta.fields[field] = true;
         }
+    },
+
+    /*
+     * Retrieve a checksum
+     */
+    checksum: function (targetStr)
+    {
+		var shasum = crypto.createHash('sha1');
+        shasum.update(targetStr);
+        return shasum.digest('hex');
     }
 };
 
@@ -2163,8 +2175,6 @@ var core = {
      */
     writeOutResult: function (groupMeta,groupData,groupNo,name,config,results)
     {
-        var filename = webappGen.writePageFor(name,groupNo,results);
-
         groupMeta.genres.sort();
         groupMeta.genres = _.uniq(groupMeta.genres,true);
 
@@ -2180,7 +2190,13 @@ var core = {
             dVer: 0,
             version: packageJSON.version
         };
-        fs.writeFileSync(helper.resolveOutPath('out/'+name.toLowerCase().replace(/\s+/g,'_')+'.dataset.json'),JSON.stringify(dataset));
+
+        var strDataset = JSON.stringify(dataset);
+        var checksum = helper.checksum(strDataset);
+
+        var filename = webappGen.writePageFor(name,groupNo,results,checksum);
+
+        fs.writeFileSync(helper.resolveOutPath('out/'+name.toLowerCase().replace(/\s+/g,'_')+'.dataset.json'),strDataset);
     },
     /*
      * Loads the config, the i18n data, then hands control over to the various
@@ -2492,7 +2508,7 @@ var webappGen = {
         }
         return filename;
     },
-    writePageFor: function (name,groupNo,results)
+    writePageFor: function (name,groupNo,results,checksum)
     {
         var filename = webappGen.createFilename(name,groupNo);
         var template = fs.readFileSync(helper.resolvePath('src/template.ejs'));
@@ -2516,7 +2532,7 @@ var webappGen = {
                 config: helper.getConfig(),
                 footer: footer,
                 menu: menu,
-                content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>',
+                content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-checksum="'+checksum+'" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>',
             },
             {
                 rmWhitespace: true

@@ -88,12 +88,13 @@
          */
         getDataSet: function(cb)
         {
-            var pagetype = $('#collResultTarget').data('pagetype');
+            var $colResT = $('#collResultTarget');
+            var pagetype = $colResT.data('pagetype');
             if(pagetype === undefined)
             {
                 return;
             }
-            $.getJSON(pagetype.toLowerCase().replace(/\s+/g,'_')+'.dataset.json',function (data)
+            $.getJSON(pagetype.toLowerCase().replace(/\s+/g,'_')+'.dataset.json?'+$colResT.data('checksum'),function (data)
             {
                     rotcelloc.data    = data;
                     rotcelloc.pagetype    = pagetype;
@@ -102,7 +103,7 @@
                     rotcelloc.workingConfig = rotcelloc.data.config.collections[pagetype];
                     if(rotcelloc.data.dVer !== 0)
                     {
-                        $('#collResultTarget').text('ERROR: Dataset is of an unsupported version: '+rotcelloc.data.dVer);
+                        $colResT.text('ERROR: Dataset is of an unsupported version: '+rotcelloc.data.dVer);
                     }
                     else
                     {
