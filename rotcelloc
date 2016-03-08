@@ -2495,8 +2495,8 @@ var core = {
  */
 var webappGen = {
     versions: {
-        jQueryVersion: '2.1.4',
-        bootstrapVersion: '3.3.5'
+        jQueryVersion: '2.2.1',
+        bootstrapVersion: '3.3.6'
     },
     createFilename: function(name,groupNo)
     {
