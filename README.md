@@ -166,6 +166,9 @@ with the entry. This field is searchable in the webapp.
 item from. If omitted the cover will be auto-detected. This field can be useful
 in the few cases where `rotcelloc` is unable to find a cover on its own.
 
+**added** - an ISO 8601 date for when you added this item to your collection.
+This field is completely optional.
+
 ##### Columns only valid for movies and TV series
 
 **seasons** - a comman-separated list of the seasons of a TV series that you own

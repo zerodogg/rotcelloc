@@ -122,6 +122,7 @@ var movieAPI = {
         {
             var collectionEntry = output[collectionEntryI];
             helper.remapCSVFields(collectionEntry);
+            helper.handleGenericFields(collectionEntry);
             if(collectionEntry.title == null || !/\S/.test(collectionEntry.title))
             {
                 printv(0,'Warning: entry on line '+ (collectionEntryI+1)+' in '+source+' has no title - skipping');
@@ -309,6 +310,8 @@ var movieAPI = {
                     disneyClassicNo: true,
                     imdbID: true,
                     watched: true,
+                    added: true,
+                    addedRaw: true,
                     normalizedRating: true
                 };
                 for (var field in collectionEntry)
@@ -663,6 +666,7 @@ var movieAPI = {
             fields: {},
             type: groupConf.type,
             hasDisneySort: false,
+            hasAddedSort: false,
             enableNormalized: false
         };
         for(var entry of groupConf.sources)
@@ -683,10 +687,7 @@ var movieAPI = {
                 entry.file                          = path.basename(entry.file);
                 groupMeta.sourceToNameMap[entry.file] = entry.name;
                 _.merge(groupMeta.fields,result.meta.fields);
-                if(entry.disneySort)
-                {
-                    groupMeta.hasDisneySort = true;
-                }
+                groupMeta.hasDisneySort = entry.disneySort || groupMeta.hasDisneySort;
                 groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
                 if(result.meta.formats)
                 {
@@ -1845,6 +1846,7 @@ var helper = {
             'Sjanger':'genre',
             'Format':'format',
             'Klassikernummer':'disneyClassicNo',
+            'Lagt til':'added',
             'Kover':'customCover',
             'Sett':'watched',
             'Cover':'customCover',
@@ -1887,6 +1889,21 @@ var helper = {
                 content[key.toLowerCase()] = content[key];
                 delete content[key];
             }
+        }
+    },
+    /*
+     * Parses and sets the "added" field
+     */
+    handleGenericFields: function(content)
+    {
+        if(content.added)
+        {
+            content.addedRaw = content.added;
+            content.added = Date.parse(content.added);
+        }
+        else
+        {
+            content.added = 0;
         }
     },
     /*

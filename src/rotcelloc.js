@@ -317,6 +317,10 @@
             {
                 html += '<div class="note"><div class="meta-label">'+rotcelloc.translate('Note')+':</div> '+data.note+'</div>';
             }
+            if(data.addedRaw)
+            {
+                html += '<div class="note"><div class="meta-label">'+rotcelloc.translate('Date added')+':</div> '+data.addedRaw+'</div>';
+            }
             if(data.plot)
             {
                 html += '<div class="plot">'+data.plot+'</div>';
@@ -713,7 +717,7 @@
                     sorted  = true;
                     results = _.shuffle(results);
                 }
-                else if(query.order == 'rating' || query.order == 'imdbRating' || query.order == 'metascore' || query.order == 'runtimeMin' || query.order == 'sortYear' || query.order == 'normalizedRating')
+                else if(query.order == 'rating' || query.order == 'imdbRating' || query.order == 'metascore' || query.order == 'runtimeMin' || query.order == 'sortYear' || query.order == 'normalizedRating' || query.order == 'added')
                 {
                     sorted = true;
                     results.sort( orderByOptionalField(query.order) );
@@ -818,6 +822,17 @@
                         value: 'sortYear',
                         name: rotcelloc.translate('Year'),
                         active: rotcelloc.workingConfig.defaultSort === 'year'
+                    }
+                );
+            }
+            if (rotcelloc.workingMeta.fields.added)
+            {
+                orderButtons.buttons.push(
+                    {
+                        id: 'order_added',
+                        value: 'added',
+                        name: rotcelloc.translate('Date added'),
+                        active: rotcelloc.workingConfig.defaultSort === 'added'
                     }
                 );
             }
