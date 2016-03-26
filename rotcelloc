@@ -1193,7 +1193,7 @@ var gamesAPI = {
     performNameReplacements: function (on,doAll,excludeGeneric)
     {
         var orig = on;
-        on = on.replace(/([:-]?\s*)\(?((the|steam|new|old)\s+)?(Black|Steam|Linux|Windows|Mac(\s*OS\s*X?)?|EU|PAL|NTSC|US|PS\s*Vita|Special|Collector[`’']?s?|Remastered|Game of the year|Complete|Enhanced|Ultimate|Gold|Extreme|Epic|Uber|Deluxe|Premium|HD|GOTY|Developer|Director|Final|Special|Ultimate|Extended|Anniversary)(\s+\S+)?\s+(journey|edition|version|cut|collection)\)?/ig,'')
+        on = on.replace(/([:-]?\s*)\(?((the|steam|new|old)\s+)?(Black|Steam|Linux|Windows|Mac(\s*OS\s*X?)?|EU|PAL|NTSC|US|PS\s*Vita|Special|Collector[`’']?s?|Remastered|Game of the year|Complete|Enhanced|Ultimate|Gold|Extreme|Epic|Uber|Deluxe|Premium|HD|GOTY|Developer|Director|Final|Special|Ultimate|Extended|Anniversary)(\s+\S+)?\s+(journey|edition|version|cut|collection)\)?\s*(upgrade)?/ig,'')
             .replace(/\s*for\s*(Linux|Windows|Mac|PC)/i,'')
             .replace(/\s*(Linux|Windows|Mac|PC|Playstation|Playstation Vita|PS\s*Vita)\s*(Edition|Version)?$/i,'')
             .replace(/GOTY/,'')
