@@ -1767,13 +1767,14 @@ var gamesAPI = {
             }
             catch(e)
             {
+                var wasProcessing = entry.file ? entry.file : entry.source;
                 if(e.stack)
                 {
-                    printv(1,'Error while processing '+entry.source+': '+e.stack);
+                    printv(1,'Error while processing '+wasProcessing+': '+e.stack);
                 }
                 else
                 {
-                    printv(1,'Error while processing '+entry.source+': '+e);
+                    printv(1,'Error while processing '+wasProcessing+': '+e);
                 }
             }
         }
