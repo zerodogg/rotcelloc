@@ -350,7 +350,7 @@ var movieAPI = {
     handleMovieFile: function (csvFile,config)
     {
         var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
-        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
+        var output = helper.parseCSV(input);
         return movieAPI.handleResultSet(output,csvFile,config,'movie');
     },
     /*
@@ -359,7 +359,7 @@ var movieAPI = {
     handleSeriesFile: function (csvFile,config)
     {
         var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
-        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
+        var output = helper.parseCSV(input);
         return movieAPI.handleResultSet(output,csvFile,config,'tv');
     },
     /*
@@ -744,7 +744,7 @@ var gamesAPI = {
                 fields: {}
             };
         var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
-        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true});
+        var output = helper.parseCSV(input);
 
         for(var collectionEntryI in output)
         {
@@ -2183,6 +2183,14 @@ var helper = {
 		var shasum = crypto.createHash('sha1');
         shasum.update(targetStr);
         return shasum.digest('hex');
+    },
+    /*
+     * Parse CSV from a string
+     */
+    parseCSV: function (input)
+    {
+        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: true});
+        return output;
     }
 };
 
