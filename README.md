@@ -91,7 +91,7 @@ useful to limit them more than desktops. A reasonable place to start is 40.
 languages can be found in i18n/. Additional translations are welcome.
 
 **deployTo** - set this if you want to use rotcelloc to deploy the site (using
---deply).  This is used as the target for rsync. Be careful with the target,
+--deploy).  This is used as the target for rsync. Be careful with the target,
 all other files in the deployment target will be deleted. It can be a remote
 target in the form remote:/directory or a local target in the form /directory.
 If you don't want to use --deploy, you can either delete this entry, or set it
