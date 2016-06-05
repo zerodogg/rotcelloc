@@ -42,13 +42,14 @@ translations:
 	perl -pi -e 's/^# SOME DESCRIPTIVE TITLE./# Rotcelloc/g' i18n/translate.pot
 	for f in i18n/*po; do msgmerge -U $$f i18n/translate.pot;done
 clean:
-distclean: clean
 	rm -rf rotcelloc-$(VERSION)
 	rm -f rotcelloc-$(VERSION).tar.bz2
+distclean: clean
+	rm -f src/deps/*
 	rm -f */*~
 distrib: distclean
 	mkdir -p rotcelloc-$(VERSION)/examples
-	cp -r Makefile rotcelloc *.md *.json *.tpl TODO tools i18n rotcelloc-$(VERSION)/
+	cp -r Makefile rotcelloc src *.md *.json *.tpl TODO tools i18n rotcelloc-$(VERSION)/
 	cp examples/*csv examples/*cson rotcelloc-$(VERSION)/examples
 	tar -jcf ./rotcelloc-$(VERSION).tar.bz2 ./rotcelloc-$(VERSION)
 	rm -rf rotcelloc-$(VERSION)
