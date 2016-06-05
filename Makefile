@@ -29,7 +29,7 @@ prefix=$(shell perl -e 'if($$< == 0 or $$> == 0) { print "/usr" } else { print "
 # this at all
 BINDIR ?= $(shell perl -e 'if(($$< > 0 && $$> > 0) and -e "$$ENV{HOME}/bin") { print "$$ENV{HOME}/bin";exit; } else { print "$(prefix)/bin"}')
 endif
-
+VERSION=$(shell grep version package.json|perl -p -e 's/[^\d\.]+//g')
 BINDIR ?= $(prefix)/bin
 
 # Install symlinks
@@ -41,3 +41,14 @@ translations:
 	xgettext --copyright-holder 'Eskild Hustvedt' --package-name Rotcelloc --keyword=translate --from-code utf-8 --language JavaScript --add-comments=Translators: src/rotcelloc.js ./rotcelloc -o i18n/translate.pot
 	perl -pi -e 's/^# SOME DESCRIPTIVE TITLE./# Rotcelloc/g' i18n/translate.pot
 	for f in i18n/*po; do msgmerge -U $$f i18n/translate.pot;done
+clean:
+distclean: clean
+	rm -rf rotcelloc-$(VERSION)
+	rm -f rotcelloc-$(VERSION).tar.bz2
+	rm -f */*~
+distrib: distclean
+	mkdir -p rotcelloc-$(VERSION)/examples
+	cp -r Makefile rotcelloc *.md *.json *.tpl TODO tools i18n rotcelloc-$(VERSION)/
+	cp examples/*csv examples/*cson rotcelloc-$(VERSION)/examples
+	tar -jcf ./rotcelloc-$(VERSION).tar.bz2 ./rotcelloc-$(VERSION)
+	rm -rf rotcelloc-$(VERSION)

@@ -11,3 +11,4 @@ i18n/*.json
 .sass-cache
 .images
 examples/.gitignore
+*.tar.*
