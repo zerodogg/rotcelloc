@@ -31,6 +31,12 @@ language: "en"
 # remote:/directory or a local target in the form /directory.
 deployTo: null
 
+# This option enables automatic "added" dates on entries in the database
+# based upon when a line was added to git. This requires that you keep your
+# rotcelloc collection in a git repository. Set it to false to disable, anything
+# else to enable.
+enableAutoAdded: true
+
 # Your collections
 collections:
 	# The name of a collection

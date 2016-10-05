@@ -121,8 +121,6 @@ var movieAPI = {
         for(var collectionEntryI in output)
         {
             var collectionEntry = output[collectionEntryI];
-            helper.remapCSVFields(collectionEntry);
-            helper.handleGenericFields(collectionEntry);
             if(collectionEntry.title == null || !/\S/.test(collectionEntry.title))
             {
                 printv(0,'Warning: entry on line '+ (collectionEntryI+1)+' in '+source+' has no title - skipping');
@@ -349,18 +347,16 @@ var movieAPI = {
      */
     handleMovieFile: function (csvFile,config)
     {
-        var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
-        var output = helper.parseCSV(input);
-        return movieAPI.handleResultSet(output,csvFile,config,'movie');
+        var CSV = helper.loadCollectionFile(csvFile);
+        return movieAPI.handleResultSet(CSV,csvFile,config,'movie');
     },
     /*
      * Loads a TV series file and hands control over to handleResultSet
      */
     handleSeriesFile: function (csvFile,config)
     {
-        var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
-        var output = helper.parseCSV(input);
-        return movieAPI.handleResultSet(output,csvFile,config,'tv');
+        var CSV = helper.loadCollectionFile(csvFile);
+        return movieAPI.handleResultSet(CSV,csvFile,config,'tv');
     },
     /*
      * Downloads a poster, either 1) the user specified one, 2) one found using
@@ -743,13 +739,11 @@ var gamesAPI = {
                 platforms: [],
                 fields: {}
             };
-        var input  = fs.readFileSync(helper.resolveOutPath(csvFile),{ encoding: 'utf-8'} );
-        var output = helper.parseCSV(input);
+        var output = helper.loadCollectionFile(csvFile);
 
         for(var collectionEntryI in output)
         {
             var data = output[collectionEntryI];
-            helper.remapCSVFields(data);
             data.bSource = path.basename(csvFile);
             this.genericGameHandler(data,resultMeta,data);
             result.push(data);
@@ -1900,7 +1894,7 @@ var helper = {
         if(content.added)
         {
             content.addedRaw = content.added;
-            content.added = Date.parse(content.added);
+            content.added = Math.round(Date.parse(content.added)/1000);
         }
         else
         {
@@ -2190,8 +2184,74 @@ var helper = {
      */
     parseCSV: function (input)
     {
-        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: true});
+        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
         return output;
+    },
+    /*
+     * Load a CSV collection file
+     */
+    loadCollectionFile: function(path)
+    {
+        var input  = fs.readFileSync(helper.resolveOutPath(path),{ encoding: 'utf-8'} );
+        var CSV = this.parseCSV(input);
+        var config = helper.getConfig();
+        var blameData;
+        if(config.enableAutoAdded !== false)
+        {
+            blameData = this.loadGitBlame(path);
+        }
+        for(var i = 0; i < CSV.length; i++)
+        {
+            var entry = CSV[i];
+            helper.remapCSVFields(entry);
+            helper.handleGenericFields(entry);
+            if (blameData != null && entry.added == 0)
+            {
+                var blameLine = i-1;
+                var blamed = blameData[blameLine];
+                if(blamed && blamed['committer-time'])
+                {
+                    entry.added = blamed['committer-time'];
+                }
+            }
+        }
+        return CSV;
+    },
+    /*
+     * Load git blame information for a file
+     */
+    loadGitBlame: function(path)
+    {
+        var gitBlameOutput;
+        try
+        {
+            gitBlameOutput = child_process.execFileSync('git',['blame','--line-porcelain','-w','--minimal','-C',path],{ stdio: [ 'ignore','pipe','ignore' ] });
+        }
+        catch(e)
+        {
+            printv(4,'Error during execFileSync of git blame: '+e.message);
+            return [];
+        }
+        gitBlameOutput = gitBlameOutput.toString();
+        gitBlameOutput = gitBlameOutput.split(/\n/);
+        var blame = [];
+        var current = {};
+        for(var i = 0; i < gitBlameOutput.length; i++)
+        {
+            var line = gitBlameOutput[i];
+            if (/^\t/.test(line))
+            {
+                blame.push(current);
+                current = {};
+            }
+            else
+            {
+                var key = line.replace(/^(\S+)\s+.*/,'$1');
+                var value = line.replace(/^\S+\s+/,'');
+                current[key] = value;
+            }
+        }
+        return blame;
     }
 };
 
