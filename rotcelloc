@@ -2532,6 +2532,15 @@ var core = {
         if(fs.existsSync(helper.resolveOutPath('out')))
         {
             printv(1,'Cleaning up old files...');
+            // Keep the old tarball if it exists
+            if(fs.existsSync(helper.resolveOutPath('out/rotcelloc.tar.bz2')))
+            {
+                if(fs.existsSync(helper.resolveOutPath('rotcelloc.tar.bz2~')))
+                {
+                    fs.unlinkSync(helper.resolveOutPath('rotcelloc.tar.bz2~'));
+                }
+                fs.renameSync(helper.resolveOutPath('out/rotcelloc.tar.bz2'),helper.resolveOutPath('.rotcelloc.tar.bz2~'));
+            }
             var oldFiles = wait.for(glob,helper.resolveOutPath('out/*'));
             for (var oldFile of oldFiles)
             {
@@ -2552,6 +2561,10 @@ var core = {
         if (!fs.existsSync(helper.resolveOutPath('.images/orig')))
         {
             fs.mkdirSync(helper.resolveOutPath('.images/orig'));
+        }
+        if(fs.existsSync(helper.resolveOutPath('.rotcelloc.tar.bz2~')))
+        {
+            fs.renameSync(helper.resolveOutPath('.rotcelloc.tar.bz2~'),helper.resolveOutPath('out/rotcelloc.tar.bz2'));
         }
 
         printv(1,'Building database...');
@@ -2580,7 +2593,6 @@ var core = {
      */
     writeCCS: function ()
     {
-        printv(3,'Generating source code archive...');
         var selfFiles = [
             { 'path': 'README.md' },
             { 'path': 'Makefile' },
@@ -2608,6 +2620,34 @@ var core = {
             }
         }
         selfFiles.unshift({ 'path': 'rotcelloc', 'qualified':__filename });
+        if(fs.existsSync(helper.resolveOutPath('out/rotcelloc.tar.bz2')))
+        {
+            // There's already a tarball. We do a stupid comparison between the
+            // tarball and ourselves, if we're newer than the tarball, we
+            // generate a new one anyway, otherwise we keep the existing one.
+            var tarball = fs.statSync(helper.resolveOutPath('out/rotcelloc.tar.bz2'));
+            var tarballUpToDate = true;
+            for(var comparison of selfFiles)
+            {
+                var compare = fs.statSync(helper.resolvePath(comparison.path));
+                if(compare.mtime.getTime() > tarball.mtime.getTime())
+                {
+                    tarballUpToDate = false;
+                    break;
+                }
+            }
+            if(tarballUpToDate)
+            {
+                printv(4,'Keeping existing source code archive');
+                return;
+            }
+            else
+            {
+                printv(4,'A source code archive already existed, but rotcelloc is newer than it is. Will regenerate the archive.');
+                fs.unlinkSync(helper.resolveOutPath('out/rotcelloc.tar.bz2'));
+            }
+        }
+        printv(3,'Generating source code archive...');
 
         var currCWD = process.cwd();
         if (!fs.existsSync(helper.resolveOutPath('out/rotcelloc/')))
