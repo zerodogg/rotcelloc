@@ -3,8 +3,5 @@ TODO list for rotcelloc, in no particular order:
 - Generate the filenames for images locally.
     The current version can theoretically result in conflicts (and rotcelloc will
     tell the user if one occurred)
-- Add a print-the-sourcecode feature that allows a user to download the
-  complete and corresponding sourcecode used to build a collection from within
-  the web interface
 - Package rotcelloc for installation through npm
 - Allow the webapp to run in "local" mode, with local copies of the CDN files
