@@ -1798,6 +1798,10 @@ var helper = {
      */
     GETJSON: function (url)
     {
+        if(commander.lazy)
+        {
+            return;
+        }
         printv(4,'Performing GET request for JSON to '+url);
         var data;
         try
@@ -2016,6 +2020,10 @@ var helper = {
         cache.URLs[ckey] = url;
         if (!fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
         {
+            if(commander.lazy)
+            {
+                return;
+            }
             if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
             {
                 printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.URLs[ckey])+' ('+cache.URLs[ckey]+' and '+cache.fileMap[path.basename(cache.URLs[ckey])]+')');
@@ -2906,6 +2914,7 @@ function main()
     .option('--steam-dump [user]','dump Steam games belonging to [user]')
     .option('--force-steam-update','force an update of the lists of Steam games')
     .option('--config [file]','read [file] instead of ./rotcelloc.config.json')
+    .option('--lazy','only use cached data')
     .parse(process.argv);
 
     if(commander.quiet)
