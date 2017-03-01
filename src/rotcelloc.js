@@ -312,6 +312,30 @@
                 html += ', ';
                 html += '<a target="_blank" href="https://www.themoviedb.org/search/'+( rotcelloc.workingMeta.type == 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
             }
+            // Add a trailer link (to YouTube) if the type is something where a
+            // trailer makes sense
+            if (data.type == 'game' || data.type == 'tv' || data.type == 'movie')
+            {
+                var trailerSearch = data.normalizedTitle;
+                if(data.year)
+                {
+                    trailerSearch += ' '+data.year.replace(/\D.*/g,'');
+                }
+                if(data.type == 'game')
+                {
+                    trailerSearch += ' game';
+                }
+                else if(data.type == 'tv')
+                {
+                    trailerSearch += ' (tv OR series)';
+                }
+                else if(data.type == 'movie')
+                {
+                    trailerSearch += ' (movie OR theatrical OR film)';
+                }
+                trailerSearch += ' "trailer"';
+                html += ', <a target="_blank" href="https://www.youtube.com/results?search_query='+encodeURIComponent(trailerSearch)+'">Trailer (YouTube)</a>';
+            }
             html += '</div>';
             if(data.note)
             {

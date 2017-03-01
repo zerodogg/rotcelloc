@@ -279,6 +279,7 @@ var movieAPI = {
             {
                 collectionEntry.sortYear = parseInt(collectionEntry.year);
             }
+            collectionEntry.normalizedTitle = helper.normalizeTitle( collectionEntry.origTitle ? collectionEntry.origTitle : collectionEntry.title );
             if (!commander.includeDebug)
             {
                 var includedData = {
@@ -310,6 +311,7 @@ var movieAPI = {
                     watched: true,
                     added: true,
                     addedRaw: true,
+                    normalizedTitle: true,
                     normalizedRating: true
                 };
                 for (var field in collectionEntry)
@@ -871,6 +873,7 @@ var gamesAPI = {
         data.poster   = encodeURIComponent(gamesAPI.getPoster(meta,data,rawData));
         data.type     = 'game';
         helper.storeFieldBools(data,resultMeta);
+        data.normalizedTitle = this.performNameReplacements(helper.normalizeTitle( data.origTitle ? data.origTitle : data.title ));
     },
     /*
      * Downloads steam metadata for all games retrieved from a steam user
@@ -1984,6 +1987,14 @@ var helper = {
             }
         }
         return null;
+    },
+    /*
+     * Performs some simple replacements to remove entities from a title
+     * that obviously isn't suppose to be there
+     */
+    normalizeTitle: function (origTitle)
+    {
+        return origTitle.replace(/\s*™/,'');
     },
     /*
      * Downloads a URL to a file and caches some metadata for it
