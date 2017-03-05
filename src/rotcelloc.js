@@ -509,7 +509,7 @@
                     {
                         var queryFormat = query.formats[formatI];
                         var found = false;
-                        for(format = 0; format < collectionEntry.format.length; format++)
+                        for(var format = 0; format < collectionEntry.format.length; format++)
                         {
                             if(collectionEntry.format[format] == queryFormat)
                             {
@@ -530,12 +530,12 @@
                 if(query.format)
                 {
                     hit = false;
-                    var format;
+                    var fmt;
                     if(collectionEntry.format)
                     {
-                        for(format = 0; format < collectionEntry.format.length; format++)
+                        for(fmt = 0; fmt < collectionEntry.format.length; fmt++)
                         {
-                            if(collectionEntry.format[format] == query.format)
+                            if(collectionEntry.format[fmt] == query.format)
                             {
                                 hit = true;
                                 break;
