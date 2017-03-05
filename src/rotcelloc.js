@@ -20,6 +20,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// jshint esnext: false
 (function ($){
     "use strict";
     var BOT_LOAD_TRIGGER_PX = 1000,
