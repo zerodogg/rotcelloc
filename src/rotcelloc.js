@@ -258,24 +258,49 @@
                 }
                 html += '</div>';
             }
-            if(data.rating)
+            var genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn' ],
+                genericEntries = {
+                'rating':{
+                    'label':rotcelloc.translate('Custom rating'),
+                    'renderer':function (val) {
+                        return val+'/6';
+                    }
+                },
+                'metascore':{
+                    'label':rotcelloc.translate('Metascore'),
+                    'renderer':function (val) {
+                        return val+'/100';
+                    }
+                },
+                'imdbRating':{
+                    'label':rotcelloc.translate('IMDB rating'),
+                    'renderer': function (val,data) {
+                        return data.imdbRating+'/10 ('+data.imdbVotes+' '+rotcelloc.translate('votes'  )+')';
+                    }
+                },
+                'format':{
+                    'label':rotcelloc.translate('Format'),
+                }
+            };
+
+            for(var genericEntryCurrI = 0; genericEntryCurrI < genericEntriesOrder.length; genericEntryCurrI++)
             {
-                html += '<div class="title-actors"><div class="meta-label">'+rotcelloc.translate('Custom rating')+':</div> '+data.rating+'/6</div>';
+                var genericEntryCurr = genericEntriesOrder[genericEntryCurrI];
+                if(data[genericEntryCurr])
+                {
+                    var renderRules = genericEntries[genericEntryCurr],
+                        value       = data[genericEntryCurr];
+                    if(renderRules.renderer)
+                    {
+                        value = renderRules.renderer(value,data);
+                    }
+                    html += '<div class="title-'+genericEntryCurr+'"><div class="meta-label">'+renderRules.label+':</div> '+value+'</div>';
+                }
             }
-            if(data.metascore)
-            {
-                html += '<div class="title-actors"><div class="meta-label">'+rotcelloc.translate('Metascore')+':</div> '+data.metascore+'/100</div>';
-            }
-            if(data.imdbRating)
-            {
-                html += '<div class="title-actors"><div class="meta-label">'+rotcelloc.translate('IMDB rating')+':</div> '+data.imdbRating+'/10 ('+data.imdbVotes+' '+rotcelloc.translate('votes')+')</div>';
-            }
-            if(data.format)
-            {
-                html += '<div class="title-format"><div class="meta-label">'+rotcelloc.translate('Format')+':</div> '+data.format+'</div>';
-            }
-                html += '<div class="entry-links"><div class="meta-label">'+rotcelloc.translate('Links')+':</div> ';
-            if(data.type && data.type == 'game')
+
+            html += '<div class="entry-links"><div class="meta-label">'+rotcelloc.translate('Links')+':</div> ';
+
+            if(data.type == 'game')
             {
                 html += '<a target="_blank" href="https://www.mobygames.com/search/quick?q='+encodeURIComponent(data.title)+'">MobyGames</a>, ';
                 if(data.tgdbID)
@@ -292,7 +317,7 @@
                     html += '<a target="_blank" href="http://store.steampowered.com/app/'+encodeURIComponent(data.steamID)+'/">Steam</a>';
                 }
             }
-            else
+            else if(data.type == 'series' || data.type == 'movie')
             {
                 if(data.contentType && data.contentType == 'anime')
                 {
