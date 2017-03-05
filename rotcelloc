@@ -2224,7 +2224,7 @@ var helper = {
             var entry = CSV[i];
             helper.remapCSVFields(entry);
             helper.handleGenericFields(entry);
-            if (blameData != null && entry.added == 0)
+            if (blameData != null && entry.added === 0)
             {
                 var blameLine = i-1;
                 var blamed = blameData[blameLine];
