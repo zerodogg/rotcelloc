@@ -279,6 +279,9 @@
                         return data.imdbRating+'/10 ('+data.imdbVotes+' '+rotcelloc.translate('votes'  )+')';
                     }
                 },
+                'isbn':{
+                    'label':rotcelloc.translate('ISBN'),
+                },
                 'format':{
                     'label':rotcelloc.translate('Format'),
                 }
@@ -337,6 +340,10 @@
                 html += '<a target="_blank" href="'+imdbURL+'">IMDB</a>';
                 html += ', ';
                 html += '<a target="_blank" href="https://www.themoviedb.org/search/'+( rotcelloc.workingMeta.type == 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
+            }
+            else if(data.type == 'book')
+            {
+                html += '<a target="_blank" href="https://www.goodreads.com/search?utf8=%E2%9C%93&query='+data.isbn+'">Goodreads</a>';
             }
             // Add a trailer link (to YouTube) if the type is something where a
             // trailer makes sense

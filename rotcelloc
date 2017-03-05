@@ -68,7 +68,9 @@ try
         // Loads CSON files
         CSON          = require('cson'),
         // Used for hasing
-        crypto        = require('crypto');
+        crypto        = require('crypto'),
+        // Used to fetch book metadata
+        isbn          = require('node-isbn');
 }
     catch(e)
 {
@@ -95,6 +97,161 @@ var
         {
             return this.strings[s] ? this.strings[s] : s;
         }
+};
+
+/*
+ * This is the API that generates the collection with metadata and posters for
+ * a book collection
+ */
+var bookAPI = {
+    /*
+     * Generic handler for any type of book input file. It generates the
+     * data structure and requests/handles metadata and posters
+     */
+    handleResultSet: function (csvFile,config)
+    {
+        var result = [],
+            bSource = csvFile,
+            resultMeta = {
+                genres: [],
+                platforms: [],
+                fields: {}
+            };
+        var output = helper.loadCollectionFile(csvFile);
+
+        for(var collectionEntryI in output)
+        {
+            var data = output[collectionEntryI];
+            data.bSource = path.basename(csvFile);
+            this.genericBookHandler(data,resultMeta);
+            data.type = 'book';
+            result.push(data);
+        }
+        return { meta: resultMeta, data: result, bSource: path.basename(csvFile) };
+    },
+    genericBookHandler: function (data,resultMeta)
+    {
+        if (!data.isbn)
+        {
+            console.log('Skipping entry due to missing ISBN: '+JSON.stringify(data));
+            return;
+        }
+        var ckey = getCacheID(data.isbn,'book');
+        var remote;
+        if(cache.bookMeta[ckey])
+        {
+            remote = cache.bookMeta[ckey];
+        }
+        else
+        {
+            printv(4,'Performing metadata request for ISBN '+data.isbn);
+            remote = wait.for(isbn.resolve,data.isbn);
+            cache.bookMeta[ckey] = remote;
+        }
+        if(remote)
+        {
+            for (var entry in remote)
+            {
+                if (!data[entry])
+                {
+                    data[entry] = remote[entry];
+                }
+            }
+        }
+        this.getPoster(data,ckey);
+    },
+    getPoster: function(data,ckey)
+    {
+        // FIXME: Try to find an image in 'data' first
+        var posterID = data.isbn;
+        posterID.replace(/-/g,'');
+        var file = helper.downloadAndCacheURL('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',ckey,data);
+        if(file)
+        {
+            data.poster = posterID+'-L.jpg';
+        }
+        else
+        {
+            data.poster = 'missing.png';
+        }
+    },
+    /*
+     * Performs final sorting of a book list and adds the id numbers
+     */
+    sortAndFinalize: function (entries)
+    {
+        entries.sort(function(a,b) {
+                return a.title.localeCompare(b.title);
+        });
+        for (var collectionEntryI in entries)
+        {
+            var collectionEntry = entries[collectionEntryI];
+            collectionEntry.id  = collectionEntryI;
+        }
+        return entries;
+    },
+    /*
+     * Handles a single collection, loading each file, preparing the metadata
+     * and returning the final constructed dataset for the collection
+     */
+    performDatabaseConstruction: function (name,groupConf,groupNo)
+    {
+        var groupData = [],
+        groupMeta = {
+            sourceToNameMap: {},
+            genres: [],
+            formats: [],
+            fields: {},
+            type: groupConf.type,
+            hasDisneySort: false,
+            hasAddedSort: false,
+            enableNormalized: false
+        };
+        for(var entry of groupConf.sources)
+        {
+            try
+            {
+                printv(3,'  Interpreting file "'+entry.file+'"');
+                var result = bookAPI.handleResultSet(entry.file,entry);
+                groupData                           = groupData.concat(result.data);
+                entry.file                          = path.basename(entry.file);
+                groupMeta.sourceToNameMap[entry.file] = entry.name;
+                _.merge(groupMeta.fields,result.meta.fields);
+                groupMeta.hasDisneySort = entry.disneySort || groupMeta.hasDisneySort;
+                groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
+                if(result.meta.formats)
+                {
+                    groupMeta.formats = groupMeta.formats.concat(result.meta.formats);
+                }
+                if(result.meta.enableNormalized)
+                {
+                    groupMeta.enableNormalized = true;
+                }
+            }
+            catch(e)
+            {
+                if(e.stack)
+                {
+                    printv(1,'Error while processing '+entry.file+': '+e.stack);
+                }
+                else
+                {
+                    printv(1,'Error while processing '+entry.file+': '+e);
+                }
+            }
+        }
+
+        groupMeta.genres.sort();
+        groupMeta.genres = _.uniq(groupMeta.genres,true);
+
+        if(groupMeta.formats)
+        {
+            groupMeta.formats.sort();
+            groupMeta.formats = _.uniq(groupMeta.formats,true);
+        }
+
+        return { name: name, data: bookAPI.sortAndFinalize(groupData), meta: groupMeta, groupNo: groupNo };
+    }
 };
 
 /*
@@ -1859,7 +2016,8 @@ var helper = {
             'IMDB ID':'imdbID',
             'Rating':'rating',
             'Terningkast':'rating',
-            'Notat':'note'
+            'Notat':'note',
+            'ISBN':'isbn'
         };
         // Remap according to the mapping table
         for(var key in map)
@@ -2340,6 +2498,10 @@ var core = {
             {
                 result = gamesAPI.performDatabaseConstruction(name,groupConf,groupNo);
             }
+            else if(groupConf.type == 'books')
+            {
+                result = bookAPI.performDatabaseConstruction(name,groupConf,groupNo);
+            }
             else
             {
                 throw('Unhandled group type: '+groupConf.type+' for '+groupConf.name);
@@ -2461,6 +2623,10 @@ var core = {
         if (!cache.gameMeta || commander.expireMeta)
         {
             cache.gameMeta = {};
+        }
+        if (!cache.bookMeta || commander.expireMeta)
+        {
+            cache.bookMeta = {};
         }
         if (!cache.steamMeta || commander.expireMeta)
         {
