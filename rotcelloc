@@ -2477,6 +2477,7 @@ var core = {
     writeCache: function ()
     {
         cache.lastVersion = packageJSON.version;
+        cache.formatVersion = 0;
         fs.writeFileSync('.cache.json.out',JSON.stringify(cache));
         fs.renameSync('.cache.json.out','.cache.json');
     },
