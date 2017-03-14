@@ -162,13 +162,13 @@ class rotcellocCache
 
     getAutoKey(cacheType,entry,type,opts)
     {
-        var ckey = getCacheID(entry,type,opts);
+        let ckey = getCacheID(entry,type,opts);
         return this.get(cacheType,ckey);
     }
 
     setAutoKey(content,cacheType,entry,type,opts)
     {
-        var ckey = getCacheID(entry,type,opts);
+        let ckey = getCacheID(entry,type,opts);
         return this.set(content,cacheType,ckey);
     }
 
@@ -180,7 +180,7 @@ class rotcellocCache
 
     unsetAutoKey(cacheType,entry,type,opts)
     {
-        var ckey = getCacheID(entry,type,opts);
+        let ckey = getCacheID(entry,type,opts);
         return this.unset(cacheType,ckey);
     }
 
@@ -213,10 +213,10 @@ class rotcellocCache
     cacheExpiry (byvalue,onlyMiss)
     {
         byvalue = byvalue.toLowerCase();
-        for (var type of [ 'meta', 'URLs', 'gameMeta','arbitrary','steamMeta' ])
+        for (let type of [ 'meta', 'URLs', 'gameMeta','arbitrary','steamMeta' ])
         {
-            var result = this._persistCache[type];
-            for (var entry in result)
+            let result = this._persistCache[type];
+            for (let entry in result)
             {
                 if(entry.toLowerCase().indexOf(byvalue) != -1 || byvalue === '')
                 {
@@ -230,9 +230,9 @@ class rotcellocCache
             }
             if(type == 'steamMeta')
             {
-                for(var entry in result)
+                for(let entry in result)
                 {
-                    var data = result[entry];
+                    let data = result[entry];
                     if(data.name && data.name.toLowerCase().indexof(byvalue) != -1)
                     {
                         if(onlyMiss && result[entry] != 'MISS')
@@ -304,7 +304,7 @@ class collectionType
     finalizeCollection(data)
     {
         data = this.sortFinalCollection(data);
-        for (var collectionEntryI in data)
+        for (let collectionEntryI in data)
         {
             data[collectionEntryI].id = collectionEntryI;
         }
@@ -344,13 +344,13 @@ class collectionType
 
     getFinalizedMetadata ()
     {
-        for(var metaEntry in this._meta)
+        for(let metaEntry in this._meta)
         {
             // Filter and deduplicate arrays
             if(Array.isArray(this._meta[metaEntry]))
             {
                 // First, sort the array
-                var result = this._meta[metaEntry];
+                let result = this._meta[metaEntry];
                 result.sort();
                 // Ensure entries are unique
                 result = _.uniq(result);
@@ -389,8 +389,8 @@ class collectionType
     // Handles a single source in this collection
     generateSource (source)
     {
-        var data = this.loadData(source);
-        for(var collItem of data)
+        let data = this.loadData(source);
+        for(let collItem of data)
         {
             this.generateEntry(collItem);
         }
@@ -405,11 +405,11 @@ class collectionType
     // Perform all actions needed to get a full collection datastructure
     generateDatastructure ()
     {
-        var entries = [];
+        let entries = [];
         // Walk through all datasources and generate each one
-        for(var source of this._entry.sources)
+        for(let source of this._entry.sources)
         {
-            var contents = this.generateSource(source);
+            let contents = this.generateSource(source);
             entries = entries.concat(contents);
         }
         return this.finalizeCollection(entries);
@@ -441,7 +441,7 @@ class movieCollection extends collectionType
     // Adds a poster to a collection entry
     addPosterToItem (collectionEntry)
     {
-        var theURL   = this.getPoster(collectionEntry);
+        let theURL   = this.getPoster(collectionEntry);
         if(!theURL)
         {
             theURL = 'missing.png';
@@ -452,10 +452,10 @@ class movieCollection extends collectionType
     // Finds and downloads a poster for the provided entry
     getPoster (entry)
     {
-        var url;
-        var ckey;
-        var mTitle = entry.title;
-        var type = entry.type;
+        let url;
+        let ckey;
+        let mTitle = entry.title;
+        let type = entry.type;
         if(entry.origTitle)
         {
             mTitle = entry.origTitle;
@@ -549,7 +549,7 @@ class movieCollection extends collectionType
     // Submits a movieArt request
     submitMovieArtRequest (mTitle,year,type)
     {
-        var url;
+        let url;
         printv(5,'Submitting request to movieArt: '+mTitle+','+year+','+type);
         try
         {
@@ -571,7 +571,7 @@ class movieCollection extends collectionType
             collectionEntry.watched      = helper.parseBool(collectionEntry.watched);
         }
 
-        var meta = this.retrieveMetadataFor(collectionEntry);
+        let meta = this.retrieveMetadataFor(collectionEntry);
         if(meta != null)
         {
             if(this.isValidOMDBField(meta.imdbID))
@@ -626,16 +626,16 @@ class movieCollection extends collectionType
             }
             if(this.isValidOMDBField(meta.Runtime))
             {
-                var runtime = meta.Runtime;
+                let runtime = meta.Runtime;
                 if (/ min/.test(runtime))
                 {
                     runtime                    = runtime.replace(/\s+min/,'');
                     collectionEntry.runtimeMin = runtime;
-                    var floating               = parseInt(runtime)/60;
+                    let floating               = parseInt(runtime)/60;
                     if(floating > 0)
                     {
-                        var hours   = parseInt(floating);
-                        var minutes = parseInt((floating-hours)*60);
+                        let hours   = parseInt(floating);
+                        let minutes = parseInt((floating-hours)*60);
                         if(hours > 0)
                         {
                             // Translators: Results in [number]h [number]min (ie. X hours and X minutes)
@@ -678,7 +678,7 @@ class movieCollection extends collectionType
                 collectionEntry.normalizedRating = parseInt(collectionEntry.rating*16.7);
                 if(collectionEntry.imdbRating)
                 {
-                    var decimal = parseInt(collectionEntry.imdbRating*10);
+                    let decimal = parseInt(collectionEntry.imdbRating*10);
                     collectionEntry.normalizedRating = parseFloat(collectionEntry.normalizedRating+'.'+decimal);
                 }
             }
@@ -706,7 +706,7 @@ class movieCollection extends collectionType
         // method decide if we actually want to clean or not.
         if (!commander.includeDebug)
         {
-            var includedData = {
+            let includedData = {
                 year: true,
                 sortYear: true,
                 poster: true,
@@ -738,7 +738,7 @@ class movieCollection extends collectionType
                 normalizedTitle: true,
                 normalizedRating: true
             };
-            for (var field in collectionEntry)
+            for (let field in collectionEntry)
             {
                 if (!includedData[field])
                 {
@@ -752,7 +752,7 @@ class movieCollection extends collectionType
     // Fetches metadata from a source for an entry
     retrieveMetadataFor(entry)
     {
-        var ckey = getCacheID(entry);
+        let ckey = getCacheID(entry);
         if (cache.get('meta',ckey))
         {
             if(cache.get('meta',ckey) == 'MISS')
@@ -771,7 +771,7 @@ class movieCollection extends collectionType
                 return cache.get('meta',ckey);
             }
         }
-        var data = this.fetchFromOMDB(entry);
+        let data = this.fetchFromOMDB(entry);
         if(data && data.Response == "False")
         {
             printv(3,'Could not retrieve data from OMDB on '+ (entry.origTitle ? entry.origTitle : entry.title) );
@@ -788,7 +788,7 @@ class movieCollection extends collectionType
         {
             if(entry.year && data.Year != entry.year)
             {
-                var diff = entry.year - data.Year;
+                let diff = entry.year - data.Year;
                 if (diff <= 2 && diff >= -2)
                 {
                     printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the OMDB entry claims '+data.Year+' (very similar): ignoring data from server');
@@ -809,7 +809,7 @@ class movieCollection extends collectionType
      */
     fetchFromOMDB(entry)
     {
-        var data;
+        let data;
         try
         {
             data = wait.for(this.performOMDBRequest,entry);
@@ -858,12 +858,12 @@ class movieCollection extends collectionType
         }
         if(entry.type)
         {
-            var entryWithoutType = _.cloneDeep(entry);
+            let entryWithoutType = _.cloneDeep(entry);
             delete entryWithoutType.type;
             return this.fetchFromOMDB(entryWithoutType);
         }
 
-        var fixedTitle = helper.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
+        let fixedTitle = helper.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
         if(fixedTitle)
         {
             data = wait.for(this.performOMDBRequest,{ title: fixedTitle, year: entry.year });
@@ -877,7 +877,7 @@ class movieCollection extends collectionType
      */
     performOMDBRequest(titleData,cb)
     {
-        var url          = 'http://www.omdbapi.com',
+        let url          = 'http://www.omdbapi.com',
             requestQuery = {t: titleData.title, plot: 'short', r: 'json'};
         if(titleData.imdbID)
         {
@@ -903,7 +903,7 @@ class movieCollection extends collectionType
         {
             return cb('t+i are null');
         }
-        var serialish = url+JSON.stringify(requestQuery);
+        let serialish = url+JSON.stringify(requestQuery);
         if(runtimeCache[serialish])
         {
             cb(null,_.clone(runtimeCache[serialish],true));
@@ -976,13 +976,13 @@ class gameCollection extends collectionType
     // Loads Steam data
     loadSteamData(source)
     {
-        var user = source.user,
+        let user = source.user,
             ckey = 'steam//games//'+user,
             now  = Math.floor(Date.now() / 1000);
         if(cache.get('arbitrary',ckey))
         {
 
-            var lastUpdated = cache.get('arbitrary',ckey+'//_lastUpdated');
+            let lastUpdated = cache.get('arbitrary',ckey+'//_lastUpdated');
             if(lastUpdated !== undefined && lastUpdated > (now - (82800*7) ) && !commander.forceSteamUpdate)
             {
                 printv(5,'Using cached Steam data for '+user);
@@ -993,9 +993,9 @@ class gameCollection extends collectionType
                 printv(2,'Updating Steam data for '+user);
             }
         }
-        var data = wait.for(steam.gamesFromProfile,user),
+        let data = wait.for(steam.gamesFromProfile,user),
             resultData = [];
-        for(var entry of data)
+        for(let entry of data)
         {
 			if (
 				// Ignore DLC and season passes
@@ -1028,7 +1028,7 @@ class gameCollection extends collectionType
      */
     deepFetch(type, source, rabbitHole)
     {
-        for(var entry of rabbitHole)
+        for(let entry of rabbitHole)
         {
             if(source !== null && source[entry])
             {
@@ -1052,17 +1052,17 @@ class gameCollection extends collectionType
      */
     addMetadataTo(collItem)
     {
-        var meta = this.getGameMetadata(collItem);
+        let meta = this.getGameMetadata(collItem);
         if(meta)
         {
-            var genres = [];
+            let genres = [];
             if(collItem.genres)
             {
                 genres = collItem.genres.split(/,s\*/);
             }
             else if(meta.steamGenres)
             {
-                for(var genre of meta.steamGenres)
+                for(let genre of meta.steamGenres)
                 {
                     genres.push(genre.description);
                 }
@@ -1127,10 +1127,10 @@ class gameCollection extends collectionType
     // Adds a poster to a collection entry
     addPosterToItem (collectionEntry)
     {
-        var theURL;
+        let theURL;
         if(collectionEntry.poster)
         {
-            var ckey = getCacheID(collectionEntry,'game');
+            let ckey = getCacheID(collectionEntry,'game');
             if (helper.downloadAndCacheURL(collectionEntry.poster,ckey,collectionEntry))
             {
                 theURL = collectionEntry.poster;
@@ -1151,7 +1151,7 @@ class gameCollection extends collectionType
             {
                 metadata = {};
             }
-            var image;
+            let image;
             if(metadata.GameTitle)
             {
                 metadata.title = metadata.GameTitle;
@@ -1162,8 +1162,8 @@ class gameCollection extends collectionType
             }
             if(metadata && metadata.Images && metadata.Images.boxart)
             {
-                var iter = this.mustBeArray(metadata.Images.boxart);
-                for (var img of iter)
+                let iter = this.mustBeArray(metadata.Images.boxart);
+                for (let img of iter)
                 {
                     image = img['$t']; // jshint ignore:line
                     if(img.side == 'front')
@@ -1204,12 +1204,12 @@ class gameCollection extends collectionType
     // Parent's finalizeCollection is still used as well
     finalizeCollection(data)
     {
-        var seen = {};
-        var finalEntries = [];
+        let seen = {};
+        let finalEntries = [];
         // Deduplicate
-        for (var collectionEntry of data)
+        for (let collectionEntry of data)
         {
-            var ckey = getCacheID(collectionEntry);
+            let ckey = getCacheID(collectionEntry);
             if(seen[ckey] === undefined)
             {
                 seen[ckey] = collectionEntry;
@@ -1234,7 +1234,7 @@ class gameCollection extends collectionType
      */
     retrieveSteamMetadata(games,name)
     {
-        var apiLimiter = 0,
+        let apiLimiter = 0,
             errLimit   = 0,
             steamSleep = 30,
             messagePrinted = false,
@@ -1243,9 +1243,9 @@ class gameCollection extends collectionType
         {
             return;
         }
-        for(var i = 0; i < games.length; i++)
+        for(let i = 0; i < games.length; i++)
         {
-            var appid = games[i].appid;
+            let appid = games[i].appid;
             if(cache.get('steamMeta',appid) === undefined)
             {
                 if (!messagePrinted)
@@ -1262,8 +1262,8 @@ class gameCollection extends collectionType
                     cache.write();
                     helper.sleep(10);
                 }
-                var data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
-                var useful = false;
+                let data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
+                let useful = false;
                 if(data)
                 {
                     downloaded++;
@@ -1332,7 +1332,7 @@ class gameCollection extends collectionType
             }
             return result;
         }
-        var platforms = {
+        let platforms = {
             'playstation 2':'Sony Playstation 2',
             'playstation 3':'Sony Playstation 3',
             'playstation 4':'Sony Playstation 4',
@@ -1388,7 +1388,7 @@ class gameCollection extends collectionType
         }
         if(platform != null)
         {
-            var platLower = platform.toLowerCase();
+            let platLower = platform.toLowerCase();
             if(platforms[platLower])
             {
                 return platforms[platLower];
@@ -1402,14 +1402,14 @@ class gameCollection extends collectionType
      */
     getGameMetadata(game)
     {
-        var baseMeta = this.getGameInfoFromTGD(game);
+        let baseMeta = this.getGameInfoFromTGD(game);
         if(game.steamID)
         {
             if(baseMeta == null)
             {
                 baseMeta = {};
             }
-            var steamMeta = this.getGameInfoFromSteam(game);
+            let steamMeta = this.getGameInfoFromSteam(game);
             if(steamMeta)
             {
                 baseMeta.steamOverview = steamMeta.about_the_game;
@@ -1467,10 +1467,10 @@ class gameCollection extends collectionType
             if(plot.length >= 200)
             {
                 plot = plot.replace(/\n\n/,'. ');
-                var split = plot.split(" ");
+                let split = plot.split(" ");
                 plot = '';
-                var currentSentence = [];
-                for(var comp of split)
+                let currentSentence = [];
+                for(let comp of split)
                 {
                     currentSentence.push(comp);
                     if (/[\?\!\.]$/.test(comp))
@@ -1501,7 +1501,7 @@ class gameCollection extends collectionType
      */
     performNameReplacements(on,doAll,excludeGeneric)
     {
-        var orig = on;
+        let orig = on;
         on = on.replace(/([:-]?\s*)\(?((the|steam|new|old)\s+)?(Black|Steam|Linux|Windows|Mac(\s*OS\s*X?)?|EU|PAL|NTSC|US|PS\s*Vita|Special|Collector[`’']?s?|Remastered|Game of the year|Complete|Enhanced|Ultimate|Gold|Extreme|Epic|Uber|Deluxe|Premium|HD|GOTY|Developer|Director|Final|Special|Ultimate|Extended|Anniversary)(\s+\S+)?\s+(journey|edition|version|cut|collection)\)?\s*(upgrade)?/ig,'')
             .replace(/\s*for\s*(Linux|Windows|Mac|PC)/i,'')
             .replace(/\s*(Linux|Windows|Mac|PC|Playstation|Playstation Vita|PS\s*Vita)\s*(Edition|Version)?$/i,'')
@@ -1520,7 +1520,7 @@ class gameCollection extends collectionType
             .replace(/\s+\/\s+.+/,'');
         if( (on == orig || doAll) && !excludeGeneric)
         {
-            var generic = helper.attemptGenericReplacements(on);
+            let generic = helper.attemptGenericReplacements(on);
             if(generic)
             {
                 on = generic;
@@ -1553,7 +1553,7 @@ class gameCollection extends collectionType
      */
     getGameInfoFromTGD(game)
     {
-        var ckey = getCacheID(game,'game', { ignoreSteam: true });
+        let ckey = getCacheID(game,'game', { ignoreSteam: true });
         if(cache.get('gameMeta',ckey))
         {
             if(cache.get('gameMeta',ckey) == 'MISS')
@@ -1568,7 +1568,7 @@ class gameCollection extends collectionType
                 return cache.get('gameMeta',ckey);
             }
         }
-        var data = this.fetchDataFromTGD(game,ckey),
+        let data = this.fetchDataFromTGD(game,ckey),
             newName;
         if (!data)
         {
@@ -1648,14 +1648,14 @@ class gameCollection extends collectionType
      */
     fetchDataFromTGD(game,ckey)
     {
-        var search = this.TGD_search(game.title),
+        let search = this.TGD_search(game.title),
             meta;
         if (!search)
         {
             cache.set('MISS','gameMeta',ckey);
             return;
         }
-        var platform = this.doPlatformRemap(game.platform);
+        let platform = this.doPlatformRemap(game.platform);
         if(game.steamID)
         {
             platform = 'PC';
@@ -1664,7 +1664,7 @@ class gameCollection extends collectionType
         {
             platform = platform.toLowerCase();
         }
-        var name = game.title;
+        let name = game.title;
         if(name == null)
         {
             throw('fetchDataFromTGD got NULL title');
@@ -1672,14 +1672,14 @@ class gameCollection extends collectionType
         /*
          * Pre-process GameTitle
          */
-        for(var replyPreProcess of search)
+        for(let replyPreProcess of search)
         {
             replyPreProcess.GameTitle = he.decode(replyPreProcess.GameTitle);
         }
-        var filteredName = name.replace(/(™|®|©|\(TM\)|\(R\)|\(C\))/g,'');
-        for(var response of search)
+        let filteredName = name.replace(/(™|®|©|\(TM\)|\(R\)|\(C\))/g,'');
+        for(let response of search)
         {
-            var points = 0;
+            let points = 0;
 
             if(platform && this.doPlatformRemap(response.Platform).toLowerCase() != platform)
             {
@@ -1701,15 +1701,15 @@ class gameCollection extends collectionType
             }
             else
             {
-                var prevLoc = -1,
+                let prevLoc = -1,
                     gtLower = response.GameTitle.toLowerCase();
-                for(var bit of filteredName.toLowerCase().split(/\s+/))
+                for(let bit of filteredName.toLowerCase().split(/\s+/))
                 {
                     // The substr is to make sure we only check for instaces
                     // later in the string than the previous one (so that the
                     // order of the words is preserved, otherwise we'd get a
                     // lot of strange hits)
-                    var idx = gtLower.substr(prevLoc+1).indexOf(bit);
+                    let idx = gtLower.substr(prevLoc+1).indexOf(bit);
                     if(idx === -1)
                     {
                         bit = bit.replace(/\W/,'');
@@ -1738,7 +1738,7 @@ class gameCollection extends collectionType
                     // the limts after performing those replacements. If it is then we grant it
                     // a single point. This is to be able to handle responses
                     // that include ie. "limited edition" for short titles.
-                    var replacedGT = this.performNameReplacements(response.GameTitle,false,true),
+                    let replacedGT = this.performNameReplacements(response.GameTitle,false,true),
                         replacedName = this.performNameReplacements(name,false,true);
                     if(replacedGT.length < (replacedName.length*1.6) && replacedName.length <= replacedGT.length)
                     {
@@ -1774,7 +1774,7 @@ class gameCollection extends collectionType
             }
             if(response.ReleaseDate && response.ReleaseDate.length)
             {
-                var year = response.ReleaseDate.split('/')[2];
+                let year = response.ReleaseDate.split('/')[2];
                 if (game.year && year == game.year)
                 {
                     points += 3;
@@ -1788,7 +1788,7 @@ class gameCollection extends collectionType
         });
         while(search.length > 0)
         {
-            var best = search.shift();
+            let best = search.shift();
             if(best.score > 0)
             {
                 meta = this.TGD_infoByID(best.id);
@@ -1808,7 +1808,7 @@ class gameCollection extends collectionType
      */
     TGD_infoByID(id)
     {
-        var result = this.TGD_request('GetGame',{ id: id});
+        let result = this.TGD_request('GetGame',{ id: id});
         if(result && result.Data && result.Data.Game)
         {
             result.Data.Game.baseImgUrl = result.Data.baseImgUrl;
@@ -1822,7 +1822,7 @@ class gameCollection extends collectionType
      */
     TGD_search(game)
     {
-        var result = this.TGD_request('GetGamesList',{ name: game });
+        let result = this.TGD_request('GetGamesList',{ name: game });
         if(result && result.Data && result.Data.Game)
         {
             return this.mustBeArray(result.Data.Game);
@@ -1835,10 +1835,10 @@ class gameCollection extends collectionType
      */
     TGD_request(call,parameters)
     {
-        var rqURL = 'http://thegamesdb.net/api/'+call+'.php?',
+        let rqURL = 'http://thegamesdb.net/api/'+call+'.php?',
             finalParams = [],
             result;
-        for(var key in parameters)
+        for(let key in parameters)
         {
             finalParams.push(encodeURIComponent(key)+'='+encodeURIComponent(parameters[key]));
         }
@@ -1860,7 +1860,7 @@ class gameCollection extends collectionType
             return _.clone(runtimeCache[url],true);
         }
         printv(4,'Performing XMLtoJSONRequest to: '+url);
-        var data;
+        let data;
         try
         {
             data = wait.forMethod(httpreq,'get',url);
@@ -1878,7 +1878,7 @@ class gameCollection extends collectionType
             // Errors might mean malformed XML, just return nothing
             return;
         }
-        var result = JSON.parse(data);
+        let result = JSON.parse(data);
         runtimeCache[url] = _.clone(result,true);
         return result;
     }
@@ -1938,7 +1938,7 @@ var helper = {
             return;
         }
         printv(4,'Performing GET request for JSON to '+url);
-        var data;
+        let data;
         try
         {
             data = wait.forMethod(httpreq,'get',url);
@@ -1955,7 +1955,7 @@ var helper = {
         }
         try
         {
-            var req = JSON.parse(data.body);
+            let req = JSON.parse(data.body);
             printv(5,'Successfully parsed JSON');
             return req;
         }
@@ -1971,7 +1971,7 @@ var helper = {
      */
     remapCSVFields: function (content)
     {
-        var map = {
+        let map = {
             'Tittel':'title',
             'Namn':'title',
             'Plattform':'platform',
@@ -1997,9 +1997,9 @@ var helper = {
             'Notat':'note'
         };
         // Remap according to the mapping table
-        for(var key in map)
+        for(let key in map)
         {
-            var sourceKey = key;
+            let sourceKey = key;
             if(content[key] === undefined)
             {
                 sourceKey += ':';
@@ -2014,7 +2014,7 @@ var helper = {
             }
         }
         // Lowercase unmapped keys
-        for(key in content)
+        for(let key in content)
         {
             if(key === "")
             {
@@ -2054,8 +2054,8 @@ var helper = {
         {
             throw('attemptGenericReplacements got null origTitle');
         }
-        var fixedTitle;
-        var replacements = [
+        let fixedTitle;
+        let replacements = [
             {
                 index: 'III',
                 replacement: '3',
@@ -2118,7 +2118,7 @@ var helper = {
                 replacement: '5',
             },
         ];
-        for (var attempt of replacements)
+        for (let attempt of replacements)
         {
             if(origTitle.indexOf(attempt.index) != -1)
             {
@@ -2166,7 +2166,7 @@ var helper = {
             else
             {
                 printv(4,'Downloading: '+url+' to '+'.images/orig/'+path.basename(url));
-                var data = wait.forMethod(httpreq,'get',url, {binary: true });
+                let data = wait.forMethod(httpreq,'get',url, {binary: true });
                 if(data.statusCode === 200)
                 {
                     fs.writeFileSync(helper.resolveOutPath('.images/orig/'+path.basename(url)),data.body);
@@ -2236,7 +2236,7 @@ var helper = {
         {
             return runtimeCache.__config;
         }
-        var configCSON = helper.resolveOutPath('rotcelloc.config.cson'),
+        let configCSON = helper.resolveOutPath('rotcelloc.config.cson'),
             config;
         if(commander.config)
         {
@@ -2270,7 +2270,7 @@ var helper = {
      */
     inPath: function (command)
     {
-        for(var directory of process.env.PATH.split(':'))
+        for(let directory of process.env.PATH.split(':'))
         {
             // This should also check if it is executable
             if(fs.existsSync(directory+'/'+command))
@@ -2318,7 +2318,7 @@ var helper = {
      */
     storeFieldBools: function (entry, meta)
     {
-        for(var field in entry)
+        for(let field in entry)
         {
             meta.fields[field] = true;
         }
@@ -2329,7 +2329,7 @@ var helper = {
      */
     checksum: function (targetStr)
     {
-		var shasum = crypto.createHash('sha1');
+		let shasum = crypto.createHash('sha1');
         shasum.update(targetStr);
         return shasum.digest('hex');
     },
@@ -2338,7 +2338,7 @@ var helper = {
      */
     parseCSV: function (input)
     {
-        var output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
+        let output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
         return output;
     },
     /*
@@ -2346,25 +2346,25 @@ var helper = {
      */
     loadCollectionFile: function(collPath)
     {
-        var input  = fs.readFileSync(helper.resolveOutPath(collPath),{ encoding: 'utf-8'} );
-        var CSV = this.parseCSV(input);
-        var baseF = path.basename(collPath);
-        var config = helper.getConfig();
-        var blameData;
+        let input  = fs.readFileSync(helper.resolveOutPath(collPath),{ encoding: 'utf-8'} );
+        let CSV = this.parseCSV(input);
+        let baseF = path.basename(collPath);
+        let config = helper.getConfig();
+        let blameData;
         if(config.enableAutoAdded !== false)
         {
             blameData = this.loadGitBlame(collPath);
         }
-        for(var i = 0; i < CSV.length; i++)
+        for(let i = 0; i < CSV.length; i++)
         {
-            var entry = CSV[i];
+            let entry = CSV[i];
             helper.remapCSVFields(entry);
             helper.handleGenericFields(entry);
             entry.bSource = baseF;
             if (blameData != null && entry.added === 0)
             {
-                var blameLine = i-1;
-                var blamed = blameData[blameLine];
+                let blameLine = i-1;
+                let blamed = blameData[blameLine];
                 if(blamed && blamed['committer-time'])
                 {
                     entry.added = blamed['committer-time'];
@@ -2379,7 +2379,7 @@ var helper = {
      */
     loadGitBlame: function(path)
     {
-        var gitBlameOutput;
+        let gitBlameOutput;
         try
         {
             gitBlameOutput = child_process.execFileSync('git',['blame','--line-porcelain','-w','--minimal','-C',path],{ stdio: [ 'ignore','pipe','ignore' ] });
@@ -2391,11 +2391,11 @@ var helper = {
         }
         gitBlameOutput = gitBlameOutput.toString();
         gitBlameOutput = gitBlameOutput.split(/\n/);
-        var blame = [];
-        var current = {};
-        for(var i = 0; i < gitBlameOutput.length; i++)
+        let blame = [];
+        let current = {};
+        for(let i = 0; i < gitBlameOutput.length; i++)
         {
-            var line = gitBlameOutput[i];
+            let line = gitBlameOutput[i];
             if (/^\t/.test(line))
             {
                 blame.push(current);
@@ -2403,8 +2403,8 @@ var helper = {
             }
             else
             {
-                var key = line.replace(/^(\S+)\s+.*/,'$1');
-                var value = line.replace(/^\S+\s+/,'');
+                let key = line.replace(/^(\S+)\s+.*/,'$1');
+                let value = line.replace(/^\S+\s+/,'');
                 current[key] = value;
             }
         }
@@ -2425,7 +2425,7 @@ var core = {
         groupMeta.genres.sort();
         groupMeta.genres = _.uniq(groupMeta.genres,true);
 
-        var dataset = {
+        let dataset = {
             i18n: i18n.strings,
             config: config,
             data: groupData,
@@ -2438,10 +2438,10 @@ var core = {
             version: packageJSON.version
         };
 
-        var strDataset = JSON.stringify(dataset);
-        var checksum = helper.checksum(strDataset);
+        let strDataset = JSON.stringify(dataset);
+        let checksum = helper.checksum(strDataset);
 
-        var filename = webappGen.writePageFor(name,groupNo,results,checksum);
+        let filename = webappGen.writePageFor(name,groupNo,results,checksum);
 
         fs.writeFileSync(helper.resolveOutPath('out/'+name.toLowerCase().replace(/\s+/g,'_')+'.dataset.json'),strDataset);
     },
@@ -2451,7 +2451,7 @@ var core = {
      */
     constructDatabase:function()
     {
-        var config  = helper.getConfig(),
+        let config  = helper.getConfig(),
             nameMap = {};
 
         cache = new rotcellocCache();
@@ -2462,14 +2462,14 @@ var core = {
                     'fallback-to-msgid':true
             });
         }
-        var groupNo = 0,
+        let groupNo = 0,
             results = [];
-        for (var name in config.collections)
+        for (let name in config.collections)
         {
             groupNo++;
             printv(2,' Constructing group "'+name+'"');
-            var groupConf = config.collections[name];
-            var result;
+            let groupConf = config.collections[name];
+            let result;
             if(groupConf.type == 'series' || groupConf.type == 'movies')
             {
                 let handler = new movieCollection(groupConf,name,groupNo);
@@ -2491,7 +2491,7 @@ var core = {
                     config: config,
             });
         }
-        for(var entry of results)
+        for(let entry of results)
         {
             core.writeOutResult(entry.result.meta, entry.result.data, entry.groupNo, entry.name, entry.config, results);
         }
@@ -2506,17 +2506,17 @@ var core = {
         printv(1,'First generating database to get cache usage information ...');
         // Reset verbosity so that we don't get a lot of messages while performing
         // the database construction
-        var verbosity = commander.verbose;
+        let verbosity = commander.verbose;
         commander.verbose = 0;
         // Construct the database
         core.constructDatabase();
         // Reset the verbosity
         commander.verbose = verbosity;
 
-        var cacheTypes = [ 'URLs', 'meta','gameMeta' ],
+        let cacheTypes = [ 'URLs', 'meta','gameMeta' ],
             ckey;
         printv(2,'Searching for and purging unused cache keys...');
-        for (var type of cacheTypes)
+        for (let type of cacheTypes)
         {
             if(cache[type])
             {
@@ -2531,23 +2531,23 @@ var core = {
             }
         }
         printv(2,'Searching for and purging unused files...');
-        var reverseFileMap = {};
+        let reverseFileMap = {};
         for(ckey in cache.URLs)
         {
             reverseFileMap[ cache.get('URLs',ckey) ] = ckey;
         }
-        var files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
-        for(var file of files)
+        let files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
+        for(let file of files)
         {
-            var baseFile = path.basename(file);
-            var remove = null;
+            let baseFile = path.basename(file);
+            let remove = null;
             if (!cache.get('fileMap',baseFile))
             {
                 remove = "not in fileMap";
             }
             else
             {
-                var url = cache.get('fileMap',baseFile);
+                let url = cache.get('fileMap',baseFile);
                 if (!reverseFileMap[url])
                 {
                     remove = "not in reverseFileMap ["+url+"]";
@@ -2560,12 +2560,12 @@ var core = {
                 printv(2,'Reason for removal: '+remove);
             }
         }
-        var resizedFiles = wait.for(glob,helper.resolveOutPath('.images/*'));
-        for(var resizedFile of resizedFiles)
+        let resizedFiles = wait.for(glob,helper.resolveOutPath('.images/*'));
+        for(let resizedFile of resizedFiles)
         {
             if(fs.statSync(resizedFile).isFile())
             {
-                var baseResizedFile = path.basename(resizedFile);
+                let baseResizedFile = path.basename(resizedFile);
                 if (! fs.existsSync(helper.resolveOutPath('.images/orig/'+baseResizedFile)))
                 {
                     fs.unlinkSync(resizedFile);
@@ -2580,7 +2580,7 @@ var core = {
      */
     verifyDeps: function ()
     {
-        var errOut = false;
+        let errOut = false;
         if (!helper.inPath('sass'))
         {
             console.log('Error: "sass" is missing, it is required to compile the CSS\nPlease install sass (either through the package manager or with "gem install sass")');
@@ -2609,7 +2609,7 @@ var core = {
         core.verifyDeps();
         // Load the config. Also verifies that it actually exists and outputs
         // an error if it doesn't.
-        var config = helper.getConfig();
+        let config = helper.getConfig();
         printv(1,'rotcelloc version '+packageJSON.version+' running');
 
         if (commander.deploy && config.deployTo == null)
@@ -2630,8 +2630,8 @@ var core = {
                 }
                 fs.renameSync(helper.resolveOutPath('out/rotcelloc.tar.bz2'),helper.resolveOutPath('.rotcelloc.tar.bz2~'));
             }
-            var oldFiles = wait.for(glob,helper.resolveOutPath('out/*'));
-            for (var oldFile of oldFiles)
+            let oldFiles = wait.for(glob,helper.resolveOutPath('out/*'));
+            for (let oldFile of oldFiles)
             {
                 if(fs.statSync(oldFile).isFile())
                 {
@@ -2659,8 +2659,8 @@ var core = {
         printv(1,'Building database...');
         core.constructDatabase();
         printv(1,'Preparing images...');
-        var files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
-        for(var file of files)
+        let files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
+        for(let file of files)
         {
             if(! fs.existsSync(helper.resolveOutPath('.images/'+path.basename(file))))
             {
@@ -2682,7 +2682,7 @@ var core = {
      */
     writeCCS: function ()
     {
-        var selfFiles = [
+        let selfFiles = [
             { 'path': 'README.md' },
             { 'path': 'Makefile' },
             { 'path': 'LICENSE' },
@@ -2697,10 +2697,10 @@ var core = {
             { 'path': 'tools/imdbConvert' }
         ];
 
-        for (var globbed of [ 'i18n/*.po*','examples/*.csv','examples/*cson'])
+        for (let globbed of [ 'i18n/*.po*','examples/*.csv','examples/*cson'])
         {
-            var baseDir = path.dirname(globbed);
-            for(var subfile of wait.for(glob,helper.resolvePath(globbed)))
+            let baseDir = path.dirname(globbed);
+            for(let subfile of wait.for(glob,helper.resolvePath(globbed)))
             {
                 selfFiles.push({
                     path: baseDir+'/'+path.basename(subfile),
@@ -2714,11 +2714,11 @@ var core = {
             // There's already a tarball. We do a stupid comparison between the
             // tarball and ourselves, if we're newer than the tarball, we
             // generate a new one anyway, otherwise we keep the existing one.
-            var tarball = fs.statSync(helper.resolveOutPath('out/rotcelloc.tar.bz2'));
-            var tarballUpToDate = true;
-            for(var comparison of selfFiles)
+            let tarball = fs.statSync(helper.resolveOutPath('out/rotcelloc.tar.bz2'));
+            let tarballUpToDate = true;
+            for(let comparison of selfFiles)
             {
-                var compare = fs.statSync(helper.resolvePath(comparison.path));
+                let compare = fs.statSync(helper.resolvePath(comparison.path));
                 if(compare.mtime.getTime() > tarball.mtime.getTime())
                 {
                     tarballUpToDate = false;
@@ -2738,21 +2738,21 @@ var core = {
         }
         printv(3,'Generating source code archive...');
 
-        var currCWD = process.cwd();
+        let currCWD = process.cwd();
         if (!fs.existsSync(helper.resolveOutPath('out/rotcelloc/')))
         {
             fs.mkdirSync(helper.resolveOutPath('out/rotcelloc'));
         }
         process.chdir(helper.resolveOutPath('out'));
 
-        var directories = [];
-        for(var file of selfFiles)
+        let directories = [];
+        for(let file of selfFiles)
         {
             if (!file.qualified)
             {
                 file.qualified = helper.resolvePath(file.path);
             }
-            var dirTree = path.dirname(file.path);
+            let dirTree = path.dirname(file.path);
             if(dirTree == file || dirTree == '.')
             {
                 dirTree = '';
@@ -2771,11 +2771,11 @@ var core = {
         directories.sort(function(a, b){
                 return b.length - a.length;
         });
-        for(var fileI of selfFiles)
+        for(let fileI of selfFiles)
         {
             fs.unlinkSync('./rotcelloc/'+fileI.path);
         }
-        for(var dirI of directories)
+        for(let dirI of directories)
         {
             if(fs.existsSync('./rotcelloc/'+dirI))
             {
@@ -2798,7 +2798,7 @@ var webappGen = {
     },
     createFilename: function(name,groupNo)
     {
-        var filename;
+        let filename;
         if(groupNo == 1)
         {
             filename = 'index.html';
@@ -2812,21 +2812,21 @@ var webappGen = {
     },
     writePageFor: function (name,groupNo,results,checksum)
     {
-        var filename = webappGen.createFilename(name,groupNo);
-        var template = fs.readFileSync(helper.resolvePath('src/template.ejs'));
+        let filename = webappGen.createFilename(name,groupNo);
+        let template = fs.readFileSync(helper.resolvePath('src/template.ejs'));
         template = template.toString();
-        var footer = util.format(i18n.translate('Generated by <a href="%s">%s</a> version %s. <a href="%s">Download source code.</a> Software licensed under the <a target="_blank" href="%s">%s</a>. Content is copyrighted by their respective owners.'),'http://random.zerodogg.org/','rotcelloc',packageJSON.version,'rotcelloc.tar.bz2','https://gnu.org/licenses/agpl-3.0-standalone.html','GNU AGPLv3');
-        var menu = [];
-        for(var entry of results)
+        let footer = util.format(i18n.translate('Generated by <a href="%s">%s</a> version %s. <a href="%s">Download source code.</a> Software licensed under the <a target="_blank" href="%s">%s</a>. Content is copyrighted by their respective owners.'),'http://random.zerodogg.org/','rotcelloc',packageJSON.version,'rotcelloc.tar.bz2','https://gnu.org/licenses/agpl-3.0-standalone.html','GNU AGPLv3');
+        let menu = [];
+        for(let entry of results)
         {
-            var fname = webappGen.createFilename(entry.name,entry.groupNo);
+            let fname = webappGen.createFilename(entry.name,entry.groupNo);
             menu.push({
                     url: fname,
                     state: entry.groupNo == groupNo ? 'current' : '',
                     title: entry.name
             });
         }
-        var content = ejs.render(template, {
+        let content = ejs.render(template, {
                 document: {
                     title: name,
                 },
@@ -2848,7 +2848,7 @@ var webappGen = {
         if (!fs.existsSync(helper.resolvePath('src/deps/bootstrap-variables.scss')))
         {
             printv(1,'Fetching dependency: bootstrap-variables.scss');
-            var bootstrapVars = wait.forMethod(httpreq,'get', 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+webappGen.versions.bootstrapVersion+'/assets/stylesheets/bootstrap/_variables.scss');
+            let bootstrapVars = wait.forMethod(httpreq,'get', 'https://raw.githubusercontent.com/twbs/bootstrap-sass/v'+webappGen.versions.bootstrapVersion+'/assets/stylesheets/bootstrap/_variables.scss');
             fs.writeFileSync(helper.resolvePath('src/deps/bootstrap-variables.scss'), bootstrapVars.body);
             printv(1,'Continuing...');
         }
@@ -2865,7 +2865,7 @@ var webappGen = {
             child_process.execFileSync('rsync', [ '-a',helper.resolvePath('.gitignore'), helper.resolveOutPath('.gitignore') ]);
         }
         printv(3,'Compiling JS and CSS...');
-        var uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
+        let uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
                 outSourceMap: 'rotcelloc.js.map',
                 sourceMapIncludeSources: true
             });
@@ -2891,7 +2891,7 @@ var webappGen = {
  */
 function getCacheID (entry,type,opts)
 {
-    var ckey = '';
+    let ckey = '';
     if(type === undefined)
     {
         type = entry.type;
@@ -2944,8 +2944,8 @@ function printv(reqVerb,message)
     {
         if (reqVerb > 1 && !/^\s+/.test(message))
         {
-            var spaces = '';
-            for(var n = 1; reqVerb >= n; n++)
+            let spaces = '';
+            for(let n = 1; reqVerb >= n; n++)
             {
                 spaces += ' ';
             }
