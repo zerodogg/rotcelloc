@@ -1016,6 +1016,7 @@ class gameCollection extends collectionType
             entry.format   = 'Steam';
             resultData.push(entry);
         }
+        this.retrieveSteamMetadata(data,user);
         cache.set(now,'arbitrary',ckey+'//_lastUpdated');
         cache.set(resultData,'arbitrary',ckey);
         return resultData;
