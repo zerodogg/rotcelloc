@@ -470,22 +470,27 @@ class movieCollection extends collectionType
                 return url;
             }
         }
-        else if(cache.get('URLs',ckey))
+        else
         {
-            if(cache.get('URLs',ckey) == 'MISS')
+            let cached = cache.get('URLs',ckey);
+            if(cached !== undefined)
             {
-                if(! commander.retryMiss)
+                if(cached == 'MISS')
                 {
-                    return;
+                    if(! commander.retryMiss)
+                    {
+                        return;
+                    }
                 }
-            }
-            else if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(cache.get('URLs',ckey)))))
-            {
-                if (cache.get('fileMap',path.basename(cache.get('URLs',ckey))) !== undefined && cache.get('fileMap',path.basename(cache.get('URLs',ckey))) != cache.get('URLs',ckey))
+                else if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(cached))))
                 {
-                    printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.get('URLs',ckey))+' ('+cache.get('URLs',ckey)+' and '+cache.get('fileMap',path.basename(cache.get('URLs',ckey)))+')');
+                    let mapped = cache.get('fileMap',path.basename(cached));
+                    if(mapped !== undefined && mapped != cached)
+                    {
+                        printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cached)+' ('+cached+' and '+mapped+')');
+                    }
+                    return cached;
                 }
-                return cache.get('URLs',ckey);
             }
         }
         // Remap type so that movieArt can handle it
