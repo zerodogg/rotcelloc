@@ -315,12 +315,12 @@ class collectionType
     sortFinalCollection(data)
     {
         // Sort
-        /*        if(config.defaultSort === undefined || config.defaultSort !== 'year')
-        {*/
+        if(this._entry.defaultSort === undefined || this._entry.defaultSort !== 'year')
+        {
             data.sort(function(a,b) {
                     return a.title.localeCompare(b.title);
             });
-            /*      }
+        }
         else
         {
             data.sort(function(a,b) {
@@ -338,7 +338,7 @@ class collectionType
                     }
                     return a.title.localeCompare(b.title);
             });
-        }*/
+        }
         return data;
     }
 
