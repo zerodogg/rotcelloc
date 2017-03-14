@@ -1225,6 +1225,12 @@ class gameCollection extends collectionType
 
     /*
      * Downloads metadata about games from Steam
+     *
+     * FIXME: This function really shouldn't exist. The logic should all be
+     * handled by getGameInfoFromSteam, including making the requests. That
+     * will reduce the load on Steam (we will spend longer between requests),
+     * and will make the code more self-contained. We can just store our rate
+     * limiting as an attribute on the class instead of in the function.
      */
     retrieveSteamMetadata(games,name)
     {
@@ -1317,6 +1323,15 @@ class gameCollection extends collectionType
      */
     doPlatformRemap(platform,pretty)
     {
+        if(Array.isArray(platform))
+        {
+            let result = [];
+            for (let entry of platform)
+            {
+                result.push( this.doPlatformRemap(entry) );
+            }
+            return result;
+        }
         var platforms = {
             'playstation 2':'Sony Playstation 2',
             'playstation 3':'Sony Playstation 3',
@@ -1373,11 +1388,6 @@ class gameCollection extends collectionType
         }
         if(platform != null)
         {
-            if(typeof(platform) != 'string')
-            {
-                console.trace('doPlatformRemap: got non-string non-null platform: '+typeof(platform)+' (returning null in an attempt to recover)');
-                return null;
-            }
             var platLower = platform.toLowerCase();
             if(platforms[platLower])
             {
@@ -2462,12 +2472,12 @@ var core = {
             var result;
             if(groupConf.type == 'series' || groupConf.type == 'movies')
             {
-                var handler = new movieCollection(groupConf,name,groupNo);
+                let handler = new movieCollection(groupConf,name,groupNo);
                 result = handler.generateDatastructure();
             }
             else if(groupConf.type == 'games')
             {
-                var handler = new gameCollection(groupConf,name,groupNo);
+                let handler = new gameCollection(groupConf,name,groupNo);
                 result = handler.generateDatastructure();
             }
             else
@@ -3012,10 +3022,12 @@ function main()
     else if(commander.steamDump)
     {
         throw('FIXME');
+        /*
         cache = new rotcellocCache();
         var list = gamesAPI.generateSteamListFor(commander.steamDump);
         cache.write();
         process.exit(0);
+        */
     }
 
     if(commander.expireUnused)
