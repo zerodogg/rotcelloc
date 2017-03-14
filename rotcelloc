@@ -1002,6 +1002,7 @@ class gameCollection extends collectionType
         let user = source.user,
             ckey = 'steam//games//'+user,
             now  = Math.floor(Date.now() / 1000);
+        printv(3,'Interpreting steam collection for "'+user+'"');
         if(cache.get('arbitrary',ckey))
         {
 
