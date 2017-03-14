@@ -510,17 +510,11 @@ class movieCollection extends collectionType
             }
             if(!helper.isValidCoverURL(url) && entry.year)
             {
-                try
-                {
-                    url = wait.for(movieArt,mTitle,entry.year,null,type);
-                } catch(e) {}
+                url = this.submitMovieArtRequest(mTitle,entry.year,type);
             }
             if(!helper.isValidCoverURL(url))
             {
-                try
-                {
-                    url = wait.for(movieArt,mTitle,null,null,type);
-                } catch(e) {}
+                url = this.submitMovieArtRequest(mTitle,null,type);
             }
             if(!helper.isValidCoverURL(url))
             {
@@ -534,17 +528,11 @@ class movieCollection extends collectionType
                 }
                 if(entry.year && !url)
                 {
-                    try
-                    {
-                        url = wait.for(movieArt,mTitle,entry.year,null,type);
-                    } catch(e) {}
+                    url = this.submitMovieArtRequest(mTitle,entry.year,type);
                 }
                 if(!helper.isValidCoverURL(url))
                 {
-                    try
-                    {
-                        url = wait.for(movieArt,mTitle,null,null,type);
-                    } catch(e) {}
+                    url = this.submitMovieArtRequest(mTitle,null,type);
                 }
                 if(!helper.isValidCoverURL(url) && entry.poster)
                 {
@@ -556,6 +544,18 @@ class movieCollection extends collectionType
         {
             return url;
         }
+    }
+
+    // Submits a movieArt request
+    submitMovieArtRequest (mTitle,year,type)
+    {
+        var url;
+        printv(5,'Submitting request to movieArt: '+mTitle+','+year+','+type);
+        try
+        {
+            url = wait.for(movieArt,mTitle,year,null,type);
+        } catch(e) {}
+        return url;
     }
 
     // Adds metadata to an entry
