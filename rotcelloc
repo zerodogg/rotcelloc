@@ -2176,9 +2176,9 @@ var helper = {
         {
             console.log('WARNING: downloadAndCacheURL received null/empty ckey');
         }
-        cache.set(url,'URLs',ckey);
         if (!fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
         {
+            cache.set(url,'URLs',ckey);
             if(commander.lazy)
             {
                 return;
