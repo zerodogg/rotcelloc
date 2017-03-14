@@ -7,7 +7,7 @@
  * Part of rotcelloc - the hacker's movie, tv-series and game collection
  * manager
  *
- * Copyright (C) Eskild Hustvedt 2015, 2016
+ * Copyright (C) Eskild Hustvedt 2015, 2016, 2017
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -327,9 +327,70 @@ class collectionType
     loadCSVData(entry)
     {
         printv(3,'Interpreting file "'+entry.file+'"');
-        // FIXME: The helper function should be moved here
         this._meta.sourceToNameMap[entry.file] = entry.name;
-        return helper.loadCollectionFile(entry.file);
+
+        let input  = fs.readFileSync(helper.resolveOutPath(entry.file),{ encoding: 'utf-8'} );
+        let CSV = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
+        let baseF = path.basename(entry.file);
+        let config = helper.getConfig();
+        let blameData;
+        if(config.enableAutoAdded !== false)
+        {
+            blameData = this.loadGitBlame(entry.file);
+        }
+        for(let i = 0; i < CSV.length; i++)
+        {
+            let entry = CSV[i];
+            helper.remapCSVFields(entry);
+            helper.handleGenericFields(entry);
+            entry.bSource = baseF;
+            if (blameData != null && entry.added === 0)
+            {
+                let blameLine = i-1;
+                let blamed = blameData[blameLine];
+                if(blamed && blamed['committer-time'])
+                {
+                    entry.added = blamed['committer-time'];
+                }
+            }
+        }
+        printv(5,'Loaded CSV from '+entry.file);
+        return CSV;
+    }
+
+    // Load git blame data for a file
+    loadGitBlame(path)
+    {
+        let gitBlameOutput;
+        try
+        {
+            gitBlameOutput = child_process.execFileSync('git',['blame','--line-porcelain','-w','--minimal','-C',path],{ stdio: [ 'ignore','pipe','ignore' ] });
+        }
+        catch(e)
+        {
+            printv(4,'Error during execFileSync of git blame: '+e.message);
+            return [];
+        }
+        gitBlameOutput = gitBlameOutput.toString();
+        gitBlameOutput = gitBlameOutput.split(/\n/);
+        let blame = [];
+        let current = {};
+        for(let i = 0; i < gitBlameOutput.length; i++)
+        {
+            let line = gitBlameOutput[i];
+            if (/^\t/.test(line))
+            {
+                blame.push(current);
+                current = {};
+            }
+            else
+            {
+                let key = line.replace(/^(\S+)\s+.*/,'$1');
+                let value = line.replace(/^\S+\s+/,'');
+                current[key] = value;
+            }
+        }
+        return blame;
     }
 
     // Download metadata for an item
@@ -2378,83 +2439,6 @@ var helper = {
         shasum.update(targetStr);
         return shasum.digest('hex');
     },
-    /*
-     * Parse CSV from a string
-     */
-    parseCSV: function (input)
-    {
-        let output = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
-        return output;
-    },
-    /*
-     * Load a CSV collection file
-     */
-    loadCollectionFile: function(collPath)
-    {
-        let input  = fs.readFileSync(helper.resolveOutPath(collPath),{ encoding: 'utf-8'} );
-        let CSV = this.parseCSV(input);
-        let baseF = path.basename(collPath);
-        let config = helper.getConfig();
-        let blameData;
-        if(config.enableAutoAdded !== false)
-        {
-            blameData = this.loadGitBlame(collPath);
-        }
-        for(let i = 0; i < CSV.length; i++)
-        {
-            let entry = CSV[i];
-            helper.remapCSVFields(entry);
-            helper.handleGenericFields(entry);
-            entry.bSource = baseF;
-            if (blameData != null && entry.added === 0)
-            {
-                let blameLine = i-1;
-                let blamed = blameData[blameLine];
-                if(blamed && blamed['committer-time'])
-                {
-                    entry.added = blamed['committer-time'];
-                }
-            }
-        }
-        printv(5,'Loaded CSV from '+collPath);
-        return CSV;
-    },
-    /*
-     * Load git blame information for a file
-     */
-    loadGitBlame: function(path)
-    {
-        let gitBlameOutput;
-        try
-        {
-            gitBlameOutput = child_process.execFileSync('git',['blame','--line-porcelain','-w','--minimal','-C',path],{ stdio: [ 'ignore','pipe','ignore' ] });
-        }
-        catch(e)
-        {
-            printv(4,'Error during execFileSync of git blame: '+e.message);
-            return [];
-        }
-        gitBlameOutput = gitBlameOutput.toString();
-        gitBlameOutput = gitBlameOutput.split(/\n/);
-        let blame = [];
-        let current = {};
-        for(let i = 0; i < gitBlameOutput.length; i++)
-        {
-            let line = gitBlameOutput[i];
-            if (/^\t/.test(line))
-            {
-                blame.push(current);
-                current = {};
-            }
-            else
-            {
-                let key = line.replace(/^(\S+)\s+.*/,'$1');
-                let value = line.replace(/^\S+\s+/,'');
-                current[key] = value;
-            }
-        }
-        return blame;
-    }
 };
 
 /*
