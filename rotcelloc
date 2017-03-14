@@ -218,7 +218,7 @@ class rotcellocCache
     {
         if(this._writesSinceFlush > 50)
         {
-            var now = Math.floor(Date.now() / 1000);
+            let now = Math.floor(Date.now() / 1000);
             if(now-this._lastWritten >= 4)
             {
                 this.write();
@@ -270,6 +270,26 @@ class rotcellocCache
             }
         }
         this.write();
+    }
+
+    autoExpireOutdatedEntries ()
+    {
+        let now = Math.floor(Date.now() / 1000);
+        for (let type of [ 'meta', 'URLs', 'gameMeta','arbitrary','steamMeta' ])
+        {
+            let result = this._persistCache[type];
+            for (let entry in result)
+            {
+                let accessKey = type + '___' + entry;
+                // 100800 seconds = four weeks
+                if (this._persistCache._meta[accessKey] === undefined || (now-this._persistCache._meta[accessKey]) >= 100800)
+                {
+                    printv(7,'Removed expired cache entry of type '+type+' for '+entry);
+                    delete result[entry];
+                }
+            }
+        }
+        this._writesSinceFlush++;
     }
 }
 
@@ -2520,6 +2540,7 @@ var core = {
         {
             core.writeOutResult(entry.result.meta, entry.result.data, entry.groupNo, entry.name, entry.config, results);
         }
+        cache.autoExpireOutdatedEntries();
         cache.write();
     },
     /*
