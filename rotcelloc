@@ -78,8 +78,8 @@ try
 }
 
 var
-    // We will load the persistent cache into this
-    cache = {},
+    // Global cache object
+    cache = null,
     // Used for caching during a single run, ie. for http-requests
     runtimeCache = {},
     // Stores a parsed version of package.json, basically just used
@@ -96,6 +96,142 @@ var
             return this.strings[s] ? this.strings[s] : s;
         }
 };
+
+/*
+ * Cache class
+ */
+class rotcellocCache
+{
+    constructor ()
+    {
+        this._persistCache = {};
+        // Used to keep track of the number of times the cache data has
+        // been changed since the last time we wrote it to disk.
+        this._writesSinceFlush = 0;
+
+        // Load and initialize _persistCache
+        if(fs.existsSync(helper.resolveOutPath('.cache.json')))
+        {
+            printv(3,'Loading cache from .cache.json');
+            this._persistCache = JSON.parse(fs.readFileSync(helper.resolveOutPath('.cache.json')));
+        }
+        if (!this._persistCache.URLs)
+        {
+            this._persistCache = { URLs: this._persistCache };
+        }
+        if (!this._persistCache.fileMap || commander.expireCovers)
+        {
+            this._persistCache.fileMap = {};
+        }
+        if (!this._persistCache.meta || commander.expireMeta)
+        {
+            this._persistCache.meta = {};
+        }
+        if (!this._persistCache.gameMeta || commander.expireMeta)
+        {
+            this._persistCache.gameMeta = {};
+        }
+        if (!this._persistCache.steamMeta || commander.expireMeta)
+        {
+            this._persistCache.steamMeta = {};
+        }
+        if (!this._persistCache.arbitrary || commander.expireMeta)
+        {
+            this._persistCache.arbitrary = {};
+        }
+    }
+
+    get (cacheType,ckey)
+    {
+        return this._persistCache[cacheType][ckey];
+    }
+
+    set(content,cacheType,ckey)
+    {
+        this._persistCache[cacheType][ckey] = _.cloneDeep(content);
+        this.autoWrite();
+    }
+
+    getAutoKey(cacheType,entry,type,opts)
+    {
+        var ckey = getCacheID(entry,type,opts);
+        return this.get(cacheType,ckey);
+    }
+
+    setAutoKey(content,cacheType,entry,type,opts)
+    {
+        var ckey = getCacheID(entry,type,opts);
+        return this.set(content,cacheType,ckey);
+    }
+
+    unset(cacheType,ckey)
+    {
+        delete this._persistCache[cacheType][ckey];
+        this.autoWrite();
+    }
+
+    unsetAutoKey(cacheType,entry,type,opts)
+    {
+        var ckey = getCacheID(entry,type,opts);
+        return this.unset(cacheType,ckey);
+    }
+
+    write()
+    {
+        this._writesSinceFlush = 0;
+        this._persistCache.lastVersion = packageJSON.version;
+        this._persistCache.formatVersion = 0;
+        printv(5,'Writing cache to .cache.json');
+        fs.writeFileSync('.cache.json.out',JSON.stringify(this._persistCache));
+        fs.renameSync('.cache.json.out','.cache.json');
+    }
+
+    autoWrite()
+    {
+        if(++this._writesSinceFlush > 50)
+        {
+            this.write();
+        }
+    }
+
+    cacheExpiry (byvalue,onlyMiss)
+    {
+        byvalue = byvalue.toLowerCase();
+        for (var type of [ 'meta', 'URLs', 'gameMeta','arbitrary','steamMeta' ])
+        {
+            var result = this._persistCache[type];
+            for (var entry in result)
+            {
+                if(entry.toLowerCase().indexOf(byvalue) != -1 || byvalue === '')
+                {
+                    if(onlyMiss && result[entry] != 'MISS')
+                    {
+                        continue;
+                    }
+                    console.log(type+': removed "'+entry+'"');
+                    delete result[entry];
+                }
+            }
+            if(type == 'steamMeta')
+            {
+                for(var entry in result)
+                {
+                    var data = result[entry];
+                    if(data.name && data.name.toLowerCase().indexof(byvalue) != -1)
+                    {
+                        if(onlyMiss && result[entry] != 'MISS')
+                        {
+                            continue;
+                        }
+                        console.log(type+': removed "'+entry+'"');
+                        delete result[entry];
+                    }
+                }
+            }
+        }
+        this.write();
+    }
+}
 
 /*
  * Base class for all collection types. Implements generic versions of
@@ -316,22 +452,22 @@ class movieCollection extends collectionType
                 return url;
             }
         }
-        else if(cache.URLs[ckey])
+        else if(cache.get('URLs',ckey))
         {
-            if(cache.URLs[ckey] == 'MISS')
+            if(cache.get('URLs',ckey) == 'MISS')
             {
                 if(! commander.retryMiss)
                 {
                     return;
                 }
             }
-            else if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(cache.URLs[ckey]))))
+            else if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(cache.get('URLs',ckey)))))
             {
-                if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
+                if (cache.get('fileMap',path.basename(cache.get('URLs',ckey))) !== undefined && cache.get('fileMap',path.basename(cache.get('URLs',ckey))) != cache.get('URLs',ckey))
                 {
-                    printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.URLs[ckey])+' ('+cache.URLs[ckey]+' and '+cache.fileMap[path.basename(cache.URLs[ckey])]+')');
+                    printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.get('URLs',ckey))+' ('+cache.get('URLs',ckey)+' and '+cache.get('fileMap',path.basename(cache.get('URLs',ckey)))+')');
                 }
-                return cache.URLs[ckey];
+                return cache.get('URLs',ckey);
             }
         }
         // Remap type so that movieArt can handle it
@@ -594,9 +730,9 @@ class movieCollection extends collectionType
     retrieveMetadataFor(entry)
     {
         var ckey = getCacheID(entry);
-        if (cache.meta[ckey])
+        if (cache.get('meta',ckey))
         {
-            if(cache.meta[ckey] == 'MISS')
+            if(cache.get('meta',ckey) == 'MISS')
             {
                 if(! commander.retryMiss)
                 {
@@ -605,24 +741,24 @@ class movieCollection extends collectionType
             }
             else
             {
-                if(cache.meta[ckey].Response != 'True')
+                if(cache.get('meta',ckey).Response != 'True')
                 {
-                    delete cache.meta[ckey];
+                    cache.unset('meta',ckey);
                 }
-                return cache.meta[ckey];
+                return cache.get('meta',ckey);
             }
         }
         var data = this.fetchFromOMDB(entry);
         if(data && data.Response == "False")
         {
             printv(3,'Could not retrieve data from OMDB on '+ (entry.origTitle ? entry.origTitle : entry.title) );
-            cache.meta[ckey] = 'MISS';
+            cache.set('MISS','meta',ckey);
             return;
         }
         if ((entry.type == 'movies' && (!entry.year || parseInt(entry.year) == parseInt(data.Year)))|| (entry.type == 'series' || parseInt(entry.year) == parseInt(data.Year)) || (entry.imdbID && data.imdbID == entry.imdbID) )
         {
             printv(1,'Fetched meta info for '+entry.title);
-            cache.meta[ckey] = data;
+            cache.set(data,'meta',ckey);
             return data;
         }
         else
@@ -639,7 +775,7 @@ class movieCollection extends collectionType
                     printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the OMDB entry claims '+data.Year+': ignoring data from server');
                 }
             }
-            cache.meta[ckey] = 'MISS';
+            cache.set('MISS','meta',ckey);
         }
         return;
     }
@@ -820,14 +956,14 @@ class gameCollection extends collectionType
         var user = source.user,
             ckey = 'steam//games//'+user,
             now  = Math.floor(Date.now() / 1000);
-        if(cache.arbitrary[ckey])
+        if(cache.get('arbitrary',ckey))
         {
 
-            var lastUpdated = cache.arbitrary[ckey+'//_lastUpdated'];
+            var lastUpdated = cache.get('arbitrary',ckey+'//_lastUpdated');
             if(lastUpdated !== undefined && lastUpdated > (now - (82800*7) ) && !commander.forceSteamUpdate)
             {
                 printv(5,'Using cached Steam data for '+user);
-                return cache.arbitrary[ckey];
+                return cache.get('arbitrary',ckey);
             }
             else
             {
@@ -857,8 +993,8 @@ class gameCollection extends collectionType
             entry.format   = 'Steam';
             resultData.push(entry);
         }
-        cache.arbitrary[ckey+'//_lastUpdated'] = now;
-        cache.arbitrary[ckey] = resultData;
+        cache.set(now,'arbitrary',ckey+'//_lastUpdated');
+        cache.set(resultData,'arbitrary',ckey);
         return resultData;
     }
 
@@ -1076,7 +1212,7 @@ class gameCollection extends collectionType
         for(var i = 0; i < games.length; i++)
         {
             var appid = games[i].appid;
-            if(cache.steamMeta[ appid ] === undefined)
+            if(cache.get('steamMeta',appid) === undefined)
             {
                 if (!messagePrinted)
                 {
@@ -1089,7 +1225,7 @@ class gameCollection extends collectionType
                     apiLimiter = 0;
                     printv(2,'Sleeping 10 seconds to avoid Steam API limits.');
                     printv(1,'Status: processed '+ (i + 1)+' of '+games.length+' games for '+name);
-                    core.writeCache();
+                    cache.write();
                     helper.sleep(10);
                 }
                 var data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
@@ -1100,18 +1236,18 @@ class gameCollection extends collectionType
                     errLimit = 0;
                     if(data[appid].success)
                     {
-                        cache.steamMeta[appid] = data[appid].data;
+                        cache.set(data[appid].data,'steamMeta',appid);
                     }
                     else
                     {
-                        cache.steamMeta[appid] = 'MISS';
+                        cache.set('MISS','steamMeta','MISS');
                     }
                 }
                 else
                 {
                     errLimit++;
                     i--;
-                    core.writeCache();
+                    cache.write();
                     if(errLimit > 5)
                     {
                         printv(1,'Aborting Steam retrieval for now, error limit exceeded.');
@@ -1144,10 +1280,7 @@ class gameCollection extends collectionType
      */
     getGameInfoFromSteam(game)
     {
-        if(cache.steamMeta[game.steamID])
-        {
-            return cache.steamMeta[game.steamID];
-        }
+        return cache.get('steamMeta',game.steamID);
     }
 
     /*
@@ -1383,9 +1516,9 @@ class gameCollection extends collectionType
     getGameInfoFromTGD(game)
     {
         var ckey = getCacheID(game,'game', { ignoreSteam: true });
-        if(cache.gameMeta[ckey])
+        if(cache.get('gameMeta',ckey))
         {
-            if(cache.gameMeta[ckey] == 'MISS')
+            if(cache.get('gameMeta',ckey) == 'MISS')
             {
                 if(! commander.retryMiss)
                 {
@@ -1394,7 +1527,7 @@ class gameCollection extends collectionType
             }
             else
             {
-                return cache.gameMeta[ckey];
+                return cache.get('gameMeta',ckey);
             }
         }
         var data = this.fetchDataFromTGD(game,ckey),
@@ -1481,7 +1614,7 @@ class gameCollection extends collectionType
             meta;
         if (!search)
         {
-            cache.gameMeta[ckey] = 'MISS';
+            cache.set('MISS','gameMeta',ckey);
             return;
         }
         var platform = this.doPlatformRemap(game.platform);
@@ -1623,12 +1756,12 @@ class gameCollection extends collectionType
                 meta = this.TGD_infoByID(best.id);
                 if(meta !== undefined)
                 {
-                    cache.gameMeta[ckey] = meta;
+                    cache.set(meta,'gameMeta',ckey);
                     return meta;
                 }
             }
         }
-        cache.gameMeta[ckey] = 'MISS';
+        cache.set('MISS','gameMeta',ckey);
         return;
     }
 
@@ -1974,23 +2107,23 @@ var helper = {
         if(!helper.isValidCoverURL(url))
         {
             printv(1,'Failed to retrieve poster for '+entry.title+( entry.origTitle ? ' ('+entry.origTitle+')' : ''));
-            cache.URLs[ckey] = 'MISS';
+            cache.set('MISS','URLs',ckey);
             return;
         }
         if(ckey == null || ckey === "")
         {
             console.log('WARNING: downloadAndCacheURL received null/empty ckey');
         }
-        cache.URLs[ckey] = url;
+        cache.set(url,'URLs',ckey);
         if (!fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
         {
             if(commander.lazy)
             {
                 return;
             }
-            if (cache.fileMap[path.basename(cache.URLs[ckey])] !== undefined && cache.fileMap[path.basename(cache.URLs[ckey])] != cache.URLs[ckey])
+            if (cache.get('fileMap',path.basename(cache.get('URLs',ckey))) !== undefined && cache.get('fileMap',path.basename(cache.get('URLs',ckey))) != cache.get('URLs',ckey))
             {
-                printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.URLs[ckey])+' ('+cache.URLs[ckey]+' and '+cache.fileMap[path.basename(cache.URLs[ckey])]+')');
+                printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.get('URLs',ckey))+' ('+cache.get('URLs',ckey)+' and '+cache.get('fileMap',path.basename(cache.get('URLs',ckey)))+')');
             }
             else
             {
@@ -2008,9 +2141,9 @@ var helper = {
                 }
             }
         }
-        if (!cache.fileMap[ path.basename(cache.URLs[ckey]) ])
+        if (!cache.get('fileMap',path.basename(cache.get('URLs',ckey))))
         {
-            cache.fileMap[path.basename(cache.URLs[ckey])] = url;
+            cache.set(url,'fileMap',path.basename(cache.get('URLs',ckey)));
         }
         return true;
     },
@@ -2282,7 +2415,7 @@ var core = {
         var config  = helper.getConfig(),
             nameMap = {};
 
-        core.loadCache();
+        cache = new rotcellocCache();
         if(config.language && fs.existsSync(helper.resolvePath('i18n/'+config.language+'.po')))
         {
             i18n.strings = po2json.parseFileSync(helper.resolvePath('i18n/'+config.language+'.po'), {
@@ -2318,13 +2451,12 @@ var core = {
                     name: name,
                     config: config,
             });
-            // Write current cache
-            core.writeCache();
         }
         for(var entry of results)
         {
             core.writeOutResult(entry.result.meta, entry.result.data, entry.groupNo, entry.name, entry.config, results);
         }
+        cache.write();
     },
     /*
      * Expires unused entries from the database. Will perform a database
@@ -2363,20 +2495,20 @@ var core = {
         var reverseFileMap = {};
         for(ckey in cache.URLs)
         {
-            reverseFileMap[ cache.URLs[ckey] ] = ckey;
+            reverseFileMap[ cache.get('URLs',ckey) ] = ckey;
         }
         var files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
         for(var file of files)
         {
             var baseFile = path.basename(file);
             var remove = null;
-            if (!cache.fileMap[baseFile])
+            if (!cache.get('fileMap',baseFile))
             {
                 remove = "not in fileMap";
             }
             else
             {
-                var url = cache.fileMap[baseFile];
+                var url = cache.get('fileMap',baseFile);
                 if (!reverseFileMap[url])
                 {
                     remove = "not in reverseFileMap ["+url+"]";
@@ -2402,77 +2534,7 @@ var core = {
                 }
             }
         }
-        core.writeCache();
-    },
-    /*
-     * Load the cache file
-     */
-    loadCache: function()
-    {
-        if(fs.existsSync(helper.resolveOutPath('.cache.json')))
-        {
-            printv(3,'Loading cache from .cache.json');
-            cache = JSON.parse(fs.readFileSync(helper.resolveOutPath('.cache.json')));
-        }
-        if (!cache.URLs)
-        {
-            cache = { URLs: cache };
-        }
-        if (!cache.fileMap || commander.expireCovers)
-        {
-            cache.fileMap = {};
-        }
-        if (!cache.meta || commander.expireMeta)
-        {
-            cache.meta = {};
-        }
-        if (!cache.gameMeta || commander.expireMeta)
-        {
-            cache.gameMeta = {};
-        }
-        if (!cache.steamMeta || commander.expireMeta)
-        {
-            cache.steamMeta = {};
-        }
-        if (!cache.arbitrary || commander.expireMeta)
-        {
-            cache.arbitrary = {};
-        }
-    },
-    /*
-     * Write the cache file
-     * */
-    writeCache: function ()
-    {
-        cache.lastVersion = packageJSON.version;
-        cache.formatVersion = 0;
-        fs.writeFileSync('.cache.json.out',JSON.stringify(cache));
-        fs.renameSync('.cache.json.out','.cache.json');
-    },
-    /*
-     * Expire stuff from the cache that matches "byvalue"
-     */
-    cacheExpiry: function(byvalue,onlyMiss)
-    {
-        byvalue = byvalue.toLowerCase();
-        core.loadCache();
-        for (var type of [ 'meta', 'URLs', 'gameMeta','arbitrary' ])
-        {
-            var result = cache[type];
-            for (var entry in result)
-            {
-                if(entry.toLowerCase().indexOf(byvalue) != -1 || byvalue === '')
-                {
-                    if(onlyMiss && result[entry] != 'MISS')
-                    {
-                        continue;
-                    }
-                    console.log(type+': removed "'+entry+'"');
-                    delete result[entry];
-                }
-            }
-        }
-        core.writeCache();
+        cache.write();
     },
     /*
      * Verifies command-line dependencies
@@ -2908,20 +2970,22 @@ function main()
     /* Handle exclusive options */
     if(commander.expireMatching)
     {
-        core.cacheExpiry(commander.expireMatching);
+        cache = new rotcellocCache();
+        cache.cacheExpiry(commander.expireMatching);
         process.exit(0);
     }
     else if(commander.expireMatchingMiss !== undefined)
     {
-        core.cacheExpiry(commander.expireMatchingMiss,true);
+        cache = new rotcellocCache();
+        cache.cacheExpiry(commander.expireMatchingMiss,true);
         process.exit(0);
     }
     else if(commander.steamDump)
     {
         throw('FIXME');
-        core.loadCache();
+        cache = new rotcellocCache();
         var list = gamesAPI.generateSteamListFor(commander.steamDump);
-        core.writeCache();
+        cache.write();
         process.exit(0);
     }
 
