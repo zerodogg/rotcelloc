@@ -169,6 +169,7 @@ class rotcellocCache
         }
         this._persistCache[cacheType][ckey] = _.cloneDeep(content);
         this.bumpAccessTime(cacheType,ckey);
+        this._writesSinceFlush++;
         this.autoWrite();
     }
 
@@ -215,7 +216,7 @@ class rotcellocCache
 
     autoWrite()
     {
-        if(++this._writesSinceFlush > 50)
+        if(this._writesSinceFlush > 50)
         {
             var now = Math.floor(Date.now() / 1000);
             if(now-this._lastWritten >= 4)
