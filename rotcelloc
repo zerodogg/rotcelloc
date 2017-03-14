@@ -143,11 +143,19 @@ class rotcellocCache
 
     get (cacheType,ckey)
     {
+        if(this._persistCache[cacheType] === undefined)
+        {
+            throw('Attempt to get() from unknown cache type: '+cacheType);
+        }
         return this._persistCache[cacheType][ckey];
     }
 
-    set(content,cacheType,ckey)
+    set (content,cacheType,ckey)
     {
+        if(this._persistCache[cacheType] === undefined)
+        {
+            throw('Attempt to set() to unknown cache type: '+cacheType);
+        }
         this._persistCache[cacheType][ckey] = _.cloneDeep(content);
         this.autoWrite();
     }
@@ -189,6 +197,14 @@ class rotcellocCache
     autoWrite()
     {
         if(++this._writesSinceFlush > 50)
+        {
+            this.write();
+        }
+    }
+
+    flushIfNeeded()
+    {
+        if(this._writesSinceFlush > 0)
         {
             this.write();
         }
@@ -381,6 +397,7 @@ class collectionType
         {
             this._meta.hasDisneySort = true;
         }
+        cache.flushIfNeeded();
         return data;
     }
 
