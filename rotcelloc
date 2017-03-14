@@ -98,282 +98,215 @@ var
 };
 
 /*
- * This is the API that generates the collection with metadata and posters for
- * a movie and TV series collection
+ * Base class for all collection types. Implements generic versions of
+ * most methods which can then be overridden
  */
-var movieAPI = {
-    /*
-     * Generic handler for any type of movie/tv input file. It generates the
-     * data structure and requests/handles metadata and posters
-     */
-    handleResultSet: function (output,source,config,type)
+class collectionType
+{
+    constructor(entry, name, groupNumber)
     {
-        var entries = [],
-        retValue = {
-            data: [],
-            meta: {
-                genres: [],
-                formats: [],
-                enableNormalized: false,
-                fields: {}
-            }
+        this._entry = entry;
+        this._name = name;
+        this._groupNo = groupNumber;
+        this._ID = 0;
+        this._meta = {
+            sourceToNameMap: {},
+            type: this._entry.type
         };
-        for(var collectionEntryI in output)
+        if(this.initialize)
         {
-            var collectionEntry = output[collectionEntryI];
-            if(collectionEntry.title == null || !/\S/.test(collectionEntry.title))
-            {
-                printv(0,'Warning: entry on line '+ (collectionEntryI+1)+' in '+source+' has no title - skipping');
-                continue;
-            }
-            if(source)
-            {
-                collectionEntry.bSource = path.basename(source);
-            }
-            if(type)
-            {
-                collectionEntry.type = type;
-            }
-            else if(collectionEntry.type)
-            {
-                type = collectionEntry.type;
-            }
-            if(config.contentType)
-            {
-                collectionEntry.contentType = config.contentType;
-            }
-            if(collectionEntry.watched != null)
-            {
-                collectionEntry.watched      = helper.parseBool(collectionEntry.watched);
-            }
+            this.initialize();
+        }
+    }
 
-            var meta = movieAPI.getMovieMeta(collectionEntry);
-            if(meta != null)
-            {
-                if(movieAPI.isValidOMDBField(meta.imdbID))
-                {
-                    collectionEntry.imdbID = meta.imdbID;
-                }
-                if(!collectionEntry.actors && movieAPI.isValidOMDBField(meta.Actors))
-                {
-                    collectionEntry.actors = meta.Actors;
-                }
-                if(movieAPI.isValidOMDBField(meta.Metascore))
-                {
-                    collectionEntry.metascore = meta.Metascore;
-                }
-                if(movieAPI.isValidOMDBField(meta.imdbRating))
-                {
-                    collectionEntry.imdbRating = meta.imdbRating;
-                    collectionEntry.imdbVotes  = meta.imdbVotes;
-                }
-                if(movieAPI.isValidOMDBField(meta.Plot))
-                {
-                    collectionEntry.plot = meta.Plot;
-                }
-                if(movieAPI.isValidOMDBField(meta.Director))
-                {
-                    collectionEntry.director = meta.Director;
-                }
-                if(movieAPI.isValidOMDBField(meta.Writer))
-                {
-                    // Translators: used to translate substrings in the «writer» metadata
-                    collectionEntry.writer = meta.Writer.replace(/screenplay/g,i18n.translate('screenplay'))
-                    // Translators: used to translate substrings in the «writer» metadata
-                    .replace(/(motion picture|movie)/g,i18n.translate('motion picture'))
-                    // Translators: used to translate substrings in the «writer» metadata
-                    .replace(/comic( book)?/g,i18n.translate('comic book'))
-                    // Translators: used to translate substrings in the «writer» metadata
-                    .replace(/story/g,i18n.translate('story'))
-                    // Translators: used to translate substrings in the «writer» metadata
-                    .replace(/novel/g,i18n.translate('novel'))
-                    // Translators: used to translate substrings in the «writer» metadata
-                    .replace(/characters/g,i18n.translate('characters'))
-                    // Translators: used to translate substrings in the «writer» metadata
-                    .replace(/book/g,i18n.translate('book'));
-                }
-                if (config.autoGenre &&!collectionEntry.genre && movieAPI.isValidOMDBField(meta.Genre))
-                {
-                    collectionEntry.genre = meta.Genre;
-                }
-                if(!collectionEntry.imdbID && movieAPI.isValidOMDBField(meta.imdbID))
-                {
-                    collectionEntry.imdbID = meta.imdbID;
-                }
-                if(movieAPI.isValidOMDBField(meta.Runtime))
-                {
-                    var runtime = meta.Runtime;
-                    if (/ min/.test(runtime))
-                    {
-                        runtime                    = runtime.replace(/\s+min/,'');
-                        collectionEntry.runtimeMin = runtime;
-                        var floating               = parseInt(runtime)/60;
-                        if(floating > 0)
-                        {
-                            var hours   = parseInt(floating);
-                            var minutes = parseInt((floating-hours)*60);
-                            if(hours > 0)
-                            {
-                                // Translators: Results in [number]h [number]min (ie. X hours and X minutes)
-                                runtime = util.format(i18n.translate('%dh %dmin'),hours,minutes);
-                            }
-                            else
-                            {
-                                // Translators: Results in [number]min (ie. X minutes)
-                                runtime = util.format(i18n.translate('%dmin'),minutes);
-                            }
-                        }
-                    }
-                    collectionEntry.runtime = runtime;
-                }
-            }
-            if(collectionEntry.genre)
-            {
-                retValue.meta.genres = retValue.meta.genres.concat(collectionEntry.genre.split(/,\s*/));
-            }
-            if(collectionEntry.format)
-            {
-                collectionEntry.format = collectionEntry.format.split(/,\s*/);
-                retValue.meta.formats = retValue.meta.formats.concat(collectionEntry.format);
-            }
-            if(collectionEntry.rating)
-            {
-                retValue.meta.enableNormalized   = true;
-                if(collectionEntry.rating > 6 || collectionEntry.rating < 1)
-                {
-                    printv(1,'Unreasonable rating for "'.collectionEntry.title+'": '+collectionEntry.rating+' (should be 1-6)');
-                }
-                else
-                {
-                    collectionEntry.normalizedRating = parseInt(collectionEntry.rating*16.7);
-                    if(collectionEntry.imdbRating)
-                    {
-                        var decimal = parseInt(collectionEntry.imdbRating*10);
-                        collectionEntry.normalizedRating = parseFloat(collectionEntry.normalizedRating+'.'+decimal);
-                    }
-                }
-            }
-            else if(collectionEntry.imdbRating)
-            {
-                collectionEntry.normalizedRating = parseInt(collectionEntry.imdbRating*10);
-            }
-            else if(collectionEntry.metascore)
-            {
-                collectionEntry.normalizedRating = collectionEntry.metascore;
-                retValue.meta.enableNormalized   = true;
-            }
-            if(!collectionEntry.poster)
-            {
-                var theURL   = movieAPI.getPoster(collectionEntry,type,meta);
-                if(!theURL)
-                {
-                    theURL = 'missing.png';
-                }
-                collectionEntry.poster = encodeURIComponent(path.basename(theURL));
-            }
-            if(meta && !collectionEntry.year && movieAPI.isValidOMDBField(meta.Year))
-            {
-                collectionEntry.year = meta.Year;
-            }
-            if(collectionEntry.year)
-            {
-                collectionEntry.sortYear = parseInt(collectionEntry.year);
-            }
-            collectionEntry.normalizedTitle = helper.normalizeTitle( collectionEntry.origTitle ? collectionEntry.origTitle : collectionEntry.title );
-            if (!commander.includeDebug)
-            {
-                var includedData = {
-                    year: true,
-                    sortYear: true,
-                    poster: true,
-                    type: true,
-                    bSource: true,
-                    actors: true,
-                    metascore: true,
-                    imdbRating: true,
-                    imdbVotes: true,
-                    plot: true,
-                    director: true,
-                    writer: true,
-                    genre: true,
-                    runtime: true,
-                    runtimeMin:true,
-                    origTitle:true,
-                    title: true,
-                    seasons: true,
-                    format: true,
-                    rating: true,
-                    note: true,
-                    altTitle: true,
-                    contentType:true,
-                    disneyClassicNo: true,
-                    imdbID: true,
-                    watched: true,
-                    added: true,
-                    addedRaw: true,
-                    normalizedTitle: true,
-                    normalizedRating: true
-                };
-                for (var field in collectionEntry)
-                {
-                    if (!includedData[field])
-                    {
-                        delete collectionEntry[field];
-                    }
-                }
-            }
-            helper.storeFieldBools(collectionEntry,retValue.meta);
-            retValue.data.push(collectionEntry);
-        }
-        // Write current cache
-        core.writeCache();
-        return retValue;
-    },
-    /*
-     * Performs final sorting of a movie/tv list and adds the id numbers
-     */
-    sortAndFinalize: function (entries)
+    // Load data from a source
+    loadData(source)
     {
-        entries.sort(function(a,b) {
-                return a.title.localeCompare(b.title);
-        });
-        for (var collectionEntryI in entries)
+        // This basic version assumes CSV data. Subclasses can override
+        // loadData() with its own logic.
+        return this.loadCSVData(source);
+    }
+
+    // Load data from a CSV
+    loadCSVData(entry)
+    {
+        // FIXME: The helper function should be moved here
+        this._meta.sourceToNameMap[entry.file] = entry.name;
+        return helper.loadCollectionFile(entry.file);
+    }
+
+    // Download metadata for an item
+    addMetadataTo(collItem)
+    {
+        throw('collectionType: generic addMetadataTo called: should be overridden by subclass');
+    }
+
+    // Download the poster for an item
+    addPosterToItem(collItem)
+    {
+        throw('collectionType: generic addPosterToItem called: should be overridden by subclass');
+    }
+
+    // Finalize the collection
+    finalizeCollection(data)
+    {
+        data = this.sortFinalCollection(data);
+        for (var collectionEntryI in data)
         {
-            var collectionEntry = entries[collectionEntryI];
-            collectionEntry.id  = collectionEntryI;
+            data[collectionEntryI].id = collectionEntryI;
         }
-        return entries;
-    },
-    /*
-     * Loads a movie file and hands control over to handleResultSet
-     */
-    handleMovieFile: function (csvFile,config)
+        return { 'data':data, 'meta':this.getFinalizedMetadata()};
+    }
+
+    // Sort the final collection
+    sortFinalCollection(data)
     {
-        var CSV = helper.loadCollectionFile(csvFile);
-        return movieAPI.handleResultSet(CSV,csvFile,config,'movie');
-    },
-    /*
-     * Loads a TV series file and hands control over to handleResultSet
-     */
-    handleSeriesFile: function (csvFile,config)
+        // Sort
+        /*        if(config.defaultSort === undefined || config.defaultSort !== 'year')
+        {*/
+            data.sort(function(a,b) {
+                    return a.title.localeCompare(b.title);
+            });
+            /*      }
+        else
+        {
+            data.sort(function(a,b) {
+                    if(a.year && b.year && a.year != b.year)
+                    {
+                        return b.year - a.year;
+                    }
+                    if(a.year && !b.year)
+                    {
+                        return -1;
+                    }
+                    if (!a.year && b.year)
+                    {
+                        return 1;
+                    }
+                    return a.title.localeCompare(b.title);
+            });
+        }*/
+        return data;
+    }
+
+    getFinalizedMetadata ()
     {
-        var CSV = helper.loadCollectionFile(csvFile);
-        return movieAPI.handleResultSet(CSV,csvFile,config,'tv');
-    },
-    /*
-     * Downloads a poster, either 1) the user specified one, 2) one found using
-     * movieArt (TheMovieDB) or 3) the one provided by the OMDB
-     */
-    getPoster: function (entry,type,meta)
+        for(var metaEntry in this._meta)
+        {
+            // Filter and deduplicate arrays
+            if(Array.isArray(this._meta[metaEntry]))
+            {
+                // First, sort the array
+                var result = this._meta[metaEntry];
+                result.sort();
+                // Ensure entries are unique
+                result = _.uniq(result);
+                // Ensure nothing is null or undefined
+                result = _.filter(result,
+                    function (entry)
+                    {
+                        return entry !== null && entry !== undefined;
+                    }
+                );
+                // Save our newly deduplicated and filtered array
+                this._meta[metaEntry] = result;
+            }
+        }
+        return this._meta;
+    }
+
+    // Adds a type to an item
+    addTypeToItem (collItem)
+    {
+        collItem.type = this._entry.type;
+    }
+
+    // Handles a single item from a source in this collection
+    generateEntry (collItem)
+    {
+        if(this._entry.contentType)
+        {
+            collItem.contentType = this._entry.contentType;
+        }
+        this.addTypeToItem(collItem);
+        this.addMetadataTo(collItem);
+        this.addPosterToItem(collItem);
+    }
+
+    // Handles a single source in this collection
+    generateSource (source)
+    {
+        var data = this.loadData(source);
+        for(var collItem of data)
+        {
+            this.generateEntry(collItem);
+        }
+        if(source.hasDisneySort)
+        {
+            this._meta.hasDisneySort = true;
+        }
+        return data;
+    }
+
+    // Perform all actions needed to get a full collection datastructure
+    generateDatastructure ()
+    {
+        var entries = [];
+        // Walk through all datasources and generate each one
+        for(var source of this._entry.sources)
+        {
+            var contents = this.generateSource(source);
+            entries = entries.concat(contents);
+        }
+        return this.finalizeCollection(entries);
+    }
+
+    // Output a warning
+    warn(message)
+    {
+        // FIXME: This should provide information about the entry that's being processed
+        // so that the user can find it
+        printv(0,'Warning: (unknown location): '+message);
+    }
+}
+
+class movieCollection extends collectionType
+{
+    // Parent constructor will call initialize for us after it has done the construction
+    initialize ()
+    {
+        Object.assign(this._meta,
+        {
+            genres: [],
+            formats: [],
+            enableNormalized: false,
+            fields: {}
+        });
+    }
+
+    // Adds a poster to a collection entry
+    addPosterToItem (collectionEntry)
+    {
+        var theURL   = this.getPoster(collectionEntry);
+        if(!theURL)
+        {
+            theURL = 'missing.png';
+        }
+        collectionEntry.poster = encodeURIComponent(path.basename(theURL));
+    }
+
+    // Finds and downloads a poster for the provided entry
+    getPoster (entry)
     {
         var url;
         var ckey;
         var mTitle = entry.title;
+        var type = entry.type;
         if(entry.origTitle)
         {
             mTitle = entry.origTitle;
         }
-        ckey = getCacheID(entry,type);
+        ckey = getCacheID(entry,entry.type);
         if(entry.customCover)
         {
             url = entry.customCover;
@@ -401,11 +334,20 @@ var movieAPI = {
                 return cache.URLs[ckey];
             }
         }
+        // Remap type so that movieArt can handle it
+        if(type == 'movies')
+        {
+            type = 'movie';
+        }
+        else if(type == 'series')
+        {
+            type = 'tv';
+        }
         if(!helper.isValidCoverURL(url))
         {
-            if(!helper.isValidCoverURL(url) && meta && movieAPI.isValidOMDBField(meta.Poster) && entry.imdbID)
+            if(!helper.isValidCoverURL(url) && entry.imdbID && entry.poster)
             {
-                url = meta.Poster;
+                url = entry.Poster;
             }
             if(!helper.isValidCoverURL(url) && entry.year)
             {
@@ -445,9 +387,9 @@ var movieAPI = {
                         url = wait.for(movieArt,mTitle,null,null,type);
                     } catch(e) {}
                 }
-                if(!helper.isValidCoverURL(url) && meta && movieAPI.isValidOMDBField(meta.Poster))
+                if(!helper.isValidCoverURL(url) && entry.poster)
                 {
-                    url = meta.Poster;
+                    url = entry.poster;
                 }
             }
         }
@@ -455,11 +397,201 @@ var movieAPI = {
         {
             return url;
         }
-    },
-    /*
-     * Handles downloading and validation of movie metadata
-     */
-    getMovieMeta: function (entry)
+    }
+
+    // Adds metadata to an entry
+    addMetadataTo(collectionEntry)
+    {
+        if(collectionEntry.title == null || !/\S/.test(collectionEntry.title))
+        {
+            this.warn('has no title entry - skipping it');
+            return;
+        }
+        if(collectionEntry.watched != null)
+        {
+            collectionEntry.watched      = helper.parseBool(collectionEntry.watched);
+        }
+
+        var meta = this.retrieveMetadataFor(collectionEntry);
+        if(meta != null)
+        {
+            if(this.isValidOMDBField(meta.imdbID))
+            {
+                collectionEntry.imdbID = meta.imdbID;
+            }
+            if(!collectionEntry.actors && this.isValidOMDBField(meta.Actors))
+            {
+                collectionEntry.actors = meta.Actors;
+            }
+            if(this.isValidOMDBField(meta.Metascore))
+            {
+                collectionEntry.metascore = meta.Metascore;
+            }
+            if(this.isValidOMDBField(meta.imdbRating))
+            {
+                collectionEntry.imdbRating = meta.imdbRating;
+                collectionEntry.imdbVotes  = meta.imdbVotes;
+            }
+            if(this.isValidOMDBField(meta.Plot))
+            {
+                collectionEntry.plot = meta.Plot;
+            }
+            if(this.isValidOMDBField(meta.Director))
+            {
+                collectionEntry.director = meta.Director;
+            }
+            if(this.isValidOMDBField(meta.Writer))
+            {
+                // Translators: used to translate substrings in the «writer» metadata
+                collectionEntry.writer = meta.Writer.replace(/screenplay/g,i18n.translate('screenplay'))
+                // Translators: used to translate substrings in the «writer» metadata
+                .replace(/(motion picture|movie)/g,i18n.translate('motion picture'))
+                // Translators: used to translate substrings in the «writer» metadata
+                .replace(/comic( book)?/g,i18n.translate('comic book'))
+                // Translators: used to translate substrings in the «writer» metadata
+                .replace(/story/g,i18n.translate('story'))
+                // Translators: used to translate substrings in the «writer» metadata
+                .replace(/novel/g,i18n.translate('novel'))
+                // Translators: used to translate substrings in the «writer» metadata
+                .replace(/characters/g,i18n.translate('characters'))
+                // Translators: used to translate substrings in the «writer» metadata
+                .replace(/book/g,i18n.translate('book'));
+            }
+            if (this._entry.autoGenre &&!collectionEntry.genre && this.isValidOMDBField(meta.Genre))
+            {
+                collectionEntry.genre = meta.Genre;
+            }
+            if(!collectionEntry.imdbID && this.isValidOMDBField(meta.imdbID))
+            {
+                collectionEntry.imdbID = meta.imdbID;
+            }
+            if(this.isValidOMDBField(meta.Runtime))
+            {
+                var runtime = meta.Runtime;
+                if (/ min/.test(runtime))
+                {
+                    runtime                    = runtime.replace(/\s+min/,'');
+                    collectionEntry.runtimeMin = runtime;
+                    var floating               = parseInt(runtime)/60;
+                    if(floating > 0)
+                    {
+                        var hours   = parseInt(floating);
+                        var minutes = parseInt((floating-hours)*60);
+                        if(hours > 0)
+                        {
+                            // Translators: Results in [number]h [number]min (ie. X hours and X minutes)
+                            runtime = util.format(i18n.translate('%dh %dmin'),hours,minutes);
+                        }
+                        else
+                        {
+                            // Translators: Results in [number]min (ie. X minutes)
+                            runtime = util.format(i18n.translate('%dmin'),minutes);
+                        }
+                    }
+                }
+                collectionEntry.runtime = runtime;
+            }
+            // This *will* get overridden by addPosterToItem(). It is used so that we can
+            // provide a poster URL hint to getPoster().
+            if(!collectionEntry.poster && this.isValidOMDBField(meta.Poster))
+            {
+                collectionEntry.poster = meta.Poster;
+            }
+        }
+        if(collectionEntry.genre)
+        {
+            this._meta.genres = this._meta.genres.concat(collectionEntry.genre.split(/,\s*/));
+        }
+        if(collectionEntry.format)
+        {
+            collectionEntry.format = collectionEntry.format.split(/,\s*/);
+            this._meta.formats = this._meta.formats.concat(collectionEntry.format);
+        }
+        if(collectionEntry.rating)
+        {
+            this._meta.enableNormalized   = true;
+            if(collectionEntry.rating > 6 || collectionEntry.rating < 1)
+            {
+                printv(1,'Unreasonable rating for "'.collectionEntry.title+'": '+collectionEntry.rating+' (should be 1-6)');
+            }
+            else
+            {
+                collectionEntry.normalizedRating = parseInt(collectionEntry.rating*16.7);
+                if(collectionEntry.imdbRating)
+                {
+                    var decimal = parseInt(collectionEntry.imdbRating*10);
+                    collectionEntry.normalizedRating = parseFloat(collectionEntry.normalizedRating+'.'+decimal);
+                }
+            }
+        }
+        else if(collectionEntry.imdbRating)
+        {
+            collectionEntry.normalizedRating = parseInt(collectionEntry.imdbRating*10);
+        }
+        else if(collectionEntry.metascore)
+        {
+            collectionEntry.normalizedRating = collectionEntry.metascore;
+            this._meta.enableNormalized   = true;
+        }
+        if(meta && !collectionEntry.year && this.isValidOMDBField(meta.Year))
+        {
+            collectionEntry.year = meta.Year;
+        }
+        if(collectionEntry.year)
+        {
+            collectionEntry.sortYear = parseInt(collectionEntry.year);
+        }
+        collectionEntry.normalizedTitle = helper.normalizeTitle( collectionEntry.origTitle ? collectionEntry.origTitle : collectionEntry.title );
+        // FIXME: This is ugly and really shouldn't be here. We should just have an array
+        // of included data and call some other method to clean up and then have that
+        // method decide if we actually want to clean or not.
+        if (!commander.includeDebug)
+        {
+            var includedData = {
+                year: true,
+                sortYear: true,
+                poster: true,
+                type: true,
+                bSource: true,
+                actors: true,
+                metascore: true,
+                imdbRating: true,
+                imdbVotes: true,
+                plot: true,
+                director: true,
+                writer: true,
+                genre: true,
+                runtime: true,
+                runtimeMin:true,
+                origTitle:true,
+                title: true,
+                seasons: true,
+                format: true,
+                rating: true,
+                note: true,
+                altTitle: true,
+                contentType:true,
+                disneyClassicNo: true,
+                imdbID: true,
+                watched: true,
+                added: true,
+                addedRaw: true,
+                normalizedTitle: true,
+                normalizedRating: true
+            };
+            for (var field in collectionEntry)
+            {
+                if (!includedData[field])
+                {
+                    delete collectionEntry[field];
+                }
+            }
+        }
+        helper.storeFieldBools(collectionEntry,this._meta);
+    }
+
+    // Fetches metadata from a source for an entry
+    retrieveMetadataFor(entry)
     {
         var ckey = getCacheID(entry);
         if (cache.meta[ckey])
@@ -480,14 +612,14 @@ var movieAPI = {
                 return cache.meta[ckey];
             }
         }
-        var data = movieAPI.fetchFromOMDB(entry);
+        var data = this.fetchFromOMDB(entry);
         if(data && data.Response == "False")
         {
             printv(3,'Could not retrieve data from OMDB on '+ (entry.origTitle ? entry.origTitle : entry.title) );
             cache.meta[ckey] = 'MISS';
             return;
         }
-        if ((entry.type == 'movie' && (!entry.year || parseInt(entry.year) == parseInt(data.Year)))|| (entry.type == 'tv' && data.Type == 'series' || parseInt(entry.year) == parseInt(data.Year)) || (entry.imdbID && data.imdbID == entry.imdbID) )
+        if ((entry.type == 'movies' && (!entry.year || parseInt(entry.year) == parseInt(data.Year)))|| (entry.type == 'series' || parseInt(entry.year) == parseInt(data.Year)) || (entry.imdbID && data.imdbID == entry.imdbID) )
         {
             printv(1,'Fetched meta info for '+entry.title);
             cache.meta[ckey] = data;
@@ -510,29 +642,18 @@ var movieAPI = {
             cache.meta[ckey] = 'MISS';
         }
         return;
-    },
-    /*
-     * Checks if a field from OMDB is valid (they can be undefined or the
-     * string 'N/A' if invalid)
-     */
-    isValidOMDBField: function (content)
-    {
-        if(content !== undefined && content !== 'N/A')
-        {
-            return true;
-        }
-        return false;
-    },
+    }
+
     /*
      * Downloads data from OMDB and attempts fuzzier searches if no data is
      * found
      */
-    fetchFromOMDB: function (entry)
+    fetchFromOMDB(entry)
     {
         var data;
         try
         {
-            data = wait.for(movieAPI.performOMDBRequest,entry);
+            data = wait.for(this.performOMDBRequest,entry);
         }
         catch(e)
         {
@@ -545,7 +666,7 @@ var movieAPI = {
         if(entry.imdbID)
         {
             // Try a request without imdbID
-            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, year: entry.year, type: entry.type });
+            data = wait.for(this.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, year: entry.year, type: entry.type });
         }
         if(data && data.Response != "False")
         {
@@ -554,7 +675,7 @@ var movieAPI = {
         if(entry.origTitle)
         {
             // Try a request without origTitle
-            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.title, year: entry.year, type: entry.type });
+            data = wait.for(this.performOMDBRequest,{ title: entry.title, year: entry.year, type: entry.type });
         }
         if(data && data.Response != "False")
         {
@@ -562,7 +683,7 @@ var movieAPI = {
         }
         if(entry.altTitle)
         {
-            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.altTitle, type: entry.type });
+            data = wait.for(this.performOMDBRequest,{ title: entry.altTitle, type: entry.type });
         }
         if(data && data.Response != "False")
         {
@@ -570,7 +691,7 @@ var movieAPI = {
         }
         if(entry.year)
         {
-            data = wait.for(movieAPI.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, type: entry.type });
+            data = wait.for(this.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, type: entry.type });
         }
         if(data && data.Response != "False")
         {
@@ -580,21 +701,22 @@ var movieAPI = {
         {
             var entryWithoutType = _.cloneDeep(entry);
             delete entryWithoutType.type;
-            return movieAPI.fetchFromOMDB(entryWithoutType);
+            return this.fetchFromOMDB(entryWithoutType);
         }
 
         var fixedTitle = helper.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
         if(fixedTitle)
         {
-            data = wait.for(movieAPI.performOMDBRequest,{ title: fixedTitle, year: entry.year });
+            data = wait.for(this.performOMDBRequest,{ title: fixedTitle, year: entry.year });
         }
 
         return data;
-    },
+    }
+
     /*
      * Constructs and submits a single OMDB request
      */
-    performOMDBRequest: function (titleData,cb)
+    performOMDBRequest(titleData,cb)
     {
         var url          = 'http://www.omdbapi.com',
             requestQuery = {t: titleData.title, plot: 'short', r: 'json'};
@@ -613,7 +735,7 @@ var movieAPI = {
             {
                 requestQuery.y = parseInt(titleData.year);
             }
-            if(titleData.type == 'tv')
+            if(titleData.type == 'series')
             {
                 requestQuery.type = 'series';
             }
@@ -649,168 +771,134 @@ var movieAPI = {
                 cb(err,res);
             }
         );
-    },
-    /*
-     * Handles a single collection, loading each file, preparing the metadata
-     * and returning the final constructed dataset for the collection
-     */
-    performDatabaseConstruction: function (name,groupConf,groupNo)
-    {
-        var groupData = [],
-        groupMeta = {
-            sourceToNameMap: {},
-            genres: [],
-            formats: [],
-            fields: {},
-            type: groupConf.type,
-            hasDisneySort: false,
-            hasAddedSort: false,
-            enableNormalized: false
-        };
-        for(var entry of groupConf.sources)
-        {
-            try
-            {
-                printv(3,'  Interpreting file "'+entry.file+'"');
-                var result;
-                if(groupConf.type == 'movies')
-                {
-                    result = movieAPI.handleMovieFile(entry.file,entry);
-                }
-                else if(groupConf.type == 'series')
-                {
-                    result = movieAPI.handleSeriesFile(entry.file,entry);
-                }
-                groupData                           = groupData.concat(result.data);
-                entry.file                          = path.basename(entry.file);
-                groupMeta.sourceToNameMap[entry.file] = entry.name;
-                _.merge(groupMeta.fields,result.meta.fields);
-                groupMeta.hasDisneySort = entry.disneySort || groupMeta.hasDisneySort;
-                groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
-                if(result.meta.formats)
-                {
-                    groupMeta.formats = groupMeta.formats.concat(result.meta.formats);
-                }
-                if(result.meta.enableNormalized)
-                {
-                    groupMeta.enableNormalized = true;
-                }
-            }
-            catch(e)
-            {
-                if(e.stack)
-                {
-                    printv(1,'Error while processing '+entry.file+': '+e.stack);
-                }
-                else
-                {
-                    printv(1,'Error while processing '+entry.file+': '+e);
-                }
-            }
-        }
-
-        groupMeta.genres.sort();
-        groupMeta.genres = _.uniq(groupMeta.genres,true);
-
-        if(groupMeta.formats)
-        {
-            groupMeta.formats.sort();
-            groupMeta.formats = _.uniq(groupMeta.formats,true);
-        }
-
-        return { name: name, data: movieAPI.sortAndFinalize(groupData), meta: groupMeta, groupNo: groupNo };
     }
-};
 
-/*
- * This is the API that generates the collection with metadata and posters for
- * a games collection
- */
-var gamesAPI = {
-    steamAPIErrLimitReached: false,
     /*
-     * Generic handler for the file source. Parses and retrieves metadata,
-     * then hands the result back to the caller
+     * Checks if a field from OMDB is valid (they can be undefined or the
+     * string 'N/A' if invalid)
      */
-    handleGamesFile: function (csvFile,config)
+    isValidOMDBField (content)
     {
-        var result = [],
-            bSource = csvFile,
-            resultMeta = {
-                genres: [],
-                platforms: [],
-                fields: {}
-            };
-        var output = helper.loadCollectionFile(csvFile);
-
-        for(var collectionEntryI in output)
+        if(content !== undefined && content !== 'N/A')
         {
-            var data = output[collectionEntryI];
-            data.bSource = path.basename(csvFile);
-            this.genericGameHandler(data,resultMeta,data);
-            result.push(data);
+            return true;
         }
-        return { meta: resultMeta, data: result, bSource: path.basename(csvFile) };
-    },
-    /*
-     * Generic handler for the steam source. Requests the list, retrieves metadata
-     * from Steam and TheGamesDB, then hands the result back to the caller
-     */
-    generateSteamListFor: function(user)
+        return false;
+    }
+}
+
+class gameCollection extends collectionType
+{
+    // Parent constructor will call initialize for us after it has done the construction
+    initialize ()
     {
-        var result = [],
-            games = this.retrieveGamesFromSteam(user),
-            bSource = 'steam/'+user,
-            resultMeta = {
-                genres: [],
-                fields: {},
-                platforms: []
-            };
-        this.retrieveSteamMetadata(games,user);
-        for(var game of games)
+        this._steamAPIErrLimitReached = false;
+        Object.assign(this._meta,
         {
-            this.doSteamRemap(game);
-            if (
-                // Ignore DLC and season passes
-                /\s(DLC|[Ss]eason\s+[Pp]ass)/.test(game.title) ||
-                // Other DLC matches
-                /\s((Map|Texture)\s*Pack)(\s*\d*)?$/.test(game.title) ||
-                // Ignore games returned from Steam with completely wrong
-                // names
-                /^\s*(Limited\s*Edition)\s*$/i.test(game.title)
-               )
+            genres: [],
+            platforms: [],
+            fields: {}
+        });
+    }
+
+    // Overrides the loadData() method, because games have a special "steam" source
+    loadData(source)
+    {
+        if(source.source && source.source == 'steam')
+        {
+            return this.loadSteamData(source);
+        }
+        else
+        {
+            return this.loadCSVData(source);
+        }
+    }
+
+    // Loads Steam data
+    loadSteamData(source)
+    {
+        var user = source.user,
+            ckey = 'steam//games//'+user,
+            now  = Math.floor(Date.now() / 1000);
+        if(cache.arbitrary[ckey])
+        {
+
+            var lastUpdated = cache.arbitrary[ckey+'//_lastUpdated'];
+            if(lastUpdated !== undefined && lastUpdated > (now - (82800*7) ) && !commander.forceSteamUpdate)
+            {
+                printv(5,'Using cached Steam data for '+user);
+                return cache.arbitrary[ckey];
+            }
+            else
+            {
+                printv(2,'Updating Steam data for '+user);
+            }
+        }
+        var data = wait.for(steam.gamesFromProfile,user),
+            resultData = [];
+        for(var entry of data)
+        {
+			if (
+				// Ignore DLC and season passes
+				/\s(DLC|[Ss]eason\s+[Pp]ass)/.test(entry.title) ||
+				// Other DLC matches
+				/\s((Map|Texture)\s*Pack)(\s*\d*)?$/.test(entry.title) ||
+				// Ignore games returned from Steam with completely wrong
+				// names
+				/^\s*(Limited\s*Edition)\s*$/i.test(entry.title)
+			)
             {
                 continue;
             }
-            var data = {};
-            data.title    = game.title;
-            data.steamID  = game.appid;
-            data.format   = 'Steam';
-            data.bSource  = bSource;
-            this.genericGameHandler(data,resultMeta,game);
-            result.push(data);
+
+            entry.steamUser = user;
+            entry.title    = entry.name;
+            entry.steamID  = entry.appid;
+            entry.format   = 'Steam';
+            resultData.push(entry);
         }
-        return { meta: resultMeta, data: result, bSource: bSource  };
-    },
+        cache.arbitrary[ckey+'//_lastUpdated'] = now;
+        cache.arbitrary[ckey] = resultData;
+        return resultData;
+    }
+
     /*
-     * Remaps some Steam keys to the names that we use
+     * Fetches some deep keys if they are available, or undefined if it
+     * can not be found. Also returns data in a specified format
      */
-    doSteamRemap: function(steamObj)
+    deepFetch(type, source, rabbitHole)
     {
-        steamObj.title = steamObj.name;
-    },
+        for(var entry of rabbitHole)
+        {
+            if(source !== null && source[entry])
+            {
+                source = source[entry];
+            }
+            else
+            {
+                source = null;
+                break;
+            }
+        }
+        if(type == 'array')
+        {
+            return this.mustBeArray(source);
+        }
+        throw('Unhandled type: '+type);
+    }
+
     /*
      * Handles metadata preparation and mapping for *any* game
      */
-    genericGameHandler: function (data,resultMeta,rawData)
+    addMetadataTo(collItem)
     {
-        var meta = this.getGameMetadata(data);
+        var meta = this.getGameMetadata(collItem);
         if(meta)
         {
             var genres = [];
-            if(data.genres)
+            if(collItem.genres)
             {
-                genres = data.genres.split(/,s\*/);
+                genres = collItem.genres.split(/,s\*/);
             }
             else if(meta.steamGenres)
             {
@@ -821,71 +909,167 @@ var gamesAPI = {
             }
             else
             {
-                genres = gamesAPI.deepFetch('array',meta,['Genres','genre']);
+                genres = this.deepFetch('array',meta,['Genres','genre']);
             }
-            if (data.year)
+            if (collItem.year)
             {
-                data.sortYear = parseInt(data.year);
+                collItem.sortYear = parseInt(collItem.year);
             }
             else if(meta.ReleaseDate)
             {
-                data.year = meta.ReleaseDate.split('/')[2];
-                data.sortYear = data.year;
+                collItem.year = meta.ReleaseDate.split('/')[2];
+                collItem.sortYear = collItem.year;
             }
             else if(meta.steamRelDate)
             {
-                data.Year = meta.steamRelDate.date.replace(/^\S+\s+\S+\s+/,'');
-                data.sortYear = data.year;
+                collItem.Year = meta.steamRelDate.date.replace(/^\S+\s+\S+\s+/,'');
+                collItem.sortYear = collItem.year;
             }
-            data.genre        = genres.join(', ');
+            collItem.genre        = genres.join(', ');
             if(meta.steamOverview)
             {
-                data.plot         = gamesAPI.plotCleanAndLimit(data.steamOverview);
-                if(!data.plot || data.plot.length === 0 || !/\S/.test(data.plot))
+                collItem.plot         = this.plotCleanAndLimit(collItem.steamOverview);
+                if(!collItem.plot || collItem.plot.length === 0 || !/\S/.test(collItem.plot))
                 {
-                    data.plot = null;
+                    collItem.plot = null;
                 }
             }
-            if (!data.platform && meta.steamPlatforms)
+            if (!collItem.platform && meta.steamPlatforms)
             {
-                data.platform = meta.steamPlatforms;
+                collItem.platform = meta.steamPlatforms;
             }
-            if (!data.plot)
+            if (!collItem.plot)
             {
-                data.plot         = gamesAPI.plotCleanAndLimit(meta.Overview);
+                collItem.plot         = this.plotCleanAndLimit(meta.Overview);
             }
-            if (!data.developer)
+            if (!collItem.developer)
             {
-                data.developer    = this.mustBeString(meta.Developer);
+                collItem.developer    = this.mustBeString(meta.Developer);
             }
-            data.tgdbID       = meta.id;
+            collItem.tgdbID       = meta.id;
             if(meta.metacritic != null && meta.metacritic.score != null)
             {
-                data.metascore = meta.metacritic.score;
+                collItem.metascore = meta.metacritic.score;
             }
-            resultMeta.platforms = resultMeta.platforms.concat(data.platform);
-            resultMeta.genres = resultMeta.genres.concat(genres);
+            this._meta.platforms = this._meta.platforms.concat(collItem.platform);
+            this._meta.genres = this._meta.genres.concat(genres);
         }
-        if (!_.isArray(data.platform))
+        if (!_.isArray(collItem.platform))
         {
-            data.platform = [ this.doPlatformRemap(data.platform,true) ];
+            collItem.platform = [ this.doPlatformRemap(collItem.platform,true) ];
         }
-        data.poster   = encodeURIComponent(gamesAPI.getPoster(meta,data,rawData));
-        data.type     = 'game';
-        helper.storeFieldBools(data,resultMeta);
-        data.normalizedTitle = this.performNameReplacements(helper.normalizeTitle( data.origTitle ? data.origTitle : data.title ));
-    },
+        collItem.poster   = this.getPosterURLFromData(collItem,meta);
+        collItem.type     = 'game';
+        helper.storeFieldBools(collItem,this._meta);
+        collItem.normalizedTitle = this.performNameReplacements(helper.normalizeTitle( collItem.origTitle ? collItem.origTitle : collItem.title ));
+    }
+
+    // Adds a poster to a collection entry
+    addPosterToItem (collectionEntry)
+    {
+        var theURL;
+        if(collectionEntry.poster)
+        {
+            var ckey = getCacheID(collectionEntry,'game');
+            if (helper.downloadAndCacheURL(collectionEntry.poster,ckey,collectionEntry))
+            {
+                theURL = collectionEntry.poster;
+            }
+        }
+        else
+        {
+            theURL = 'missing.png';
+        }
+        collectionEntry.poster = encodeURIComponent(path.basename(theURL));
+    }
+
+    getPosterURLFromData(collectionItem,metadata)
+    {
+        try
+        {
+            var image;
+            if(metadata.GameTitle)
+            {
+                metadata.title = metadata.GameTitle;
+            }
+            else if(collectionItem.title)
+            {
+                metadata.title = collectionItem.title;
+            }
+            if(metadata && metadata.Images && metadata.Images.boxart)
+            {
+                var iter = this.mustBeArray(metadata.Images.boxart);
+                for (var img of iter)
+                {
+                    image = img['$t']; // jshint ignore:line
+                    if(img.side == 'front')
+                    {
+                        break;
+                    }
+                }
+                if(image && metadata.baseImgUrl)
+                {
+                    image = metadata.baseImgUrl+image;
+                }
+            }
+            else if(metadata && metadata.header_image)
+            {
+                image = metadata.header_image;
+            }
+            else if(collectionItem && collectionItem.appid)
+            {
+                image = collectionItem.logo;
+            }
+            return image;
+        }
+        catch (e)
+        {
+            if(e.stack)
+            {
+                printv(1,'Error while finding poster for '+metadata.title+': '+e.stack);
+            }
+            else
+            {
+                printv(1,'Error while finding poster for '+metadata.title+': '+e);
+            }
+        }
+        return;
+    }
+
+    // We override finalizeCollection so that we can deduplicate our list
+    // Parent's finalizeCollection is still used as well
+    finalizeCollection(data)
+    {
+        var seen = {};
+        var finalEntries = [];
+        // Deduplicate
+        for (var collectionEntry of data)
+        {
+            var ckey = getCacheID(collectionEntry);
+            if(seen[ckey] === undefined)
+            {
+                seen[ckey] = collectionEntry;
+                finalEntries.push(collectionEntry);
+            }
+            else
+            {
+                seen[ckey].bSource += ', '+collectionEntry.bSource;
+            }
+        }
+        return super.finalizeCollection(finalEntries);
+    }
+
     /*
-     * Downloads steam metadata for all games retrieved from a steam user
+     * Downloads metadata about games from Steam
      */
-    retrieveSteamMetadata: function (games,name)
+    retrieveSteamMetadata(games,name)
     {
         var apiLimiter = 0,
             errLimit   = 0,
             steamSleep = 30,
             messagePrinted = false,
             downloaded = 0;
-        if(this.steamAPIErrLimitReached)
+        if(this._steamAPIErrLimitReached)
         {
             return;
         }
@@ -933,7 +1117,7 @@ var gamesAPI = {
                         printv(1,'Aborting Steam retrieval for now, error limit exceeded.');
                         printv(1,'This can happen from time to time due to request limits on Steam.');
                         printv(1,'Try again a bit later.');
-                        this.steamAPIErrLimitReached = true;
+                        this._steamAPIErrLimitReached = true;
                         return;
                     }
                     printv(1,'Sleeping '+steamSleep+' seconds to allow the Steam API limits to reset [retry '+errLimit+' of 5]');
@@ -953,36 +1137,24 @@ var gamesAPI = {
         {
             printv(2,'Steam fetching done for '+name);
         }
-    },
+    }
+
     /*
-     * Fetches some deep keys if they are available, or undefined if it
-     * can not be found. Also returns data in a specified format
+     * Returns Steam metadata if it exists
      */
-    deepFetch: function (type, source, rabbitHole)
+    getGameInfoFromSteam(game)
     {
-        for(var entry of rabbitHole)
+        if(cache.steamMeta[game.steamID])
         {
-            if(source !== null && source[entry])
-            {
-                source = source[entry];
-            }
-            else
-            {
-                source = null;
-                break;
-            }
+            return cache.steamMeta[game.steamID];
         }
-        if(type == 'array')
-        {
-            return this.mustBeArray(source);
-        }
-        throw('Unhandled type: '+type);
-    },
+    }
+
     /*
      * Remaps game platform names, either to pretty versions or to the versions
      * used by TheGamesDB
      */
-    doPlatformRemap: function(platform,pretty)
+    doPlatformRemap(platform,pretty)
     {
         var platforms = {
             'playstation 2':'Sony Playstation 2',
@@ -1040,6 +1212,11 @@ var gamesAPI = {
         }
         if(platform != null)
         {
+            if(typeof(platform) != 'string')
+            {
+                console.trace('doPlatformRemap: got non-string non-null platform: '+typeof(platform)+' (returning null in an attempt to recover)');
+                return null;
+            }
             var platLower = platform.toLowerCase();
             if(platforms[platLower])
             {
@@ -1047,79 +1224,12 @@ var gamesAPI = {
             }
         }
         return platform;
-    },
-    /*
-     * Cleans up (by parsing html entities) and limits the length of a plot
-     */
-    plotCleanAndLimit: function (plot)
-    {
-        if(plot !== undefined)
-        {
-            // The double decode here is intentional, Steam's data is oddly
-            // double-encoded
-            plot = he.decode(he.decode(plot.replace(/<[uo]l[^>]+>/g,"\n- ").replace(/([^\.\!\,])<\/[uo]l>/g,'$1.').replace(/<br\s*\/?>/g,"\n").replace(/<[^>]+>/g,'')));
-            if(plot.length >= 200)
-            {
-                plot = plot.replace(/\n\n/,'. ');
-                var split = plot.split(" ");
-                plot = '';
-                var currentSentence = [];
-                for(var comp of split)
-                {
-                    currentSentence.push(comp);
-                    if (/[\?\!\.]$/.test(comp))
-                    {
-                        if(plot.length > 0)
-                        {
-                            plot += ' ';
-                        }
-                        plot += currentSentence.join(' ');
-                        if(plot.length > 200)
-                        {
-                            break;
-                        }
-                        currentSentence = [];
-                    }
-                }
-                return plot+' [...]';
-            }
-        }
-        return plot;
-    },
-    /*
-     * Actually downloads (or reads from cache) the game list
-     * from Steam using the happy steam scraper
-     */
-    retrieveGamesFromSteam: function (user)
-    {
-        var ckey = 'steam//games//'+user,
-            now = Math.floor(Date.now() / 1000);
-        if(cache.arbitrary[ckey])
-        {
+    }
 
-            var lastUpdated = cache.arbitrary[ckey+'//_lastUpdated'];
-            if(lastUpdated !== undefined && lastUpdated > (now - (82800*7) ) && !commander.forceSteamUpdate)
-            {
-                return cache.arbitrary[ckey];
-            }
-            else
-            {
-                printv(2,'Updating Steam data for '+user);
-            }
-        }
-        var data = wait.for(steam.gamesFromProfile,user);
-        for(var entry of data)
-        {
-            entry.steamUser = user;
-        }
-        cache.arbitrary[ckey+'//_lastUpdated'] = now;
-        cache.arbitrary[ckey] = data;
-        return data;
-    },
     /*
      * Downloads and merges metadata from TheGamesDB and SteamDB
      */
-    getGameMetadata: function (game)
+    getGameMetadata(game)
     {
         var baseMeta = this.getGameInfoFromTGD(game);
         if(game.steamID)
@@ -1171,24 +1281,54 @@ var gamesAPI = {
             }
         }
         return baseMeta;
-    },
+    }
+
     /*
-     * Returns Steam metadata if it exists
+     * Cleans up (by parsing html entities) and limits the length of a plot
      */
-    getGameInfoFromSteam: function(game)
+    plotCleanAndLimit (plot)
     {
-        if(cache.steamMeta[game.steamID])
+        if(plot !== undefined)
         {
-            return cache.steamMeta[game.steamID];
+            // The double decode here is intentional, Steam's data is oddly
+            // double-encoded
+            plot = he.decode(he.decode(plot.replace(/<[uo]l[^>]+>/g,"\n- ").replace(/([^\.\!\,])<\/[uo]l>/g,'$1.').replace(/<br\s*\/?>/g,"\n").replace(/<[^>]+>/g,'')));
+            if(plot.length >= 200)
+            {
+                plot = plot.replace(/\n\n/,'. ');
+                var split = plot.split(" ");
+                plot = '';
+                var currentSentence = [];
+                for(var comp of split)
+                {
+                    currentSentence.push(comp);
+                    if (/[\?\!\.]$/.test(comp))
+                    {
+                        if(plot.length > 0)
+                        {
+                            plot += ' ';
+                        }
+                        plot += currentSentence.join(' ');
+                        if(plot.length > 200)
+                        {
+                            break;
+                        }
+                        currentSentence = [];
+                    }
+                }
+                return plot+' [...]';
+            }
         }
-    },
+        return plot;
+    }
+
     /*
      * Cleans up a game name, removing various markers that can prevent
      * us finding it in the metadata database, like "GOTY", "Remastered",
      * "Premium", "HD", "Director's cut", "early access", "for [platform]"
      * and so on. This gets triggered if retrieval of the full name fails.
      */
-    performNameReplacements: function (on,doAll,excludeGeneric)
+    performNameReplacements(on,doAll,excludeGeneric)
     {
         var orig = on;
         on = on.replace(/([:-]?\s*)\(?((the|steam|new|old)\s+)?(Black|Steam|Linux|Windows|Mac(\s*OS\s*X?)?|EU|PAL|NTSC|US|PS\s*Vita|Special|Collector[`’']?s?|Remastered|Game of the year|Complete|Enhanced|Ultimate|Gold|Extreme|Epic|Uber|Deluxe|Premium|HD|GOTY|Developer|Director|Final|Special|Ultimate|Extended|Anniversary)(\s+\S+)?\s+(journey|edition|version|cut|collection)\)?\s*(upgrade)?/ig,'')
@@ -1234,12 +1374,13 @@ var gamesAPI = {
             printv(8,'performNameReplacements: Converted "'+orig+'" to "'+on+'"');
         }
         return on.replace(/\s+/g,' ');
-    },
+    }
+
     /*
      * Performs requests from TGD, getting fuzzier until it either finds an
      * entry or fails
      */
-    getGameInfoFromTGD: function(game)
+    getGameInfoFromTGD(game)
     {
         var ckey = getCacheID(game,'game', { ignoreSteam: true });
         if(cache.gameMeta[ckey])
@@ -1327,13 +1468,14 @@ var gamesAPI = {
             printv(1,'Could not fetch metadata for '+ game.title);
         }
         return data;
-    },
+    }
+
     /*
      * Download data from TGD, attempting to match it with the provided game
      * data. Entries are then scored, and the best entry (if any) gets
      * returned.
      */
-    fetchDataFromTGD: function(game,ckey)
+    fetchDataFromTGD(game,ckey)
     {
         var search = this.TGD_search(game.title),
             meta;
@@ -1342,7 +1484,7 @@ var gamesAPI = {
             cache.gameMeta[ckey] = 'MISS';
             return;
         }
-        var platform = gamesAPI.doPlatformRemap(game.platform);
+        var platform = this.doPlatformRemap(game.platform);
         if(game.steamID)
         {
             platform = 'PC';
@@ -1368,7 +1510,7 @@ var gamesAPI = {
         {
             var points = 0;
 
-            if(platform && gamesAPI.doPlatformRemap(response.Platform).toLowerCase() != platform)
+            if(platform && this.doPlatformRemap(response.Platform).toLowerCase() != platform)
             {
                 response.score = 0;
                 continue;
@@ -1488,11 +1630,12 @@ var gamesAPI = {
         }
         cache.gameMeta[ckey] = 'MISS';
         return;
-    },
+    }
+
     /*
      * Retrieves a complete entry from TGD, by its TGD id number
      */
-    TGD_infoByID: function(id)
+    TGD_infoByID(id)
     {
         var result = this.TGD_request('GetGame',{ id: id});
         if(result && result.Data && result.Data.Game)
@@ -1501,11 +1644,12 @@ var gamesAPI = {
             return result.Data.Game;
         }
         return;
-    },
+    }
+
     /*
      * Performs a TGD search
      */
-    TGD_search: function(game)
+    TGD_search(game)
     {
         var result = this.TGD_request('GetGamesList',{ name: game });
         if(result && result.Data && result.Data.Game)
@@ -1513,11 +1657,12 @@ var gamesAPI = {
             return this.mustBeArray(result.Data.Game);
         }
         return;
-    },
+    }
+
     /*
      * Constracts a request for GD
      */
-    TGD_request: function(call,parameters)
+    TGD_request(call,parameters)
     {
         var rqURL = 'http://thegamesdb.net/api/'+call+'.php?',
             finalParams = [],
@@ -1529,12 +1674,15 @@ var gamesAPI = {
         rqURL += finalParams.join('&');
         result = this.XMLtoJSONRequest(rqURL);
         return result;
-    },
+    }
+
     /*
      * Performs a HTTP request that returns XML and then converts it to a
      * JSON-style object.
+     *
+     * FIXME: This should be moved to the parent class
      */
-    XMLtoJSONRequest: function(url)
+    XMLtoJSONRequest(url)
     {
         if(runtimeCache[url])
         {
@@ -1562,145 +1710,28 @@ var gamesAPI = {
         var result = JSON.parse(data);
         runtimeCache[url] = _.clone(result,true);
         return result;
-    },
-    /*
-     * Performs final sorting and deduplication of a games list and adds the id
-     * numbers
-     */
-    sortAndFinalize: function (entries,config)
-    {
-        var seen = {};
-        var finalEntries = [];
-        // Deduplicate
-        for (var collectionEntry of entries)
-        {
-            var ckey = getCacheID(collectionEntry);
-            if(seen[ckey] === undefined)
-            {
-                seen[ckey] = collectionEntry;
-                finalEntries.push(collectionEntry);
-            }
-            else
-            {
-                seen[ckey].bSource += ', '+collectionEntry.bSource;
-            }
-        }
-        // Sort
-        if(config.defaultSort === undefined || config.defaultSort !== 'year')
-        {
-            finalEntries.sort(function(a,b) {
-                    return a.title.localeCompare(b.title);
-            });
-        }
-        else
-        {
-            finalEntries.sort(function(a,b) {
-                    if(a.year && b.year && a.year != b.year)
-                    {
-                        return b.year - a.year;
-                    }
-                    if(a.year && !b.year)
-                    {
-                        return -1;
-                    }
-                    if (!a.year && b.year)
-                    {
-                        return 1;
-                    }
-                    return a.title.localeCompare(b.title);
-            });
-        }
-        // Generate ID numbers
-        for (var collectionEntryI in finalEntries)
-        {
-            var collEntry = finalEntries[collectionEntryI];
-            collEntry.id  = collectionEntryI;
-        }
-        return finalEntries;
-    },
-    /*
-     * Retrieves a poster for a game, either from TheGamesDB or Steam.
-     *
-     * TODO: Support custom posters
-     */
-    getPoster: function(entry,gameEntry,rawEntry)
-    {
-        try
-        {
-            if(entry == null)
-            {
-                entry = {};
-            }
-            var image;
-            if(entry.GameTitle)
-            {
-                entry.title = entry.GameTitle;
-            }
-            else if(gameEntry.title)
-            {
-                entry.title = gameEntry.title;
-            }
-            var ckey = getCacheID(entry,'game');
-            if(entry && entry.Images && entry.Images.boxart)
-            {
-                var iter = this.mustBeArray(entry.Images.boxart);
-                for (var img of iter)
-                {
-                    image = img['$t']; // jshint ignore:line
-                    if(img.side == 'front')
-                    {
-                        break;
-                    }
-                }
-                if(image && entry.baseImgUrl)
-                {
-                    image = entry.baseImgUrl+image;
-                }
-            }
-            else if(entry && entry.header_image)
-            {
-                image = entry.header_image;
-            }
-            else if(rawEntry && rawEntry.appid)
-            {
-                image = gameEntry.logo;
-            }
-            if(image)
-            {
-                if (helper.downloadAndCacheURL(image,ckey,entry))
-                {
-                    return path.basename(image);
-                }
-            }
-        }
-        catch (e)
-        {
-            if(e.stack)
-            {
-                printv(1,'Error while finding poster for '+entry.title+': '+e.stack);
-            }
-            else
-            {
-                printv(1,'Error while finding poster for '+entry.title+': '+e);
-            }
-        }
-        return 'missing.png';
-    },
+    }
+
     /*
      * Convers thing into an array if it isn't already
+     *
+     * FIXME: This should be moved to the parent class
      */
-    mustBeArray: function (thing)
+    mustBeArray(thing)
     {
         if (!_.isArray(thing))
         {
             return [ thing ];
         }
         return thing;
-    },
+    }
+
     /*
      * Converts thing to a string if it isn't already
+     *
+     * FIXME: This should be moved to the parent class
      */
-    mustBeString: function(thing)
+    mustBeString(thing)
     {
         if(thing === undefined)
         {
@@ -1719,75 +1750,8 @@ var gamesAPI = {
             throw('Unable to ensure that "'+thing+'" is a string');
         }
         return thing;
-    },
-    /*
-     * Handles a single collection, loading each file and requesting each steam
-     * user, preparing the metadata and returning the final constructed dataset
-     * for the collection
-     */
-    performDatabaseConstruction: function (name,groupConf,groupNo)
-    {
-        var groupData = [],
-        groupMeta = {
-            sourceToNameMap: {},
-            genres: [],
-            platforms: [],
-            fields: {},
-            type: groupConf.type
-        };
-        for(var entry of groupConf.sources)
-        {
-            try
-            {
-                var result;
-                if(entry.source == 'steam')
-                {
-                    printv(3,'  Generating Steam profile for "'+entry.user+'"');
-                    result = gamesAPI.generateSteamListFor(entry.user);
-                }
-                else if(entry.file)
-                {
-                    printv(3,'  Interpreting file "'+entry.file+'"');
-                    result = gamesAPI.handleGamesFile(entry.file);
-                    entry.file = path.basename(entry.file);
-                }
-                else
-                {
-                    throw('Unhandled source: '+entry.source);
-                }
-                groupMeta.sourceToNameMap[result.bSource] = entry.name;
-                groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
-                groupMeta.platforms = groupMeta.platforms.concat(result.meta.platforms);
-                _.merge(groupMeta.fields,result.meta.fields);
-                groupData = groupData.concat(result.data);
-                entry.bSource = result.bSource;
-            }
-            catch(e)
-            {
-                var wasProcessing = entry.file ? entry.file : entry.source;
-                if(e.stack)
-                {
-                    printv(1,'Error while processing '+wasProcessing+': '+e.stack);
-                }
-                else
-                {
-                    printv(1,'Error while processing '+wasProcessing+': '+e);
-                }
-            }
-        }
-
-        groupMeta.genres.sort();
-        groupMeta.genres = _.filter( _.uniq(groupMeta.genres,true), function (genre) { return genre != null; });
-        for(var remapI in groupMeta.platforms)
-        {
-            groupMeta.platforms[remapI] = this.doPlatformRemap(groupMeta.platforms[remapI],true);
-        }
-        groupMeta.platforms.sort();
-        groupMeta.platforms = _.filter( _.uniq(groupMeta.platforms,true), function (platform) { return platform != null; });
-
-        return { name: name, data: gamesAPI.sortAndFinalize(groupData,groupConf), meta: groupMeta, groupNo: groupNo };
     }
-};
+}
 
 /*
  * Various helper functions for the rest of the program
@@ -2209,21 +2173,23 @@ var helper = {
     /*
      * Load a CSV collection file
      */
-    loadCollectionFile: function(path)
+    loadCollectionFile: function(collPath)
     {
-        var input  = fs.readFileSync(helper.resolveOutPath(path),{ encoding: 'utf-8'} );
+        var input  = fs.readFileSync(helper.resolveOutPath(collPath),{ encoding: 'utf-8'} );
         var CSV = this.parseCSV(input);
+        var baseF = path.basename(collPath);
         var config = helper.getConfig();
         var blameData;
         if(config.enableAutoAdded !== false)
         {
-            blameData = this.loadGitBlame(path);
+            blameData = this.loadGitBlame(collPath);
         }
         for(var i = 0; i < CSV.length; i++)
         {
             var entry = CSV[i];
             helper.remapCSVFields(entry);
             helper.handleGenericFields(entry);
+            entry.bSource = baseF;
             if (blameData != null && entry.added === 0)
             {
                 var blameLine = i-1;
@@ -2334,11 +2300,13 @@ var core = {
             var result;
             if(groupConf.type == 'series' || groupConf.type == 'movies')
             {
-                result = movieAPI.performDatabaseConstruction(name,groupConf,groupNo);
+                var handler = new movieCollection(groupConf,name,groupNo);
+                result = handler.generateDatastructure();
             }
             else if(groupConf.type == 'games')
             {
-                result = gamesAPI.performDatabaseConstruction(name,groupConf,groupNo);
+                var handler = new gameCollection(groupConf,name,groupNo);
+                result = handler.generateDatastructure();
             }
             else
             {
@@ -2844,7 +2812,7 @@ function getCacheID (entry,type,opts)
         ckey += '//'+entry.altTitle;
     }
     ckey += '//'+entry.year;
-    if(type == 'tv')
+    if(type == 'series')
     {
         ckey += 'tvserie';
     }
@@ -2950,6 +2918,7 @@ function main()
     }
     else if(commander.steamDump)
     {
+        throw('FIXME');
         core.loadCache();
         var list = gamesAPI.generateSteamListFor(commander.steamDump);
         core.writeCache();
