@@ -1147,6 +1147,10 @@ class gameCollection extends collectionType
     {
         try
         {
+            if(metadata === undefined)
+            {
+                metadata = {};
+            }
             var image;
             if(metadata.GameTitle)
             {
