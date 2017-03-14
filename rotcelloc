@@ -109,6 +109,9 @@ class rotcellocCache
         // been changed since the last time we wrote it to disk.
         this._writesSinceFlush = 0;
 
+        // Used for *all* access bumps during this objects lifetime
+        this._objectLifetimeID = Math.floor(Date.now() / 1000);
+
         // Load and initialize _persistCache
         if(fs.existsSync(helper.resolveOutPath('.cache.json')))
         {
@@ -139,6 +142,10 @@ class rotcellocCache
         {
             this._persistCache.arbitrary = {};
         }
+        if (!this._persistCache._meta)
+        {
+            this._persistCache._meta = {};
+        }
     }
 
     get (cacheType,ckey)
@@ -147,6 +154,7 @@ class rotcellocCache
         {
             throw('Attempt to get() from unknown cache type: '+cacheType);
         }
+        this.bumpAccessTime(cacheType,ckey);
         return this._persistCache[cacheType][ckey];
     }
 
@@ -157,7 +165,13 @@ class rotcellocCache
             throw('Attempt to set() to unknown cache type: '+cacheType);
         }
         this._persistCache[cacheType][ckey] = _.cloneDeep(content);
+        this.bumpAccessTime(cacheType,ckey);
         this.autoWrite();
+    }
+
+    bumpAccessTime (cacheType,ckey)
+    {
+        this._persistCache._meta[ cacheType + '___' + ckey ] = this._objectLifetimeID;
     }
 
     getAutoKey(cacheType,entry,type,opts)
@@ -189,6 +203,7 @@ class rotcellocCache
         this._writesSinceFlush = 0;
         this._persistCache.lastVersion = packageJSON.version;
         this._persistCache.formatVersion = 0;
+        this._persistCache.lastObjID = this._objectLifetimeID;
         printv(5,'Writing cache to .cache.json');
         fs.writeFileSync('.cache.json.out',JSON.stringify(this._persistCache));
         fs.renameSync('.cache.json.out','.cache.json');
