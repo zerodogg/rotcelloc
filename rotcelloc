@@ -282,6 +282,7 @@ class collectionType
     // Load data from a CSV
     loadCSVData(entry)
     {
+        printv(3,'Interpreting file "'+entry.file+'"');
         // FIXME: The helper function should be moved here
         this._meta.sourceToNameMap[entry.file] = entry.name;
         return helper.loadCollectionFile(entry.file);
@@ -2350,6 +2351,7 @@ var helper = {
                 }
             }
         }
+        printv(5,'Loaded CSV from '+collPath);
         return CSV;
     },
     /*
