@@ -111,6 +111,9 @@ class rotcellocCache
 
         // Used for *all* access bumps during this objects lifetime
         this._objectLifetimeID = Math.floor(Date.now() / 1000);
+        // Used to check how long it is since we last did a write
+        // to avoid writing too often
+        this._lastWritten = 0;
 
         // Load and initialize _persistCache
         if(fs.existsSync(helper.resolveOutPath('.cache.json')))
@@ -201,6 +204,7 @@ class rotcellocCache
     write()
     {
         this._writesSinceFlush = 0;
+        this._lastWritten = Math.floor(Date.now() / 1000);
         this._persistCache.lastVersion = packageJSON.version;
         this._persistCache.formatVersion = 0;
         this._persistCache.lastObjID = this._objectLifetimeID;
@@ -213,7 +217,11 @@ class rotcellocCache
     {
         if(++this._writesSinceFlush > 50)
         {
-            this.write();
+            var now = Math.floor(Date.now() / 1000);
+            if(now-this._lastWritten >= 4)
+            {
+                this.write();
+            }
         }
     }
 
