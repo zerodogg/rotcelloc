@@ -2518,9 +2518,6 @@ var core = {
      */
     writeOutResult: function (groupMeta,groupData,groupNo,name,config,results)
     {
-        groupMeta.genres.sort();
-        groupMeta.genres = _.uniq(groupMeta.genres,true);
-
         let dataset = {
             i18n: i18n.strings,
             config: config,
