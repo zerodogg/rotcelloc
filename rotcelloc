@@ -2066,8 +2066,8 @@ class bookCollection extends collectionType
             console.log('Skipping entry due to missing ISBN: '+JSON.stringify(data));
             return;
         }
-        var ckey = getCacheID(data.isbn,'book');
-        var remote;
+        let ckey = getCacheID(data.isbn,'book');
+        let remote;
         if(cache.get('bookMeta',ckey))
         {
             remote = cache.get('bookMeta',ckey);
@@ -2080,7 +2080,7 @@ class bookCollection extends collectionType
         }
         if(remote)
         {
-            for (var entry in remote)
+            for (let entry in remote)
             {
                 if (!data[entry])
                 {
@@ -2093,10 +2093,10 @@ class bookCollection extends collectionType
     addPosterToItem (data)
     {
         // FIXME: Try to find an image in 'data' first
-        var posterID = data.isbn;
+        let posterID = data.isbn;
         posterID.replace(/-/g,'');
-        var ckey = getCacheID(data.isbn,'bookPoster');
-        var file = helper.downloadAndCacheURL('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',ckey,data);
+        let ckey = getCacheID(data.isbn,'bookPoster');
+        let file = helper.downloadAndCacheURL('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',ckey,data);
         if(file)
         {
             data.poster = posterID+'-L.jpg';
