@@ -308,6 +308,7 @@ class collectionType
         this._curBsource = null;
         this._meta = {
             sourceToNameMap: {},
+            fields: {},
             type: this._entry.type
         };
         if(this.initialize)
@@ -491,6 +492,7 @@ class collectionType
         }
         this.addStaticMetadataToItem(collItem);
         this.addMetadataTo(collItem);
+        this.storeFieldBools(collItem);
         this.addPosterToItem(collItem);
     }
 
@@ -522,6 +524,18 @@ class collectionType
             entries = entries.concat(contents);
         }
         return this.finalizeCollection(entries);
+    }
+
+    /*
+     * Sets booleans for fields. Reads fields from "entry" and stashes it into
+     * meta.fields.[]
+     */
+    storeFieldBools (entry)
+    {
+        for(let field in entry)
+        {
+            this._meta.fields[field] = true;
+        }
     }
 
     // Output a warning
@@ -855,7 +869,6 @@ class movieCollection extends collectionType
                 }
             }
         }
-        helper.storeFieldBools(collectionEntry,this._meta);
     }
 
     // Fetches metadata from a source for an entry
@@ -1231,7 +1244,6 @@ class gameCollection extends collectionType
         }
         collItem.poster   = this.getPosterURLFromData(collItem,meta);
         collItem.type     = 'game';
-        helper.storeFieldBools(collItem,this._meta);
         collItem.normalizedTitle = this.performNameReplacements(helper.normalizeTitle( collItem.origTitle ? collItem.origTitle : collItem.title ));
     }
 
@@ -2577,17 +2589,6 @@ var helper = {
         wait.for(function (cb) {
                 setTimeout(function() { cb(); }, sleepTime);
         });
-    },
-    /*
-     * Sets booleans for fields. Reads fields from "entry" and stashes it into
-     * meta.fields.[]
-     */
-    storeFieldBools: function (entry, meta)
-    {
-        for(let field in entry)
-        {
-            meta.fields[field] = true;
-        }
     },
 
     /*
