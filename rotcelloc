@@ -68,7 +68,9 @@ try
         // Loads CSON files
         CSON          = require('cson'),
         // Used for hasing
-        crypto        = require('crypto');
+        crypto        = require('crypto'),
+        // Used to fetch book metadata
+        isbn          = require('node-isbn');
 }
     catch(e)
 {
@@ -136,6 +138,10 @@ class rotcellocCache
         if (!this._persistCache.gameMeta || commander.expireMeta)
         {
             this._persistCache.gameMeta = {};
+        }
+        if (!this._persistCache.bookMeta || commander.expireMeta)
+        {
+            this._persistCache.bookMeta = {};
         }
         if (!this._persistCache.steamMeta || commander.expireMeta)
         {
@@ -2051,33 +2057,9 @@ class gameCollection extends collectionType
  * This is the API that generates the collection with metadata and posters for
  * a book collection
  */
-var bookAPI = {
-    /*
-     * Generic handler for any type of book input file. It generates the
-     * data structure and requests/handles metadata and posters
-     */
-    handleResultSet: function (csvFile,config)
-    {
-        var result = [],
-            bSource = csvFile,
-            resultMeta = {
-                genres: [],
-                platforms: [],
-                fields: {}
-            };
-        var output = helper.loadCollectionFile(csvFile);
-
-        for(var collectionEntryI in output)
-        {
-            var data = output[collectionEntryI];
-            data.bSource = path.basename(csvFile);
-            this.genericBookHandler(data,resultMeta);
-            data.type = 'book';
-            result.push(data);
-        }
-        return { meta: resultMeta, data: result, bSource: path.basename(csvFile) };
-    },
-    genericBookHandler: function (data,resultMeta)
+class bookCollection extends collectionType
+{
+    addMetadataTo (data)
     {
         if (!data.isbn)
         {
@@ -2086,15 +2068,15 @@ var bookAPI = {
         }
         var ckey = getCacheID(data.isbn,'book');
         var remote;
-        if(cache.bookMeta[ckey])
+        if(cache.get('bookMeta',ckey))
         {
-            remote = cache.bookMeta[ckey];
+            remote = cache.get('bookMeta',ckey);
         }
         else
         {
             printv(4,'Performing metadata request for ISBN '+data.isbn);
             remote = wait.for(isbn.resolve,data.isbn);
-            cache.bookMeta[ckey] = remote;
+            cache.set(remote,'bookMeta',ckey);
         }
         if(remote)
         {
@@ -2106,13 +2088,14 @@ var bookAPI = {
                 }
             }
         }
-        this.getPoster(data,ckey);
-    },
-    getPoster: function(data,ckey)
+    }
+
+    addPosterToItem (data)
     {
         // FIXME: Try to find an image in 'data' first
         var posterID = data.isbn;
         posterID.replace(/-/g,'');
+        var ckey = getCacheID(data.isbn,'bookPoster');
         var file = helper.downloadAndCacheURL('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',ckey,data);
         if(file)
         {
@@ -2122,85 +2105,8 @@ var bookAPI = {
         {
             data.poster = 'missing.png';
         }
-    },
-    /*
-     * Performs final sorting of a book list and adds the id numbers
-     */
-    sortAndFinalize: function (entries)
-    {
-        entries.sort(function(a,b) {
-                return a.title.localeCompare(b.title);
-        });
-        for (var collectionEntryI in entries)
-        {
-            var collectionEntry = entries[collectionEntryI];
-            collectionEntry.id  = collectionEntryI;
-        }
-        return entries;
-    },
-    /*
-     * Handles a single collection, loading each file, preparing the metadata
-     * and returning the final constructed dataset for the collection
-     */
-    performDatabaseConstruction: function (name,groupConf,groupNo)
-    {
-        var groupData = [],
-        groupMeta = {
-            sourceToNameMap: {},
-            genres: [],
-            formats: [],
-            fields: {},
-            type: groupConf.type,
-            hasDisneySort: false,
-            hasAddedSort: false,
-            enableNormalized: false
-        };
-        for(var entry of groupConf.sources)
-        {
-            try
-            {
-                printv(3,'  Interpreting file "'+entry.file+'"');
-                var result = bookAPI.handleResultSet(entry.file,entry);
-                groupData                           = groupData.concat(result.data);
-                entry.file                          = path.basename(entry.file);
-                groupMeta.sourceToNameMap[entry.file] = entry.name;
-                _.merge(groupMeta.fields,result.meta.fields);
-                groupMeta.hasDisneySort = entry.disneySort || groupMeta.hasDisneySort;
-                groupMeta.genres = groupMeta.genres.concat(result.meta.genres);
-                if(result.meta.formats)
-                {
-                    groupMeta.formats = groupMeta.formats.concat(result.meta.formats);
-                }
-                if(result.meta.enableNormalized)
-                {
-                    groupMeta.enableNormalized = true;
-                }
-            }
-            catch(e)
-            {
-                if(e.stack)
-                {
-                    printv(1,'Error while processing '+entry.file+': '+e.stack);
-                }
-                else
-                {
-                    printv(1,'Error while processing '+entry.file+': '+e);
-                }
-            }
-        }
-
-        groupMeta.genres.sort();
-        groupMeta.genres = _.uniq(groupMeta.genres,true);
-
-        if(groupMeta.formats)
-        {
-            groupMeta.formats.sort();
-            groupMeta.formats = _.uniq(groupMeta.formats,true);
-        }
-
-        return { name: name, data: bookAPI.sortAndFinalize(groupData), meta: groupMeta, groupNo: groupNo };
     }
-};
+}
 
 /*
  * Various helper functions for the rest of the program
@@ -2668,6 +2574,11 @@ var core = {
             else if(groupConf.type == 'games')
             {
                 let handler = new gameCollection(groupConf,name,groupNo);
+                result = handler.generateDatastructure();
+            }
+            else if(groupConf.type == 'books')
+            {
+                let handler = new bookCollection(groupConf,name,groupNo);
                 result = handler.generateDatastructure();
             }
             else
