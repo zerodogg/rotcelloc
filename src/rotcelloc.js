@@ -23,6 +23,13 @@
 // jshint esnext: false
 (function ($){
     "use strict";
+    function warn(message)
+    {
+        if(console && console.log)
+        {
+            console.log('rotcelloc: warning: '+message);
+        }
+    }
     var BOT_LOAD_TRIGGER_PX = 1000,
         rotcelloc = {
         /*
@@ -318,7 +325,7 @@
                     html += '<a target="_blank" href="http://store.steampowered.com/app/'+encodeURIComponent(data.steamID)+'/">Steam</a>';
                 }
             }
-            else if(data.type == 'series' || data.type == 'movie')
+            else if(data.type == 'series' || data.type == 'movies')
             {
                 if(data.contentType && data.contentType == 'anime')
                 {
@@ -340,7 +347,7 @@
             }
             // Add a trailer link (to YouTube) if the type is something where a
             // trailer makes sense
-            if (data.type == 'game' || data.type == 'tv' || data.type == 'movie')
+            if (data.type == 'game' || data.type == 'series' || data.type == 'movies')
             {
                 var trailerSearch = data.normalizedTitle;
                 if(data.year)
@@ -351,11 +358,11 @@
                 {
                     trailerSearch += ' game';
                 }
-                else if(data.type == 'tv')
+                else if(data.type == 'series')
                 {
                     trailerSearch += ' (tv OR series)';
                 }
-                else if(data.type == 'movie')
+                else if(data.type == 'movies')
                 {
                     trailerSearch += ' (movie OR theatrical OR film)';
                 }
@@ -976,7 +983,7 @@
                 var group = rotcelloc.data.config.collections[rotcelloc.pagetype].sources[groupI];
                 groupButtons.buttons.push({
                         id: 'groups_'+groupI,
-                        value: group.file ? group.file : group.bSource ,
+                        value: group.bSource ,
                         disneySort: group.disneySort,
                         name: group.name
                 });
