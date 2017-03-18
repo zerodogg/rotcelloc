@@ -3016,7 +3016,6 @@ function main()
     .option('--expire-matching [match]','expire all cached data where the key case insensitively matches [match] and exit')
     .option('--expire-matching-miss [match]','same as above, but only expire cached failures')
     .option('--expire-unused','expire all unused cache entries')
-    .option('--steam-dump [user]','dump Steam games belonging to [user]')
     .option('--force-steam-update','force an update of the lists of Steam games')
     .option('--config [file]','read [file] instead of ./rotcelloc.config.json')
     .option('--lazy','only use cached data')
@@ -3053,16 +3052,6 @@ function main()
         cache = new rotcellocCache();
         cache.cacheExpiry(commander.expireMatchingMiss,true);
         process.exit(0);
-    }
-    else if(commander.steamDump)
-    {
-        throw('FIXME');
-        /*
-        cache = new rotcellocCache();
-        var list = gamesAPI.generateSteamListFor(commander.steamDump);
-        cache.write();
-        process.exit(0);
-        */
     }
 
     if(commander.expireUnused)
