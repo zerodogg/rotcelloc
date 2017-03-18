@@ -2100,6 +2100,12 @@ class bookCollection extends collectionType
         if(file)
         {
             data.poster = posterID+'-L.jpg';
+            // If the file is tiny that means that it's not actually a poster
+            // we can use (it's a complete black image)
+            if(fs.statSync(helper.resolveOutPath('.images/orig/'+data.poster)).size < 1000)
+            {
+                data.poster = 'missing.png';
+            }
         }
         else
         {
