@@ -2457,9 +2457,9 @@ var helper = {
                 }
             }
         }
-        if (!cache.get('fileMap',path.basename(cache.get('URLs',ckey))))
+        if (!cache.get('fileMap',path.basename(url)))
         {
-            cache.set(url,'fileMap',path.basename(cache.get('URLs',ckey)));
+            cache.set(url,'fileMap',path.basename(url));
         }
         return true;
     },
