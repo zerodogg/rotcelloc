@@ -305,6 +305,7 @@ class collectionType
         this._name = name;
         this._groupNo = groupNumber;
         this._ID = 0;
+        this._curBsource = null;
         this._meta = {
             sourceToNameMap: {},
             type: this._entry.type
@@ -327,7 +328,8 @@ class collectionType
     loadCSVData(entry)
     {
         printv(3,'Interpreting file "'+entry.file+'"');
-        this._meta.sourceToNameMap[entry.file] = entry.name;
+        this._meta.sourceToNameMap[path.basename(entry.file)] = entry.name;
+        this._curBsource = path.basename( entry.file );
 
         let input  = fs.readFileSync(helper.resolveOutPath(entry.file),{ encoding: 'utf-8'} );
         let CSV = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
@@ -343,7 +345,6 @@ class collectionType
             let entry = CSV[i];
             helper.remapCSVFields(entry);
             helper.handleGenericFields(entry);
-            entry.bSource = baseF;
             if (blameData != null && entry.added === 0)
             {
                 let blameLine = i-1;
@@ -473,10 +474,12 @@ class collectionType
         return this._meta;
     }
 
-    // Adds a type to an item
-    addTypeToItem (collItem)
+    // Adds "statically generated" metadata to an item. This includes the item
+    // type and source
+    addStaticMetadataToItem (collItem)
     {
-        collItem.type = this._entry.type;
+        collItem.type    = this._entry.type;
+        collItem.bSource = this._curBsource;
     }
 
     // Handles a single item from a source in this collection
@@ -486,7 +489,7 @@ class collectionType
         {
             collItem.contentType = this._entry.contentType;
         }
-        this.addTypeToItem(collItem);
+        this.addStaticMetadataToItem(collItem);
         this.addMetadataTo(collItem);
         this.addPosterToItem(collItem);
     }
@@ -515,6 +518,7 @@ class collectionType
         for(let source of this._entry.sources)
         {
             let contents = this.generateSource(source);
+            source.bSource = this._curBsource;
             entries = entries.concat(contents);
         }
         return this.finalizeCollection(entries);
@@ -1084,6 +1088,7 @@ class gameCollection extends collectionType
         let user = source.user,
             ckey = 'steam//games//'+user,
             now  = Math.floor(Date.now() / 1000);
+        this._curBsource = 'steam/'+user;
         printv(3,'Interpreting steam collection for "'+user+'"');
         if(cache.get('arbitrary',ckey))
         {

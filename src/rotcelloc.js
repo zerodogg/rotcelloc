@@ -983,7 +983,7 @@
                 var group = rotcelloc.data.config.collections[rotcelloc.pagetype].sources[groupI];
                 groupButtons.buttons.push({
                         id: 'groups_'+groupI,
-                        value: group.file ? group.file : group.bSource ,
+                        value: group.bSource ,
                         disneySort: group.disneySort,
                         name: group.name
                 });
