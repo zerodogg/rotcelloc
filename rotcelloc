@@ -3008,27 +3008,38 @@ var webappGen = {
 function getCacheID (entry,type,opts)
 {
     let ckey = '';
-    if(type === undefined)
+    if(typeof(entry) == 'object')
     {
-        type = entry.type;
-    }
-    if(entry.origTitle)
-    {
-        ckey = entry.origTitle;
-    }
-    else if(entry.title)
-    {
-        ckey = entry.title;
+        if(type === undefined)
+        {
+            type = entry.type;
+        }
+        if(entry.origTitle)
+        {
+            ckey = entry.origTitle;
+        }
+        else if(entry.title)
+        {
+            ckey = entry.title;
+        }
+        else
+        {
+            ckey = entry.name;
+        }
+        if(entry.altTitle)
+        {
+            ckey += '//'+entry.altTitle;
+        }
+        ckey += '//'+entry.year;
     }
     else
     {
-        ckey = entry.name;
+        if(type === undefined)
+        {
+            type = 'unknown';
+        }
+        ckey = entry;
     }
-    if(entry.altTitle)
-    {
-        ckey += '//'+entry.altTitle;
-    }
-    ckey += '//'+entry.year;
     if(type == 'series')
     {
         ckey += 'tvserie';
@@ -3044,6 +3055,10 @@ function getCacheID (entry,type,opts)
         {
             ckey += '//steam-'+entry.steamID;
         }
+    }
+    else if(type !== undefined)
+    {
+        ckey += '//'+type;
     }
     if(runtimeCache._cacheReads)
     {
