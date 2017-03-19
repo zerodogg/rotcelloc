@@ -2077,6 +2077,32 @@ class bookCollection extends collectionType
             console.log('Skipping entry due to missing ISBN: '+JSON.stringify(data));
             return;
         }
+        let remote = this.getMetadataFor(data);
+        if(remote)
+        {
+            let fieldRemapOrCopy = {
+                'description':'description',
+                'publishedDate':'published',
+                'pageCount':'pages',
+                'infoLink':'openliblink',
+            };
+            for (let source in fieldRemapOrCopy)
+            {
+                let targetName = fieldRemapOrCopy[source];
+                if (!data[targetName] && remote[source])
+                {
+                    data[targetName] = remote[source];
+                }
+            }
+            if (!data.author && remote.authors)
+            {
+                data.author = this.mustBeString(remote.authors);
+            }
+        }
+    }
+
+    getMetadataFor(data)
+    {
         let ckey = getCacheID(data.isbn,'book');
         let remote;
         if(cache.get('bookMeta',ckey))
@@ -2089,16 +2115,7 @@ class bookCollection extends collectionType
             remote = wait.for(isbn.resolve,data.isbn);
             cache.set(remote,'bookMeta',ckey);
         }
-        if(remote)
-        {
-            for (let entry in remote)
-            {
-                if (!data[entry])
-                {
-                    data[entry] = remote[entry];
-                }
-            }
-        }
+        return remote;
     }
 
     addPosterToItem (data)
