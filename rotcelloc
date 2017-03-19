@@ -306,6 +306,7 @@ class collectionType
         this._groupNo = groupNumber;
         this._ID = 0;
         this._curBsource = null;
+        this._curSource = null;
         this._meta = {
             sourceToNameMap: {},
             type: this._entry.type
@@ -517,6 +518,7 @@ class collectionType
         // Walk through all datasources and generate each one
         for(let source of this._entry.sources)
         {
+            this._curSource = source;
             let contents = this.generateSource(source);
             source.bSource = this._curBsource;
             entries = entries.concat(contents);
@@ -725,7 +727,7 @@ class movieCollection extends collectionType
                 // Translators: used to translate substrings in the «writer» metadata
                 .replace(/book/g,i18n.translate('book'));
             }
-            if (this._entry.autoGenre &&!collectionEntry.genre && this.isValidOMDBField(meta.Genre))
+            if (this._curSource.autoGenre &&!collectionEntry.genre && this.isValidOMDBField(meta.Genre))
             {
                 collectionEntry.genre = meta.Genre;
             }
