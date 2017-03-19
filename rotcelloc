@@ -566,6 +566,42 @@ class collectionType
         // so that the user can find it
         printv(0,'Warning: (unknown location): '+message);
     }
+
+    /*
+     * Convers thing into an array if it isn't already
+     */
+    mustBeArray(thing)
+    {
+        if (!_.isArray(thing))
+        {
+            return [ thing ];
+        }
+        return thing;
+    }
+
+    /*
+     * Converts thing to a string if it isn't already
+     */
+    mustBeString(thing)
+    {
+        if(thing === undefined)
+        {
+            return thing;
+        }
+        if (_.isArray(thing))
+        {
+            return thing.join(', ');
+        }
+        if(typeof(thing) != "string")
+        {
+            if(thing.toString)
+            {
+                return thing.toString();
+            }
+            throw('Unable to ensure that "'+thing+'" is a string');
+        }
+        return thing;
+    }
 }
 
 class movieCollection extends collectionType
@@ -2025,46 +2061,6 @@ class gameCollection extends collectionType
         let result = JSON.parse(data);
         runtimeCache[url] = _.clone(result,true);
         return result;
-    }
-
-    /*
-     * Convers thing into an array if it isn't already
-     *
-     * FIXME: This should be moved to the parent class
-     */
-    mustBeArray(thing)
-    {
-        if (!_.isArray(thing))
-        {
-            return [ thing ];
-        }
-        return thing;
-    }
-
-    /*
-     * Converts thing to a string if it isn't already
-     *
-     * FIXME: This should be moved to the parent class
-     */
-    mustBeString(thing)
-    {
-        if(thing === undefined)
-        {
-            return thing;
-        }
-        if (_.isArray(thing))
-        {
-            return thing.join(', ');
-        }
-        if(typeof(thing) != "string")
-        {
-            if(thing.toString)
-            {
-                return thing.toString();
-            }
-            throw('Unable to ensure that "'+thing+'" is a string');
-        }
-        return thing;
     }
 }
 
