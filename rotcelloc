@@ -179,6 +179,21 @@ class rotcellocCache
         this.autoWrite();
     }
 
+    /*
+     * This works like set(), but it will compare the existing value in the
+     * cache with the new value in the cache to avoid rewriting identical
+     * values, and thus save time by reducing write() calls for no good reason.
+     * NOTE: The comparison is made with "===", so this only works with very
+     * simple values such as strings and numbers.
+     */
+    lazySet (content,cacheType,ckey)
+    {
+        if(this.get(cacheType,ckey) !== content)
+        {
+            return this.set(content,cacheType,ckey);
+        }
+    }
+
     bumpAccessTime (cacheType,ckey)
     {
         this._persistCache._meta[ cacheType + '___' + ckey ] = this._objectLifetimeID;
@@ -2342,9 +2357,9 @@ var helper = {
         {
             console.log('WARNING: downloadAndCacheURL received null/empty ckey');
         }
+        cache.lazySet(url,'URLs',ckey);
         if (!fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
         {
-            cache.set(url,'URLs',ckey);
             if(commander.lazy)
             {
                 return;
