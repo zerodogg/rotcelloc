@@ -3182,6 +3182,15 @@ function printv(reqVerb,message)
  */
 function main()
 {
+    // Handle SIGINT
+    process.on('SIGINT', () => {
+            console.log('Received SIGINT, flushing cache and exiting.');
+            if(cache !== undefined && cache.flushIfNeeded)
+            {
+                cache.flushIfNeeded();
+            }
+            process.exit(9);
+    });
     try
     {
         packageJSON = JSON.parse(fs.readFileSync(helper.resolvePath('package.json')));
