@@ -23,7 +23,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-// jshint esnext: true, eqnull: true
+// jshint esversion: 6, eqnull: true
 
 "use strict";
 
