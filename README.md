@@ -1,9 +1,9 @@
 # rotcelloc - the hacker's movie, tv-series and game collection manager
 
-Rotcelloc is an application that manages your movie, TV-series and games
-collection. It takes CSV-files, or a Steam username, as its input, and
-outputs JSON files and a static web application that can be used to view
-and search a collection.
+Rotcelloc is an application that manages your movie, TV-series, games and book
+collection. It takes CSV-files, or a Steam username, as its input, and outputs
+JSON files and a static web application that can be used to view and search a
+collection.
 
 Rotcelloc will download posters for your collection, download metadata (plot
 summary, developer or director name, metascore) and generate a pretty (static)
@@ -102,9 +102,9 @@ to null.
 The name of a collection is its key. Its value is another object/hash of key-value
 pairs. The following keys are permitted:
 
-**"type"** (*required*) - this key which defines what kind of collection it is. These can be
-"movies", "series" or "games". This is needed because it tells rotcelloc how to
-retrieve metadata information.
+**"type"** (*required*) - this key which defines what kind of collection it is.
+These can be "movies", "series", "games" or "books". This is needed because it
+tells rotcelloc how to retrieve metadata information.
 
 **"defaultSort"** (optional) - this key sets the default sorting for this
 collection. It accepts "year" and "rating". If this is not set then it will be
@@ -160,7 +160,7 @@ generate this from the downloaded metadata by setting a key in the config.
 **note** - a generic text field for additional information you want to be displayed
 with the entry. This field is searchable in the webapp.
 
-**rating** - your custom rating for this game (1-6)
+**rating** - your custom rating for this entry (1-6)
 
 **customCover** - a complete URL for a HTTP resource to download the cover for this
 item from. If omitted the cover will be auto-detected. This field can be useful
@@ -197,6 +197,12 @@ haven't. Can be omitted. Having at least one watched=no entry allows filtering f
 **platform** - which platform the game is on, ie. Linux, Windows, PS3, Vita.
 
 **format** - the format of the game, ie. DVD, Steam, GOG, PSN, BluRay etc.
+
+##### Columns only valid for books
+
+**author** - the book author(s)
+
+**publisher** - the book publisher
 
 ## Standing on the shoulders of giants
 
