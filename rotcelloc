@@ -175,10 +175,39 @@ class rotcellocCache
         {
             throw('Attempt to set() to unknown cache type: '+cacheType);
         }
+        if(content === undefined)
+        {
+            content = null;
+        }
         this._persistCache[cacheType][ckey] = _.cloneDeep(content);
         this.bumpAccessTime(cacheType,ckey);
         this._writesSinceFlush++;
         this.autoWrite();
+    }
+
+    exists(cacheType,ckey)
+    {
+        if(this._persistCache[cacheType] === undefined)
+        {
+            throw('Attempt to exists() with unknown cache type: '+cacheType);
+        }
+        return this._persistCache[cacheType][ckey] !== undefined;
+    }
+
+    // This works like exists() but if commander.retryMiss is true it will
+    // consider keys that exist but whose values are null as if they don't
+    // exist.
+    existsNotMiss(cacheType,ckey)
+    {
+        if(!commander.retryMiss)
+        {
+            return this.exists(cacheType,ckey);
+        }
+        if(this.exists(cacheType,ckey) && this.get(cacheType,ckey) === null)
+        {
+            return false;
+        }
+        return true;
     }
 
     /*
@@ -2109,7 +2138,7 @@ class bookCollection extends collectionType
     {
         let ckey = getCacheID(data.isbn,'book');
         let remote;
-        if(cache.get('bookMeta',ckey))
+        if(cache.existsNotMiss('bookMeta',ckey))
         {
             remote = cache.get('bookMeta',ckey);
         }
@@ -2119,9 +2148,9 @@ class bookCollection extends collectionType
             try
             {
                 remote = wait.for(isbn.resolve,data.isbn);
-                cache.set(remote,'bookMeta',ckey);
             }
             catch (e) {}
+            cache.set(remote,'bookMeta',ckey);
         }
         return remote;
     }
@@ -3021,7 +3050,6 @@ var webappGen = {
         {
             throw('Failed to compile rotcelloc.js with babel: '+e.message);
         }
-        console.log(babelified.code);
         try
         {
             uglified = UglifyJS.minify({ 'rotcelloc.js':babelified.code},{
