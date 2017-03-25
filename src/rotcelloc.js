@@ -921,6 +921,15 @@
                     }
                 ]
             };
+            if(rotcelloc.workingMeta.type == 'books')
+            {
+                orderButtons.buttons.push(
+                {
+                    id: 'author',
+                    value: 'author',
+                    name: rotcelloc.translate('Author')
+                });
+            }
             if(rotcelloc.workingMeta.hasDisneySort)
             {
                 orderButtons.buttons.push(
