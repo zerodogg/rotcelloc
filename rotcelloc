@@ -153,6 +153,10 @@ class rotcellocCache
         {
             this._persistCache.arbitrary = {};
         }
+        if (!this._persistCache.externalAPI || commander.expireMeta)
+        {
+            this._persistCache.externalAPI = {};
+        }
         if (!this._persistCache._meta)
         {
             this._persistCache._meta = {};
@@ -763,11 +767,18 @@ class movieCollection extends collectionType
     submitMovieArtRequest (mTitle,year,type)
     {
         let url;
+        let identifier = 'movieArt::'+mTitle+','+year+','+type;
+        let cached = cache.get('externalAPI',identifier);
+        if(cached !== undefined)
+        {
+            return cached;
+        }
         printv(5,'Submitting request to movieArt: '+mTitle+','+year+','+type);
         try
         {
             url = wait.for(movieArt,mTitle,year,null,type);
         } catch(e) {}
+        cache.set(url,'externalAPI',identifier);
         return url;
     }
 
@@ -1116,9 +1127,10 @@ class movieCollection extends collectionType
             return cb('t+i are null');
         }
         let serialish = url+JSON.stringify(requestQuery);
-        if(runtimeCache[serialish])
+        let cached = cache.get('externalAPI',serialish);
+        if(cached !== undefined)
         {
-            cb(null,_.clone(runtimeCache[serialish],true));
+            cb(null,_.clone(cached,true));
             return;
         }
         printv(4,'Performing OMDB request: '+ (requestQuery.t ? requestQuery.t : requestQuery.i ));
@@ -1132,7 +1144,7 @@ class movieCollection extends collectionType
                     try
                     {
                         res = JSON.parse(res.body);
-                        runtimeCache[serialish] = _.clone(res,true);
+                        cache.set(res,'externalAPI',serialish);
                     }
                     catch(e)
                     {
@@ -2044,7 +2056,7 @@ class gameCollection extends collectionType
     }
 
     /*
-     * Constracts a request for GD
+     * Constructs a request for GD
      */
     TGD_request(call,parameters)
     {
@@ -2068,9 +2080,10 @@ class gameCollection extends collectionType
      */
     XMLtoJSONRequest(url)
     {
-        if(runtimeCache[url])
+        let cached = cache.get('externalAPI',url);
+        if(cached !== undefined)
         {
-            return _.clone(runtimeCache[url],true);
+            return _.clone(cached,true);
         }
         printv(4,'Performing XMLtoJSONRequest to: '+url);
         let data;
@@ -2092,7 +2105,7 @@ class gameCollection extends collectionType
             return;
         }
         let result = JSON.parse(data);
-        runtimeCache[url] = _.clone(result,true);
+        cache.set(result,'externalAPI',url);
         return result;
     }
 }
