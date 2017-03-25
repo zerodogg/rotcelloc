@@ -68,7 +68,9 @@ try
         // Loads CSON files
         CSON          = require('cson'),
         // Used for hasing
-        crypto        = require('crypto');
+        crypto        = require('crypto'),
+        // Used to compile the client-side JS
+        babel         = require('babel-core');
 }
     catch(e)
 {
@@ -2917,10 +2919,35 @@ var webappGen = {
             child_process.execFileSync('rsync', [ '-a',helper.resolvePath('.gitignore'), helper.resolveOutPath('.gitignore') ]);
         }
         printv(3,'Compiling JS and CSS...');
-        let uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
-                outSourceMap: 'rotcelloc.js.map',
-                sourceMapIncludeSources: true
-            });
+        let babelified, uglified;
+        try
+        {
+            babelified = babel.transformFileSync(
+                helper.resolvePath('src/rotcelloc.js'),
+                {
+                    'babelrc':false,
+                    'presets':['es2015']
+                }
+            );
+        }
+        catch(e)
+        {
+            throw('Failed to compile rotcelloc.js with babel: '+e.message);
+        }
+        console.log(babelified.code);
+        try
+        {
+            uglified = UglifyJS.minify({ 'rotcelloc.js':babelified.code},{
+                    inSourceMap: babelified.map,
+                    fromString: true,
+                    outSourceMap: 'rotcelloc.js.map',
+                    sourceMapIncludeSources: true
+                });
+        }
+        catch(e)
+        {
+            throw('Failed to uglify rotcelloc.js: '+e.message);
+        }
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js'),uglified.code);
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js.map'),uglified.map);
         child_process.execFileSync('sass',[ '--scss','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolveOutPath('out/style.css') ]);
