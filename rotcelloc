@@ -2127,6 +2127,7 @@ class bookCollection extends collectionType
             'pages':true,
             'openliblink':true,
             'isbn':true,
+            'author':true,
             'publisher':true
         };
     }
