@@ -2542,6 +2542,17 @@ var helper = {
         {
             throw('Failed to parse rotcelloc.config.cson: '+e.stack);
         }
+        // Perform maxMoviesPerRenderedPage & maxMoviesPerRenderedPageMobile remapping
+        if(config.maxMoviesPerRenderedPage && !config.maxEntriesPerRenderedPage)
+        {
+            config.maxEntriesPerRenderedPage = config.maxMoviesPerRenderedPage;
+            delete config.maxMoviesPerRenderedPage;
+        }
+        if(config.maxMoviesPerRenderedPageMobile && !config.maxEntriesPerRenderedPageMobile)
+        {
+            config.maxEntriesPerRenderedPageMobile = config.maxMoviesPerRenderedPageMobile;
+            delete config.maxMoviesPerRenderedPageMobile;
+        }
         runtimeCache.__config = config;
         return config;
     },

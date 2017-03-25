@@ -75,13 +75,13 @@ When you compile the collection webapp it will be output to an
 **menuSiteTitle** - this is the title that will be displayed on the top right of
 your site. Any text string is permitted.
 
-**maxMoviesPerRenderedPage** - to not overload a browser on large collections by
+**maxEntriesPerRenderedPage** - to not overload a browser on large collections by
 trying to display one thousand images at once, rotcelloc uses a form of
-infinite scrolling to limit the load. It only displays maxMoviesPerRenderedPage
+infinite scrolling to limit the load. It only displays maxEntriesPerRenderedPage
 at one time, when the user is reaching the bottom of the result, it renders the
 next batch of the same number. A reasonable place to start is 100.
 
-**maxMoviesPerRenderedPageMobile** - this is the same as the above, except this
+**maxEntriesPerRenderedPageMobile** - this is the same as the above, except this
 version only applies to mobile browsers. Those are often running on limited
 connections and generally have weaker hardware than their desktop counterparts
 (and they also show fewer results on-screen at a time). It is therefore

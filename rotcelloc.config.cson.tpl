@@ -12,14 +12,14 @@
 menuSiteTitle: "My Rotcelloc-collection"
 
 # To not overload the browser, rotcelloc uses a form of infinite scrolling
-# rendering only «maxMoviesPerRenderedPage» at any one time (rendering another
-# «maxMoviesPerRenderedPage» number of entries once the user reaches the end).
-maxMoviesPerRenderedPage: 100
+# rendering only «maxEntriesPerRenderedPage» at any one time (rendering another
+# «maxEntriesPerRenderedPage» number of entries once the user reaches the end).
+maxEntriesPerRenderedPage: 100
 
-# This is used instead of maxMoviesPerRenderedPage on mobile phones. They
+# This is used instead of maxEntriesPerRenderedPage on mobile phones. They
 # generally have slower connections and are somewhat slower than desktops. It
 # is thus reasonable to render fewer entries at any one time on mobile.
-maxMoviesPerRenderedPageMobile: 40
+maxEntriesPerRenderedPageMobile: 40
 
 # The locale you want the webapp to use. See the i18n/-directory for a list of
 # available locales.

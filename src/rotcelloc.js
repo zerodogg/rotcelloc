@@ -48,12 +48,12 @@
                 $('#menuToggle').text(rotcelloc.translate('Show/hide menu'));
                 if (/(Android|Mobile|iOS|iPhone)/.test(navigator.userAgent))
                 {
-                    rotcelloc.maxMoviesPerRenderedPage = data.config.maxMoviesPerRenderedPageMobile;
+                    rotcelloc.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPageMobile;
                     rotcelloc.mobile = true;
                 }
                 else
                 {
-                    rotcelloc.maxMoviesPerRenderedPage = data.config.maxMoviesPerRenderedPage;
+                    rotcelloc.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPage;
                     rotcelloc.mobile = false;
                 }
                 rotcelloc.renderSearchPanel();
@@ -221,7 +221,7 @@
                 if(cols == 4)
                 {
                     pruneRows();
-                    if(entriesNoTracker >= this.maxMoviesPerRenderedPage)
+                    if(entriesNoTracker >= this.maxEntriesPerRenderedPage)
                     {
                         entriesNoTracker = 0;
                         renderedResults.push(out);
