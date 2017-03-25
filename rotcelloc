@@ -23,7 +23,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-// jshint esnext: true, eqnull: true
+// jshint esversion: 6, eqnull: true
 
 "use strict";
 
@@ -70,7 +70,9 @@ try
         // Used for hasing
         crypto        = require('crypto'),
         // Used to fetch book metadata
-        isbn          = require('node-isbn');
+        isbn          = require('node-isbn'),
+        // Used to compile the client-side JS
+        babel         = require('babel-core');
 }
     catch(e)
 {
@@ -327,6 +329,7 @@ class collectionType
         this._groupNo = groupNumber;
         this._ID = 0;
         this._curBsource = null;
+        this._curSource = null;
         this._meta = {
             sourceToNameMap: {},
             fields: {},
@@ -540,6 +543,7 @@ class collectionType
         // Walk through all datasources and generate each one
         for(let source of this._entry.sources)
         {
+            this._curSource = source;
             let contents = this.generateSource(source);
             source.bSource = this._curBsource;
             entries = entries.concat(contents);
@@ -796,7 +800,7 @@ class movieCollection extends collectionType
                 // Translators: used to translate substrings in the «writer» metadata
                 .replace(/book/g,i18n.translate('book'));
             }
-            if (this._entry.autoGenre &&!collectionEntry.genre && this.isValidOMDBField(meta.Genre))
+            if (this._curSource.autoGenre &&!collectionEntry.genre && this.isValidOMDBField(meta.Genre))
             {
                 collectionEntry.genre = meta.Genre;
             }
@@ -3002,10 +3006,35 @@ var webappGen = {
             child_process.execFileSync('rsync', [ '-a',helper.resolvePath('.gitignore'), helper.resolveOutPath('.gitignore') ]);
         }
         printv(3,'Compiling JS and CSS...');
-        let uglified = UglifyJS.minify(helper.resolvePath('src/rotcelloc.js'),{
-                outSourceMap: 'rotcelloc.js.map',
-                sourceMapIncludeSources: true
-            });
+        let babelified, uglified;
+        try
+        {
+            babelified = babel.transformFileSync(
+                helper.resolvePath('src/rotcelloc.js'),
+                {
+                    'babelrc':false,
+                    'presets':['es2015']
+                }
+            );
+        }
+        catch(e)
+        {
+            throw('Failed to compile rotcelloc.js with babel: '+e.message);
+        }
+        console.log(babelified.code);
+        try
+        {
+            uglified = UglifyJS.minify({ 'rotcelloc.js':babelified.code},{
+                    inSourceMap: babelified.map,
+                    fromString: true,
+                    outSourceMap: 'rotcelloc.js.map',
+                    sourceMapIncludeSources: true
+                });
+        }
+        catch(e)
+        {
+            throw('Failed to uglify rotcelloc.js: '+e.message);
+        }
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js'),uglified.code);
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js.map'),uglified.map);
         child_process.execFileSync('sass',[ '--scss','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolveOutPath('out/style.css') ]);
