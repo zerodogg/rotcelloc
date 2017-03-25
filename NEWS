@@ -1,4 +1,9 @@
 Version 0.2
+- Added support for books
+- Greatly improved cacing framework
+- Added automatic "covers" when covers are missing
+- Refactored the core rotcelloc code to be easier to maintain and to make it easier
+    to add new types of collections
 - Added support for automatic "added" dates
 - Added automatic distribution of the rotcelloc source code along with the
   webapp
