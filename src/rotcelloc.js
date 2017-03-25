@@ -354,7 +354,12 @@
             }
             else if(data.type == 'books')
             {
-                html += '<a target="_blank" href="https://openlibrary.org/search?q='+data.isbn+'">OpenLibrary</a>, ';
+                let openLibraryLink = data.openliblink;
+                if(data.openliblink === undefined)
+                {
+                    openLibraryLink = 'https://openlibrary.org/search?q='+data.isbn;
+                }
+                html += '<a target="_blank" href="'+openLibraryLink+'">OpenLibrary</a>, ';
                 html += '<a target="_blank" href="https://www.goodreads.com/search?utf8=%E2%9C%93&query='+data.isbn+'">Goodreads</a>, ';
                 html += '<a target="_blank" href="https://www.librarything.com/search.php?search='+data.isbn+'&searchtype=38&searchtype=38&sortchoice=0">LibraryThing</a>';
             }
