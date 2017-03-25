@@ -30,7 +30,7 @@
             console.log('rotcelloc: warning: '+message);
         }
     }
-    var BOT_LOAD_TRIGGER_PX = 1000,
+    let BOT_LOAD_TRIGGER_PX = 1000,
         rotcelloc = {
         /*
          * Initializes the page:
@@ -78,7 +78,7 @@
          */
         initAutoSearcher: function ()
         {
-            var runSearch = function ()
+            let runSearch = function ()
             {
                 rotcelloc.performSearchFromHTML();
             };
@@ -96,8 +96,8 @@
          */
         getDataSet: function(cb)
         {
-            var $colResT = $('#collResultTarget');
-            var pagetype = $colResT.data('pagetype');
+            let $colResT = $('#collResultTarget');
+            let pagetype = $colResT.data('pagetype');
             if(pagetype === undefined)
             {
                 return;
@@ -124,12 +124,12 @@
          */
         renderResults: function(result)
         {
-            var cols             = 0,
+            let cols             = 0,
                 htmlContent      = [],
                 out              = '',
                 entriesNoTracker = 0,
                 renderedResults  = [];
-            var pruneRows = function ()
+            let pruneRows = function ()
             {
                 out += '<div class="row"><div class="col-sm-3">\n';
                 out += htmlContent.join('</div><div class="col-sm-3">');
@@ -137,14 +137,14 @@
                 htmlContent = [];
                 cols = 0;
             };
-            for(var movieI = 0; movieI < result.length; movieI++)
+            for(let movieI = 0; movieI < result.length; movieI++)
             {
                 cols++;
                 entriesNoTracker++;
 
-                var movie = result[movieI];
+                let movie = result[movieI];
 
-                var html = '<div class="col-entry" id="colEntryNo_'+movie.id+'"><div class="poster"><img src="images/'+movie.poster+'" alt="" class="img-responsive img-rounded" /></div>';
+                let html = '<div class="col-entry" id="colEntryNo_'+movie.id+'"><div class="poster"><img src="images/'+movie.poster+'" alt="" class="img-responsive img-rounded" /></div>';
                 html += '<div class="description"><h3>'+movie.title;
                 if(movie.year)
                 {
@@ -215,13 +215,13 @@
          */
         showMore: function(entryID)
         {
-            var data = rotcelloc.workingData[entryID];
+            let data = rotcelloc.workingData[entryID];
             if(data === null || data === undefined)
             {
                 throw('Unhandled showMore ID: '+entryID);
             }
-            var $root   = $('#colEntryNo_'+entryID);
-            var $target = $root.find('.showMore'),
+            let $root   = $('#colEntryNo_'+entryID);
+            let $target = $root.find('.showMore'),
                 html    = '';
             if(data.altTitle && data.altTitle != data.title)
             {
@@ -254,10 +254,10 @@
             if(rotcelloc.data.config.collections[rotcelloc.pagetype].sources.length > 1)
             {
                 html += '<div class="group"><div class="meta-label">'+rotcelloc.translate('Group')+':</div> ';
-                var sources = data.bSource.split(", ");
-                for(var source = 0; source < sources.length; source++)
+                let sources = data.bSource.split(", ");
+                for(let source = 0; source < sources.length; source++)
                 {
-                    var sourceN = sources[source];
+                    let sourceN = sources[source];
                     if(source > 0)
                     {
                         html += ', ';
@@ -266,7 +266,7 @@
                 }
                 html += '</div>';
             }
-            var genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn' ],
+            let genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn' ],
                 genericEntries = {
                 'rating':{
                     'label':rotcelloc.translate('Custom rating'),
@@ -291,12 +291,12 @@
                 }
             };
 
-            for(var genericEntryCurrI = 0; genericEntryCurrI < genericEntriesOrder.length; genericEntryCurrI++)
+            for(let genericEntryCurrI = 0; genericEntryCurrI < genericEntriesOrder.length; genericEntryCurrI++)
             {
-                var genericEntryCurr = genericEntriesOrder[genericEntryCurrI];
+                let genericEntryCurr = genericEntriesOrder[genericEntryCurrI];
                 if(data[genericEntryCurr])
                 {
-                    var renderRules = genericEntries[genericEntryCurr],
+                    let renderRules = genericEntries[genericEntryCurr],
                         value       = data[genericEntryCurr];
                     if(renderRules.renderer)
                     {
@@ -332,7 +332,7 @@
                     html += '<a target="_blank" href="https://duckduckgo.com/?q='+encodeURIComponent( (data.origTitle ? data.origTitle : data.title) +' site:animenfo.com')+'">AnimeNFO</a>';
                     html += ', ';
                 }
-                var imdbURL;
+                let imdbURL;
                 if(data.imdbID)
                 {
                     imdbURL = 'http://www.imdb.com/title/'+data.imdbID;
@@ -349,7 +349,7 @@
             // trailer makes sense
             if (data.type == 'game' || data.type == 'series' || data.type == 'movies')
             {
-                var trailerSearch = data.normalizedTitle;
+                let trailerSearch = data.normalizedTitle;
                 if(data.year)
                 {
                     trailerSearch += ' '+data.year.replace(/\D.*/g,'');
@@ -392,7 +392,7 @@
          */
         performSearchFromHTML: function ()
         {
-            var query           = {},
+            let query           = {},
                 $group          = $('#group .active input'),
                 platform        = $('#platform .active input').attr('data-value'),
                 order           = $('#order option:selected()').attr('data-value'),
@@ -402,7 +402,7 @@
                 $watchedSearch     = $('#watchedSearch .active input'),
                 genreSearchType = $('#genre_searchtype option:selected()').attr('data-value'),
                 text            = $('#searchBox').val();
-            var group           = $group.attr('data-value'),
+            let group           = $group.attr('data-value'),
                 groupDisneySort = $group.attr('data-disneysort');
             if(group)
             {
@@ -458,7 +458,7 @@
          */
         performSearch: function (query)
         {
-            var results = [];
+            let results = [];
             if(_.isEqual(query,rotcelloc.prevQuery))
             {
                 return;
@@ -467,9 +467,9 @@
             {
                 rotcelloc.prevQuery = query;
             }
-            for(var collectionN = 0; collectionN < rotcelloc.workingData.length; collectionN++)
+            for(let collectionN = 0; collectionN < rotcelloc.workingData.length; collectionN++)
             {
-                var searchScore = 10,
+                let searchScore = 10,
                     collectionEntry = rotcelloc.workingData[collectionN],
                     hit;
                 if (query.watchedSearch)
@@ -484,8 +484,8 @@
                     if (/,/.test(collectionEntry.bSource))
                     {
                         hit = false;
-                        var sources = collectionEntry.bSource.split(/,\s+/);
-                        for(var keyN = 0; keyN < sources.length; keyN++)
+                        let sources = collectionEntry.bSource.split(/,\s+/);
+                        for(let keyN = 0; keyN < sources.length; keyN++)
                         {
                             if(sources[keyN] == query.group)
                             {
@@ -512,11 +512,11 @@
                     {
                         continue;
                     }
-                    for (var formatI in query.formats)
+                    for (let formatI in query.formats)
                     {
-                        var queryFormat = query.formats[formatI];
-                        var found = false;
-                        for(var format = 0; format < collectionEntry.format.length; format++)
+                        let queryFormat = query.formats[formatI];
+                        let found = false;
+                        for(let format = 0; format < collectionEntry.format.length; format++)
                         {
                             if(collectionEntry.format[format] == queryFormat)
                             {
@@ -537,7 +537,7 @@
                 if(query.format)
                 {
                     hit = false;
-                    var fmt;
+                    let fmt;
                     if(collectionEntry.format)
                     {
                         for(fmt = 0; fmt < collectionEntry.format.length; fmt++)
@@ -557,7 +557,7 @@
                 if(query.platform)
                 {
                     hit = false;
-                    var platform;
+                    let platform;
                     if(query.platform != 'PC' && query.platform != 'Windows')
                     {
                         for(platform = 0; platform < collectionEntry.platform.length; platform++)
@@ -573,7 +573,7 @@
                     {
                         // We alias "PC" to be PC, Windows, Mac or Linux,
                         // and "Windows" to be PC or Windows
-                        var regexAlias;
+                        let regexAlias;
                         if(query.platform == 'PC')
                         {
                             regexAlias = /^(PC|Windows|Mac|Linux)$/;
@@ -608,7 +608,7 @@
                         if(query.genreSearchType == 'any')
                         {
                             hit = false;
-                            for (var genreAI in query.genres)
+                            for (let genreAI in query.genres)
                             {
                                 if(collectionEntry.genre.indexOf(query.genres[genreAI]) != -1)
                                 {
@@ -619,7 +619,7 @@
                         }
                         else
                         {
-                            for (var genreI in query.genres)
+                            for (let genreI in query.genres)
                             {
                                 if(collectionEntry.genre.indexOf(query.genres[genreI]) == -1)
                                 {
@@ -634,7 +634,7 @@
                         hit = true;
                         if(collectionEntry.genre)
                         {
-                            for (var genreNI in query.genres)
+                            for (let genreNI in query.genres)
                             {
                                 if(collectionEntry.genre.indexOf(query.genres[genreNI]) != -1)
                                 {
@@ -740,10 +740,10 @@
                 collectionEntry.searchScore = searchScore;
                 results.push(collectionEntry);
             }
-            var sorted = false;
+            let sorted = false;
             if(query.order)
             {
-                var orderByOptionalField = function (optField)
+                let orderByOptionalField = function (optField)
                 {
                     return function (a,b)
                     {
@@ -812,7 +812,7 @@
          */
         renderSearchPanel: function()
         {
-            var plotSearchBool = {
+            let plotSearchBool = {
                 id: 'plotSearch',
                 buttons: [
                     {
@@ -948,7 +948,7 @@
                     }
                 );
             }
-            var platformButtons = {
+            let platformButtons = {
                 id: 'platform',
                 buttons: [{
                         id: 'platforms_none',
@@ -959,9 +959,9 @@
             };
             if(rotcelloc.workingMeta.platforms && rotcelloc.workingMeta.platforms.length > 1)
             {
-                for (var platformI in rotcelloc.workingMeta.platforms)
+                for (let platformI in rotcelloc.workingMeta.platforms)
                 {
-                    var platform = rotcelloc.workingMeta.platforms[platformI];
+                    let platform = rotcelloc.workingMeta.platforms[platformI];
                     platformButtons.buttons.push({
                             id: 'platforms_'+platformI,
                             value: platform,
@@ -969,7 +969,7 @@
                     });
                 }
             }
-            var groupButtons = {
+            let groupButtons = {
                 id: 'group',
                 buttons: [{
                         id: 'groups_none',
@@ -978,9 +978,9 @@
                         name: rotcelloc.translate('All')
                 }]
             };
-            for (var groupI in rotcelloc.data.config.collections[rotcelloc.pagetype].sources)
+            for (let groupI in rotcelloc.data.config.collections[rotcelloc.pagetype].sources)
             {
-                var group = rotcelloc.data.config.collections[rotcelloc.pagetype].sources[groupI];
+                let group = rotcelloc.data.config.collections[rotcelloc.pagetype].sources[groupI];
                 groupButtons.buttons.push({
                         id: 'groups_'+groupI,
                         value: group.bSource ,
@@ -988,16 +988,16 @@
                         name: group.name
                 });
             }
-            var genreButtons = {
+            let genreButtons = {
                 id: 'genre',
                 type: 'checkbox',
                 buttons: []
             };
             if(rotcelloc.workingMeta.genres && rotcelloc.workingMeta.genres.length)
             {
-                for(var genreN = 0; genreN < rotcelloc.workingMeta.genres.length; genreN++)
+                for(let genreN = 0; genreN < rotcelloc.workingMeta.genres.length; genreN++)
                 {
-                    var genre = rotcelloc.workingMeta.genres[genreN];
+                    let genre = rotcelloc.workingMeta.genres[genreN];
                     genreButtons.buttons.push({
                         id: 'genre_'+genre,
                         value: genre,
@@ -1005,16 +1005,16 @@
                     });
                 }
             }
-            var formatButtons = {
+            let formatButtons = {
                 id: 'format',
                 type: 'checkbox',
                 buttons: []
             };
             if(rotcelloc.workingMeta.formats && rotcelloc.workingMeta.formats.length)
             {
-                for(var formatN = 0; formatN < rotcelloc.workingMeta.formats.length; formatN++)
+                for(let formatN = 0; formatN < rotcelloc.workingMeta.formats.length; formatN++)
                 {
-                    var format = rotcelloc.workingMeta.formats[formatN];
+                    let format = rotcelloc.workingMeta.formats[formatN];
                     formatButtons.buttons.push({
                         id: 'format_'+format,
                         value: format,
@@ -1022,12 +1022,12 @@
                     });
                 }
             }
-            var hasMore = false;
+            let hasMore = false;
             if(groupButtons.buttons.length > 2 || genreButtons.buttons.length || formatButtons.buttons.length)
             {
                 hasMore = true;
             }
-            var html = '';
+            let html = '';
             html += '<div class="row">';
             html += '<div class="col-sm-2 form-inline row-padding">';
             if(hasMore)
@@ -1054,7 +1054,7 @@
             }
             if(genreButtons.buttons.length)
             {
-                var genreType = {
+                let genreType = {
                     id: 'genre_searchtype',
                     buttons: [
                         {
@@ -1107,8 +1107,8 @@
          */
         setPageTitle: function (add)
         {
-            var $title    = $('title');
-            var origTitle = $title.text();
+            let $title    = $('title');
+            let origTitle = $title.text();
             if($title.attr('orig-title'))
             {
                 origTitle = $title.attr('orig-title');
@@ -1121,10 +1121,10 @@
          */
         renderSelectElement: function (data)
         {
-            var html = '<select class="form-control" id="'+data.id+'">';
-            for(var buttonI = 0; buttonI < data.buttons.length; buttonI++)
+            let html = '<select class="form-control" id="'+data.id+'">';
+            for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
             {
-                var button = data.buttons[buttonI];
+                let button = data.buttons[buttonI];
                 html += '<option data-value="'+button.value+'"'+(button.active ? ' selected' : '' )+'>'+button.name+'</option>';
             }
             html += '</select>';
@@ -1135,17 +1135,17 @@
          */
         renderRadioOrCheckButtons: function (data)
         {
-            var html = '',
+            let html = '',
                 type = 'radio';
             if(data.type == 'checkbox')
             {
                 type = 'checkbox';
             }
-            var htmlClass = 'btn-group';
-            var allText = '';
-            for(var buttonI = 0; buttonI < data.buttons.length; buttonI++)
+            let htmlClass = 'btn-group';
+            let allText = '';
+            for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
             {
-                var button = data.buttons[buttonI];
+                let button = data.buttons[buttonI];
                 html += '<label class="btn btn-primary';
                 if(button.active)
                 {
@@ -1165,7 +1165,7 @@
                 html +='</label>';
                 allText += button.name;
             }
-            var avgLength = allText.length/data.buttons.length;
+            let avgLength = allText.length/data.buttons.length;
             if( ( allText.length > 115 && avgLength < 9.5) || allText.length > 140 || data.buttons.length > 25)
             {
                 htmlClass += ' btn-group-xs';
