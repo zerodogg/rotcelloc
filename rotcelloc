@@ -661,7 +661,7 @@ class movieCollection extends collectionType
         let theURL   = this.getPoster(collectionEntry);
         if(!theURL)
         {
-            theURL = 'missing.png';
+            return;
         }
         collectionEntry.poster = encodeURIComponent(path.basename(theURL));
     }
@@ -1352,20 +1352,14 @@ class gameCollection extends collectionType
     // Adds a poster to a collection entry
     addPosterToItem (collectionEntry)
     {
-        let theURL;
         if(collectionEntry.poster)
         {
             let ckey = getCacheID(collectionEntry,'game');
             if (helper.downloadAndCacheURL(collectionEntry.poster,ckey,collectionEntry))
             {
-                theURL = collectionEntry.poster;
+                collectionEntry.poster = encodeURIComponent(path.basename(collectionEntry.poster));
             }
         }
-        else
-        {
-            theURL = 'missing.png';
-        }
-        collectionEntry.poster = encodeURIComponent(path.basename(theURL));
     }
 
     getPosterURLFromData(collectionItem,metadata)
@@ -2182,12 +2176,12 @@ class bookCollection extends collectionType
             // we can use (it's a complete black image)
             if(fs.statSync(helper.resolveOutPath('.images/orig/'+data.poster)).size < 1000)
             {
-                data.poster = 'missing.png';
+                data.poster = undefined;
             }
         }
         else
         {
-            data.poster = 'missing.png';
+            data.poster = undefined;
         }
     }
 }
@@ -2878,7 +2872,6 @@ var core = {
             { 'path': 'src/rotcelloc.js' },
             { 'path': 'src/template.ejs' },
             { 'path': 'src/style.css.scss' },
-            { 'path': 'src/images/missing.png' },
             { 'path': 'tools/gogExporterBookmarklet.js' },
             { 'path': 'tools/imdbConvert' }
         ];
@@ -3042,8 +3035,6 @@ var webappGen = {
         printv(3,'Copying images...');
         // Copies the downloaded posters
         child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=orig/', helper.resolveOutPath('.images/'), helper.resolveOutPath('./out/images/') ]);
-        // Copies the "missing" image
-        child_process.execFileSync('rsync', [ '-a',helper.resolvePath('src/images/'), helper.resolveOutPath('./out/images/') ]);
         // Copy .gitignore if neded
         if (!fs.existsSync(helper.resolveOutPath('.gitignore')))
         {

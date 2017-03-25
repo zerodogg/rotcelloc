@@ -120,6 +120,48 @@
             });
         },
         /*
+         * Render cover
+         */
+        renderCover: function(entry)
+        {
+            if(!entry.poster)
+            {
+                return this.generateCover(entry);
+            }
+            return '<div class="poster"><img src="images/'+entry.poster+'" alt="" class="img-responsive img-rounded" /></div>';
+        },
+        /*
+         * Generate a cover
+         */
+        generateCover: function(entry)
+        {
+            let coverHTML = '<div class="poster img-rounded poster-generated text-center">';
+            coverHTML += '<h1>'+entry.title+'</h1>';
+            let secondaryText,tietaryText;
+            if(entry.author)
+            {
+                secondaryText = entry.author;
+            }
+            else if (entry.seasons)
+            {
+                secondaryText = seasons;
+            }
+            if(entry.publisher)
+            {
+                tietaryText = entry.publisher;
+            }
+            if(secondaryText !== undefined)
+            {
+                coverHTML += '<h4>'+secondaryText+'</h4>';
+            }
+            if(tietaryText !== undefined)
+            {
+                coverHTML += '<i>'+tietaryText+'</i>';
+            }
+            coverHTML += '</div>';
+            return coverHTML;
+        },
+        /*
          * Renders a result set
          */
         renderResults: function(result)
@@ -144,7 +186,7 @@
 
                 var movie = result[movieI];
 
-                var html = '<div class="col-entry" id="colEntryNo_'+movie.id+'"><div class="poster"><img src="images/'+movie.poster+'" alt="" class="img-responsive img-rounded" /></div>';
+                var html = '<div class="col-entry" id="colEntryNo_'+movie.id+'">'+this.renderCover(movie);
                 html += '<div class="description"><h3>'+movie.title;
                 if(movie.year)
                 {

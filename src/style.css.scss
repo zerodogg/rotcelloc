@@ -44,6 +44,26 @@ body
     {
         margin-top:1em;
     }
+    .poster-generated
+    {
+        overflow:hidden;
+        overflow-wrap: break-word;
+        hyphens:auto;
+        background-color:#cccccc;
+        h1
+        {
+            padding-top:1.5em;
+            min-height:7em;
+            padding-bottom:1em;
+            font-weight:bold;
+        }
+        h1,h2,h3,h4,h5
+        {
+            margin-top:0px;
+            padding-left:0.5em;
+            padding-right:0.5em;
+        }
+    }
     .plot
     {
         font-style:italic;
