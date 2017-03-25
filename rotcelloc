@@ -494,6 +494,7 @@ class collectionType
             poster: true,
             plot: true,
             id: true,
+            genre: true,
             type: true
         };
         if(this._includedEntryData && !commander.includeDebug)
