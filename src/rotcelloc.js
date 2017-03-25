@@ -120,6 +120,48 @@
             });
         },
         /*
+         * Render cover
+         */
+        renderCover: function(entry)
+        {
+            if(!entry.poster)
+            {
+                return this.generateCover(entry);
+            }
+            return '<div class="poster"><img src="images/'+entry.poster+'" alt="" class="img-responsive img-rounded" /></div>';
+        },
+        /*
+         * Generate a cover
+         */
+        generateCover: function(entry)
+        {
+            let coverHTML = '<div class="poster img-rounded poster-generated text-center">';
+            coverHTML += '<h1>'+entry.title+'</h1>';
+            let secondaryText,tietaryText;
+            if(entry.author)
+            {
+                secondaryText = entry.author;
+            }
+            else if (entry.seasons)
+            {
+                secondaryText = seasons;
+            }
+            if(entry.publisher)
+            {
+                tietaryText = entry.publisher;
+            }
+            if(secondaryText !== undefined)
+            {
+                coverHTML += '<h4>'+secondaryText+'</h4>';
+            }
+            if(tietaryText !== undefined)
+            {
+                coverHTML += '<i>'+tietaryText+'</i>';
+            }
+            coverHTML += '</div>';
+            return coverHTML;
+        },
+        /*
          * Renders a result set
          */
         renderResults: function(result)
@@ -144,13 +186,17 @@
 
                 let movie = result[movieI];
 
-                let html = '<div class="col-entry" id="colEntryNo_'+movie.id+'"><div class="poster"><img src="images/'+movie.poster+'" alt="" class="img-responsive img-rounded" /></div>';
+                var html = '<div class="col-entry" id="colEntryNo_'+movie.id+'">'+this.renderCover(movie);
                 html += '<div class="description"><h3>'+movie.title;
                 if(movie.year)
                 {
                     html += ' ('+movie.year+')';
                 }
                 html += '</h3>';
+                if(movie.author)
+                {
+                    html += '<div class="title-author"><div class="meta-label">'+movie.author+'</div></div>';
+                }
                 if(movie.seasons)
                 {
                     html += '<div class="seasons"><div class="meta-label">'+rotcelloc.translate('Seasons')+':</div> '+movie.seasons+'</div>';
@@ -286,6 +332,9 @@
                         return data.imdbRating+'/10 ('+data.imdbVotes+' '+rotcelloc.translate('votes'  )+')';
                     }
                 },
+                'isbn':{
+                    'label':rotcelloc.translate('ISBN'),
+                },
                 'format':{
                     'label':rotcelloc.translate('Format'),
                 }
@@ -344,6 +393,21 @@
                 html += '<a target="_blank" href="'+imdbURL+'">IMDB</a>';
                 html += ', ';
                 html += '<a target="_blank" href="https://www.themoviedb.org/search/'+( rotcelloc.workingMeta.type == 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
+            }
+            else if(data.type == 'books')
+            {
+                let openLibraryLink = data.openliblink;
+                if(data.openliblink === undefined)
+                {
+                    openLibraryLink = 'https://openlibrary.org/search?q='+data.isbn;
+                }
+                html += '<a target="_blank" href="'+openLibraryLink+'">OpenLibrary</a>, ';
+                html += '<a target="_blank" href="https://www.goodreads.com/search?utf8=%E2%9C%93&query='+data.isbn+'">Goodreads</a>, ';
+                html += '<a target="_blank" href="https://www.librarything.com/search.php?search='+data.isbn+'&searchtype=38&searchtype=38&sortchoice=0">LibraryThing</a>';
+            }
+            else
+            {
+                warn('Unknown/unhandled type: '+data.type);
             }
             // Add a trailer link (to YouTube) if the type is something where a
             // trailer makes sense

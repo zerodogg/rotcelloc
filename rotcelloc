@@ -69,6 +69,8 @@ try
         CSON          = require('cson'),
         // Used for hasing
         crypto        = require('crypto'),
+        // Used to fetch book metadata
+        isbn          = require('node-isbn'),
         // Used to compile the client-side JS
         babel         = require('babel-core');
 }
@@ -139,6 +141,10 @@ class rotcellocCache
         {
             this._persistCache.gameMeta = {};
         }
+        if (!this._persistCache.bookMeta || commander.expireMeta)
+        {
+            this._persistCache.bookMeta = {};
+        }
         if (!this._persistCache.steamMeta || commander.expireMeta)
         {
             this._persistCache.steamMeta = {};
@@ -146,6 +152,10 @@ class rotcellocCache
         if (!this._persistCache.arbitrary || commander.expireMeta)
         {
             this._persistCache.arbitrary = {};
+        }
+        if (!this._persistCache.externalAPI || commander.expireMeta)
+        {
+            this._persistCache.externalAPI = {};
         }
         if (!this._persistCache._meta)
         {
@@ -169,10 +179,39 @@ class rotcellocCache
         {
             throw('Attempt to set() to unknown cache type: '+cacheType);
         }
+        if(content === undefined)
+        {
+            content = null;
+        }
         this._persistCache[cacheType][ckey] = _.cloneDeep(content);
         this.bumpAccessTime(cacheType,ckey);
         this._writesSinceFlush++;
         this.autoWrite();
+    }
+
+    exists(cacheType,ckey)
+    {
+        if(this._persistCache[cacheType] === undefined)
+        {
+            throw('Attempt to exists() with unknown cache type: '+cacheType);
+        }
+        return this._persistCache[cacheType][ckey] !== undefined;
+    }
+
+    // This works like exists() but if commander.retryMiss is true it will
+    // consider keys that exist but whose values are null as if they don't
+    // exist.
+    existsNotMiss(cacheType,ckey)
+    {
+        if(!commander.retryMiss)
+        {
+            return this.exists(cacheType,ckey);
+        }
+        if(this.exists(cacheType,ckey) && this.get(cacheType,ckey) === null)
+        {
+            return false;
+        }
+        return true;
     }
 
     /*
@@ -301,12 +340,12 @@ class rotcellocCache
                 // 100800 seconds = four weeks
                 if (this._persistCache._meta[accessKey] === undefined || (now-this._persistCache._meta[accessKey]) >= 100800)
                 {
+                    this._writesSinceFlush++;
                     printv(7,'Removed expired cache entry of type '+type+' for '+entry);
                     delete result[entry];
                 }
             }
         }
-        this._writesSinceFlush++;
     }
 }
 
@@ -326,6 +365,7 @@ class collectionType
         this._curSource = null;
         this._meta = {
             sourceToNameMap: {},
+            fields: {},
             type: this._entry.type
         };
         if(this.initialize)
@@ -509,6 +549,7 @@ class collectionType
         }
         this.addStaticMetadataToItem(collItem);
         this.addMetadataTo(collItem);
+        this.storeFieldBools(collItem);
         this.addPosterToItem(collItem);
     }
 
@@ -543,12 +584,60 @@ class collectionType
         return this.finalizeCollection(entries);
     }
 
+    /*
+     * Sets booleans for fields. Reads fields from "entry" and stashes it into
+     * meta.fields.[]
+     */
+    storeFieldBools (entry)
+    {
+        for(let field in entry)
+        {
+            this._meta.fields[field] = true;
+        }
+    }
+
     // Output a warning
     warn(message)
     {
         // FIXME: This should provide information about the entry that's being processed
         // so that the user can find it
         printv(0,'Warning: (unknown location): '+message);
+    }
+
+    /*
+     * Convers thing into an array if it isn't already
+     */
+    mustBeArray(thing)
+    {
+        if (!_.isArray(thing))
+        {
+            return [ thing ];
+        }
+        return thing;
+    }
+
+    /*
+     * Converts thing to a string if it isn't already
+     */
+    mustBeString(thing)
+    {
+        if(thing === undefined)
+        {
+            return thing;
+        }
+        if (_.isArray(thing))
+        {
+            return thing.join(', ');
+        }
+        if(typeof(thing) != "string")
+        {
+            if(thing.toString)
+            {
+                return thing.toString();
+            }
+            throw('Unable to ensure that "'+thing+'" is a string');
+        }
+        return thing;
     }
 }
 
@@ -572,7 +661,7 @@ class movieCollection extends collectionType
         let theURL   = this.getPoster(collectionEntry);
         if(!theURL)
         {
-            theURL = 'missing.png';
+            return;
         }
         collectionEntry.poster = encodeURIComponent(path.basename(theURL));
     }
@@ -678,11 +767,18 @@ class movieCollection extends collectionType
     submitMovieArtRequest (mTitle,year,type)
     {
         let url;
+        let identifier = 'movieArt::'+mTitle+','+year+','+type;
+        let cached = cache.get('externalAPI',identifier);
+        if(cached !== undefined)
+        {
+            return cached;
+        }
         printv(5,'Submitting request to movieArt: '+mTitle+','+year+','+type);
         try
         {
             url = wait.for(movieArt,mTitle,year,null,type);
         } catch(e) {}
+        cache.set(url,'externalAPI',identifier);
         return url;
     }
 
@@ -874,7 +970,6 @@ class movieCollection extends collectionType
                 }
             }
         }
-        helper.storeFieldBools(collectionEntry,this._meta);
     }
 
     // Fetches metadata from a source for an entry
@@ -1032,9 +1127,10 @@ class movieCollection extends collectionType
             return cb('t+i are null');
         }
         let serialish = url+JSON.stringify(requestQuery);
-        if(runtimeCache[serialish])
+        let cached = cache.get('externalAPI',serialish);
+        if(cached !== undefined)
         {
-            cb(null,_.clone(runtimeCache[serialish],true));
+            cb(null,_.clone(cached,true));
             return;
         }
         printv(4,'Performing OMDB request: '+ (requestQuery.t ? requestQuery.t : requestQuery.i ));
@@ -1048,7 +1144,7 @@ class movieCollection extends collectionType
                     try
                     {
                         res = JSON.parse(res.body);
-                        runtimeCache[serialish] = _.clone(res,true);
+                        cache.set(res,'externalAPI',serialish);
                     }
                     catch(e)
                     {
@@ -1250,27 +1346,20 @@ class gameCollection extends collectionType
         }
         collItem.poster   = this.getPosterURLFromData(collItem,meta);
         collItem.type     = 'game';
-        helper.storeFieldBools(collItem,this._meta);
         collItem.normalizedTitle = this.performNameReplacements(helper.normalizeTitle( collItem.origTitle ? collItem.origTitle : collItem.title ));
     }
 
     // Adds a poster to a collection entry
     addPosterToItem (collectionEntry)
     {
-        let theURL;
         if(collectionEntry.poster)
         {
             let ckey = getCacheID(collectionEntry,'game');
             if (helper.downloadAndCacheURL(collectionEntry.poster,ckey,collectionEntry))
             {
-                theURL = collectionEntry.poster;
+                collectionEntry.poster = encodeURIComponent(path.basename(collectionEntry.poster));
             }
         }
-        else
-        {
-            theURL = 'missing.png';
-        }
-        collectionEntry.poster = encodeURIComponent(path.basename(theURL));
     }
 
     getPosterURLFromData(collectionItem,metadata)
@@ -1389,7 +1478,7 @@ class gameCollection extends collectionType
                     apiLimiter = 0;
                     printv(2,'Sleeping 10 seconds to avoid Steam API limits.');
                     printv(1,'Status: processed '+ (i + 1)+' of '+games.length+' games for '+name);
-                    cache.write();
+                    cache.flushIfNeeded();
                     helper.sleep(10);
                 }
                 let data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
@@ -1411,7 +1500,7 @@ class gameCollection extends collectionType
                 {
                     errLimit++;
                     i--;
-                    cache.write();
+                    cache.flushIfNeeded();
                     if(errLimit > 5)
                     {
                         printv(1,'Aborting Steam retrieval for now, error limit exceeded.');
@@ -1961,7 +2050,7 @@ class gameCollection extends collectionType
     }
 
     /*
-     * Constracts a request for GD
+     * Constructs a request for GD
      */
     TGD_request(call,parameters)
     {
@@ -1985,9 +2074,10 @@ class gameCollection extends collectionType
      */
     XMLtoJSONRequest(url)
     {
-        if(runtimeCache[url])
+        let cached = cache.get('externalAPI',url);
+        if(cached !== undefined)
         {
-            return _.clone(runtimeCache[url],true);
+            return _.clone(cached,true);
         }
         printv(4,'Performing XMLtoJSONRequest to: '+url);
         let data;
@@ -2009,48 +2099,104 @@ class gameCollection extends collectionType
             return;
         }
         let result = JSON.parse(data);
-        runtimeCache[url] = _.clone(result,true);
+        cache.set(result,'externalAPI',url);
         return result;
     }
+}
 
-    /*
-     * Convers thing into an array if it isn't already
-     *
-     * FIXME: This should be moved to the parent class
-     */
-    mustBeArray(thing)
+/*
+ * This is the API that generates the collection with metadata and posters for
+ * a book collection
+ */
+class bookCollection extends collectionType
+{
+    // Parent constructor will call initialize for us after it has done the construction
+    initialize ()
     {
-        if (!_.isArray(thing))
+        Object.assign(this._meta,
         {
-            return [ thing ];
-        }
-        return thing;
+            genres: []
+        });
     }
 
-    /*
-     * Converts thing to a string if it isn't already
-     *
-     * FIXME: This should be moved to the parent class
-     */
-    mustBeString(thing)
+    addMetadataTo (data)
     {
-        if(thing === undefined)
+        if (!data.isbn)
         {
-            return thing;
+            console.log('Skipping entry due to missing ISBN: '+JSON.stringify(data));
+            return;
         }
-        if (_.isArray(thing))
+        let remote = this.getMetadataFor(data);
+        if(remote)
         {
-            return thing.join(', ');
-        }
-        if(typeof(thing) != "string")
-        {
-            if(thing.toString)
+            let fieldRemapOrCopy = {
+                'description':'description',
+                'publishedDate':'published',
+                'pageCount':'pages',
+                'infoLink':'openliblink',
+                'publisher':'publisher'
+            };
+            for (let source in fieldRemapOrCopy)
             {
-                return thing.toString();
+                let targetName = fieldRemapOrCopy[source];
+                if (!data[targetName] && remote[source])
+                {
+                    data[targetName] = remote[source];
+                }
             }
-            throw('Unable to ensure that "'+thing+'" is a string');
+            if (!data.author && remote.authors)
+            {
+                data.author = this.mustBeString(remote.authors);
+            }
         }
-        return thing;
+        if(data.genre)
+        {
+            this._meta.genres = this._meta.genres.concat(data.genre.split(/,\s*/));
+        }
+    }
+
+    getMetadataFor(data)
+    {
+        let ckey = getCacheID(data.isbn,'book');
+        let remote;
+        if(cache.existsNotMiss('bookMeta',ckey))
+        {
+            remote = cache.get('bookMeta',ckey);
+        }
+        else
+        {
+            printv(4,'Performing metadata request for ISBN '+data.isbn);
+            try
+            {
+                remote = wait.for(isbn.resolve,data.isbn);
+            }
+            catch (e) {}
+            cache.set(remote,'bookMeta',ckey);
+        }
+        return remote;
+    }
+
+    addPosterToItem (data)
+    {
+        // FIXME: Try to find an image in 'data' first
+        let posterID = data.isbn;
+        posterID.replace(/-/g,'');
+        let ckey = getCacheID(data.isbn,'bookPoster');
+        let file = helper.downloadAndCacheURL('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',ckey,data);
+        if(file)
+        {
+            data.poster = posterID+'-L.jpg';
+            // If the file is tiny that means that it's not actually a poster
+            // we can use (it's a complete black image)
+            if(fs.statSync(helper.resolveOutPath('.images/orig/'+data.poster)).size < 1000)
+            {
+                data.poster = undefined;
+            }
+        }
+        else
+        {
+            data.poster = undefined;
+        }
     }
 }
 
@@ -2101,8 +2247,12 @@ var helper = {
      */
     remapCSVFields: function (content)
     {
+        // FIXME: This should be translateable in other languages
         let map = {
             'Tittel':'title',
+            'Forfattar':'author',
+            'Forfatter':'author',
+            'Forlag':'publisher',
             'Namn':'title',
             'Plattform':'platform',
             'Sesongar':'seasons',
@@ -2309,9 +2459,9 @@ var helper = {
                 }
             }
         }
-        if (!cache.get('fileMap',path.basename(cache.get('URLs',ckey))))
+        if (!cache.get('fileMap',path.basename(url)))
         {
-            cache.set(url,'fileMap',path.basename(cache.get('URLs',ckey)));
+            cache.set(url,'fileMap',path.basename(url));
         }
         return true;
     },
@@ -2442,17 +2592,6 @@ var helper = {
                 setTimeout(function() { cb(); }, sleepTime);
         });
     },
-    /*
-     * Sets booleans for fields. Reads fields from "entry" and stashes it into
-     * meta.fields.[]
-     */
-    storeFieldBools: function (entry, meta)
-    {
-        for(let field in entry)
-        {
-            meta.fields[field] = true;
-        }
-    },
 
     /*
      * Retrieve a checksum
@@ -2475,9 +2614,6 @@ var core = {
      */
     writeOutResult: function (groupMeta,groupData,groupNo,name,config,results)
     {
-        groupMeta.genres.sort();
-        groupMeta.genres = _.uniq(groupMeta.genres,true);
-
         let dataset = {
             i18n: i18n.strings,
             config: config,
@@ -2533,6 +2669,11 @@ var core = {
                 let handler = new gameCollection(groupConf,name,groupNo);
                 result = handler.generateDatastructure();
             }
+            else if(groupConf.type == 'books')
+            {
+                let handler = new bookCollection(groupConf,name,groupNo);
+                result = handler.generateDatastructure();
+            }
             else
             {
                 throw('Unhandled group type: '+groupConf.type+' for '+groupConf.name);
@@ -2549,7 +2690,7 @@ var core = {
             core.writeOutResult(entry.result.meta, entry.result.data, entry.groupNo, entry.name, entry.config, results);
         }
         cache.autoExpireOutdatedEntries();
-        cache.write();
+        cache.flushIfNeeded();
     },
     /*
      * Expires unused entries from the database. Will perform a database
@@ -2627,7 +2768,7 @@ var core = {
                 }
             }
         }
-        cache.write();
+        cache.flushIfNeeded();
     },
     /*
      * Verifies command-line dependencies
@@ -2746,7 +2887,6 @@ var core = {
             { 'path': 'src/rotcelloc.js' },
             { 'path': 'src/template.ejs' },
             { 'path': 'src/style.css.scss' },
-            { 'path': 'src/images/missing.png' },
             { 'path': 'tools/gogExporterBookmarklet.js' },
             { 'path': 'tools/imdbConvert' }
         ];
@@ -2910,8 +3050,6 @@ var webappGen = {
         printv(3,'Copying images...');
         // Copies the downloaded posters
         child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=orig/', helper.resolveOutPath('.images/'), helper.resolveOutPath('./out/images/') ]);
-        // Copies the "missing" image
-        child_process.execFileSync('rsync', [ '-a',helper.resolvePath('src/images/'), helper.resolveOutPath('./out/images/') ]);
         // Copy .gitignore if neded
         if (!fs.existsSync(helper.resolveOutPath('.gitignore')))
         {
@@ -2934,7 +3072,6 @@ var webappGen = {
         {
             throw('Failed to compile rotcelloc.js with babel: '+e.message);
         }
-        console.log(babelified.code);
         try
         {
             uglified = UglifyJS.minify({ 'rotcelloc.js':babelified.code},{
@@ -2971,27 +3108,38 @@ var webappGen = {
 function getCacheID (entry,type,opts)
 {
     let ckey = '';
-    if(type === undefined)
+    if(typeof(entry) == 'object')
     {
-        type = entry.type;
-    }
-    if(entry.origTitle)
-    {
-        ckey = entry.origTitle;
-    }
-    else if(entry.title)
-    {
-        ckey = entry.title;
+        if(type === undefined)
+        {
+            type = entry.type;
+        }
+        if(entry.origTitle)
+        {
+            ckey = entry.origTitle;
+        }
+        else if(entry.title)
+        {
+            ckey = entry.title;
+        }
+        else
+        {
+            ckey = entry.name;
+        }
+        if(entry.altTitle)
+        {
+            ckey += '//'+entry.altTitle;
+        }
+        ckey += '//'+entry.year;
     }
     else
     {
-        ckey = entry.name;
+        if(type === undefined)
+        {
+            type = 'unknown';
+        }
+        ckey = entry;
     }
-    if(entry.altTitle)
-    {
-        ckey += '//'+entry.altTitle;
-    }
-    ckey += '//'+entry.year;
     if(type == 'series')
     {
         ckey += 'tvserie';
@@ -3007,6 +3155,10 @@ function getCacheID (entry,type,opts)
         {
             ckey += '//steam-'+entry.steamID;
         }
+    }
+    else if(type !== undefined)
+    {
+        ckey += '//'+type;
     }
     if(runtimeCache._cacheReads)
     {
@@ -3039,6 +3191,15 @@ function printv(reqVerb,message)
  */
 function main()
 {
+    // Handle SIGINT
+    process.on('SIGINT', () => {
+            console.log('Received SIGINT, flushing cache and exiting.');
+            if(cache !== undefined && cache.flushIfNeeded)
+            {
+                cache.flushIfNeeded();
+            }
+            process.exit(9);
+    });
     try
     {
         packageJSON = JSON.parse(fs.readFileSync(helper.resolvePath('package.json')));
