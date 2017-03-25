@@ -2110,6 +2110,15 @@ class gameCollection extends collectionType
  */
 class bookCollection extends collectionType
 {
+    // Parent constructor will call initialize for us after it has done the construction
+    initialize ()
+    {
+        Object.assign(this._meta,
+        {
+            genres: []
+        });
+    }
+
     addMetadataTo (data)
     {
         if (!data.isbn)
@@ -2125,6 +2134,7 @@ class bookCollection extends collectionType
                 'publishedDate':'published',
                 'pageCount':'pages',
                 'infoLink':'openliblink',
+                'publisher':'publisher'
             };
             for (let source in fieldRemapOrCopy)
             {
@@ -2138,6 +2148,10 @@ class bookCollection extends collectionType
             {
                 data.author = this.mustBeString(remote.authors);
             }
+        }
+        if(data.genre)
+        {
+            this._meta.genres = this._meta.genres.concat(data.genre.split(/,\s*/));
         }
     }
 
@@ -2238,6 +2252,7 @@ var helper = {
             'Tittel':'title',
             'Forfattar':'author',
             'Forfatter':'author',
+            'Forlag':'publisher',
             'Namn':'title',
             'Plattform':'platform',
             'Sesongar':'seasons',

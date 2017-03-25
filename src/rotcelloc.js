@@ -193,6 +193,10 @@
                     html += ' ('+movie.year+')';
                 }
                 html += '</h3>';
+                if(movie.author)
+                {
+                    html += '<div class="title-author"><div class="meta-label">'+movie.author+'</div></div>';
+                }
                 if(movie.seasons)
                 {
                     html += '<div class="seasons"><div class="meta-label">'+rotcelloc.translate('Seasons')+':</div> '+movie.seasons+'</div>';
@@ -208,10 +212,6 @@
                 if(movie.genre)
                 {
                     html += '<div class="title-format"><div class="meta-label">'+rotcelloc.translate('Genre')+':</div> '+movie.genre+'</div>';
-                }
-                if(movie.author)
-                {
-                    html += '<div class="title-author"><div class="meta-label">'+movie.author+'</div>';
                 }
                 html += '<div class="showMoreLink"><a href="#" onclick="rotcelloc.showMore('+movie.id+'); return false;">'+rotcelloc.translate('Show more information')+'</a></div><div class="showMore collapse"></div>';
                 html += '</div></div>';
