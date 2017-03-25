@@ -179,41 +179,41 @@
                 htmlContent = [];
                 cols = 0;
             };
-            for(let movieI = 0; movieI < result.length; movieI++)
+            for(let entryI = 0; entryI < result.length; entryI++)
             {
                 cols++;
                 entriesNoTracker++;
 
-                let movie = result[movieI];
+                let entry = result[entryI];
 
-                var html = '<div class="col-entry" id="colEntryNo_'+movie.id+'">'+this.renderCover(movie);
-                html += '<div class="description"><h3>'+movie.title;
-                if(movie.year)
+                var html = '<div class="col-entry" id="colEntryNo_'+entry.id+'">'+this.renderCover(entry);
+                html += '<div class="description"><h3>'+entry.title;
+                if(entry.year)
                 {
-                    html += ' ('+movie.year+')';
+                    html += ' ('+entry.year+')';
                 }
                 html += '</h3>';
-                if(movie.author)
+                if(entry.author)
                 {
-                    html += '<div class="title-author"><div class="meta-label">'+movie.author+'</div></div>';
+                    html += '<div class="title-author"><div class="meta-label">'+entry.author+'</div></div>';
                 }
-                if(movie.seasons)
+                if(entry.seasons)
                 {
-                    html += '<div class="seasons"><div class="meta-label">'+rotcelloc.translate('Seasons')+':</div> '+movie.seasons+'</div>';
+                    html += '<div class="seasons"><div class="meta-label">'+rotcelloc.translate('Seasons')+':</div> '+entry.seasons+'</div>';
                 }
-                if(movie.origTitle && movie.origTitle != movie.title)
+                if(entry.origTitle && entry.origTitle != entry.title)
                 {
-                    html += '<div class="original-title"><div class="meta-label">'+rotcelloc.translate('Original title')+':</div> '+movie.origTitle+'</div>';
+                    html += '<div class="original-title"><div class="meta-label">'+rotcelloc.translate('Original title')+':</div> '+entry.origTitle+'</div>';
                 }
-                if(movie.disneyClassicNo)
+                if(entry.disneyClassicNo)
                 {
-                    html += '<div class="disney-number"><div class="meta-label">'+rotcelloc.translate('Disney classics no.')+':</div> '+movie.disneyClassicNo+'</div>';
+                    html += '<div class="disney-number"><div class="meta-label">'+rotcelloc.translate('Disney classics no.')+':</div> '+entry.disneyClassicNo+'</div>';
                 }
-                if(movie.genre)
+                if(entry.genre)
                 {
-                    html += '<div class="title-format"><div class="meta-label">'+rotcelloc.translate('Genre')+':</div> '+movie.genre+'</div>';
+                    html += '<div class="title-format"><div class="meta-label">'+rotcelloc.translate('Genre')+':</div> '+entry.genre+'</div>';
                 }
-                html += '<div class="showMoreLink"><a href="#" onclick="rotcelloc.showMore('+movie.id+'); return false;">'+rotcelloc.translate('Show more information')+'</a></div><div class="showMore collapse"></div>';
+                html += '<div class="showMoreLink"><a href="#" onclick="rotcelloc.showMore('+entry.id+'); return false;">'+rotcelloc.translate('Show more information')+'</a></div><div class="showMore collapse"></div>';
                 html += '</div></div>';
 
                 htmlContent.push(html);
