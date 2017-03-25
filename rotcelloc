@@ -672,6 +672,42 @@ class collectionType
         }
         return thing;
     }
+
+    /*
+     * Performs a HTTP request that returns XML and then converts it to a
+     * JSON-style object.
+     *
+     */
+    XMLtoJSONRequest(url)
+    {
+        let cached = cache.get('externalAPI',url);
+        if(cached !== undefined)
+        {
+            return _.clone(cached,true);
+        }
+        printv(4,'Performing XMLtoJSONRequest to: '+url);
+        let data;
+        try
+        {
+            data = wait.forMethod(httpreq,'get',url);
+        }
+        catch(e)
+        {
+            printv(1,'Got error while performing an XMLtoJSONRequest to "'+url+'": '+e.message);
+        }
+        try
+        {
+            data = xml2json.toJson(data.body);
+        }
+        catch(e)
+        {
+            // Errors might mean malformed XML, just return nothing
+            return;
+        }
+        let result = JSON.parse(data);
+        cache.set(result,'externalAPI',url);
+        return result;
+    }
 }
 
 class movieCollection extends collectionType
@@ -2069,43 +2105,6 @@ class gameCollection extends collectionType
         }
         rqURL += finalParams.join('&');
         result = this.XMLtoJSONRequest(rqURL);
-        return result;
-    }
-
-    /*
-     * Performs a HTTP request that returns XML and then converts it to a
-     * JSON-style object.
-     *
-     * FIXME: This should be moved to the parent class
-     */
-    XMLtoJSONRequest(url)
-    {
-        let cached = cache.get('externalAPI',url);
-        if(cached !== undefined)
-        {
-            return _.clone(cached,true);
-        }
-        printv(4,'Performing XMLtoJSONRequest to: '+url);
-        let data;
-        try
-        {
-            data = wait.forMethod(httpreq,'get',url);
-        }
-        catch(e)
-        {
-            printv(1,'Got error while performing an XMLtoJSONRequest to "'+url+'": '+e.message);
-        }
-        try
-        {
-            data = xml2json.toJson(data.body);
-        }
-        catch(e)
-        {
-            // Errors might mean malformed XML, just return nothing
-            return;
-        }
-        let result = JSON.parse(data);
-        cache.set(result,'externalAPI',url);
         return result;
     }
 }
