@@ -807,12 +807,16 @@
             let sorted = false;
             if(query.order)
             {
-                let orderByOptionalField = function (optField)
+                let orderByOptionalField = function (optField,orderType)
                 {
                     return function (a,b)
                     {
                         if(a[optField] && b[optField] && a[optField] != b[optField])
                         {
+                            if(orderType == 'text')
+                            {
+                                return a[optField].localeCompare(b[optField]);
+                            }
                             return b[optField] - a[optField];
                         }
                         if(a[optField] && !b[optField])
@@ -841,7 +845,16 @@
                 else if(query.order == 'rating' || query.order == 'imdbRating' || query.order == 'metascore' || query.order == 'runtimeMin' || query.order == 'sortYear' || query.order == 'normalizedRating' || query.order == 'added')
                 {
                     sorted = true;
-                    results.sort( orderByOptionalField(query.order) );
+                    results.sort( orderByOptionalField(query.order,'numeric') );
+                }
+                else if (query.order == 'sortableAuthor')
+                {
+                    sorted = true;
+                    results.sort( orderByOptionalField(query.order,'text') );
+                }
+                else
+                {
+                    warn('Skipping sorting by unknown method: '+query.order);
                 }
             }
             if(sorted === false)
