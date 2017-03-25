@@ -2239,8 +2239,11 @@ var helper = {
      */
     remapCSVFields: function (content)
     {
+        // FIXME: This should be translateable in other languages
         let map = {
             'Tittel':'title',
+            'Forfattar':'author',
+            'Forfatter':'author',
             'Namn':'title',
             'Plattform':'platform',
             'Sesongar':'seasons',
