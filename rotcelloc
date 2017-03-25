@@ -471,8 +471,41 @@ class collectionType
         for (let collectionEntryI in data)
         {
             data[collectionEntryI].id = collectionEntryI;
+            this.filterUnusedDataFromEntry(data[collectionEntryI]);
         }
         return { 'data':data, 'meta':this.getFinalizedMetadata()};
+    }
+
+    // Removes extranious data from an entry
+    filterUnusedDataFromEntry(entry)
+    {
+        let alwaysIncluded = {
+            origTitle:true,
+            title: true,
+            year: true,
+            bSource: true,
+            altTitle: true,
+            contentType:true,
+            added: true,
+            normalizedTitle: true,
+            normalizedRating: true,
+            addedRaw: true,
+            sortYear: true,
+            poster: true,
+            plot: true,
+            id: true,
+            type: true
+        };
+        if(this._includedEntryData && !commander.includeDebug)
+        {
+            for (let field in entry)
+            {
+                if (!this._includedEntryData[field] && !alwaysIncluded[field])
+                {
+                    delete entry[field];
+                }
+            }
+        }
     }
 
     // Sort the final collection
@@ -653,6 +686,24 @@ class movieCollection extends collectionType
             enableNormalized: false,
             fields: {}
         });
+        this._includedEntryData = {
+            actors: true,
+            metascore: true,
+            imdbRating: true,
+            imdbVotes: true,
+            director: true,
+            writer: true,
+            genre: true,
+            runtime: true,
+            runtimeMin:true,
+            seasons: true,
+            format: true,
+            rating: true,
+            note: true,
+            disneyClassicNo: true,
+            imdbID: true,
+            watched: true,
+        };
     }
 
     // Adds a poster to a collection entry
@@ -925,51 +976,6 @@ class movieCollection extends collectionType
             collectionEntry.sortYear = parseInt(collectionEntry.year);
         }
         collectionEntry.normalizedTitle = helper.normalizeTitle( collectionEntry.origTitle ? collectionEntry.origTitle : collectionEntry.title );
-        // FIXME: This is ugly and really shouldn't be here. We should just have an array
-        // of included data and call some other method to clean up and then have that
-        // method decide if we actually want to clean or not.
-        if (!commander.includeDebug)
-        {
-            let includedData = {
-                year: true,
-                sortYear: true,
-                poster: true,
-                type: true,
-                bSource: true,
-                actors: true,
-                metascore: true,
-                imdbRating: true,
-                imdbVotes: true,
-                plot: true,
-                director: true,
-                writer: true,
-                genre: true,
-                runtime: true,
-                runtimeMin:true,
-                origTitle:true,
-                title: true,
-                seasons: true,
-                format: true,
-                rating: true,
-                note: true,
-                altTitle: true,
-                contentType:true,
-                disneyClassicNo: true,
-                imdbID: true,
-                watched: true,
-                added: true,
-                addedRaw: true,
-                normalizedTitle: true,
-                normalizedRating: true
-            };
-            for (let field in collectionEntry)
-            {
-                if (!includedData[field])
-                {
-                    delete collectionEntry[field];
-                }
-            }
-        }
     }
 
     // Fetches metadata from a source for an entry
@@ -2117,6 +2123,13 @@ class bookCollection extends collectionType
         {
             genres: []
         });
+        this._includedEntryData = {
+            'published':true,
+            'pages':true,
+            'openliblink':true,
+            'isbn':true,
+            'publisher':true
+        };
     }
 
     addMetadataTo (data)
@@ -2129,16 +2142,20 @@ class bookCollection extends collectionType
         let remote = this.getMetadataFor(data);
         if(remote)
         {
-            let fieldRemapOrCopy = {
-                'description':'description',
+            let fieldRemap = {
+                'description':'plot',
                 'publishedDate':'published',
                 'pageCount':'pages',
                 'infoLink':'openliblink',
                 'publisher':'publisher'
             };
-            for (let source in fieldRemapOrCopy)
+            for (let source in remote)
             {
-                let targetName = fieldRemapOrCopy[source];
+                let targetName = fieldRemap[source];
+                if(targetName !== undefined)
+                {
+                    targetName = source;
+                }
                 if (!data[targetName] && remote[source])
                 {
                     data[targetName] = remote[source];
