@@ -2128,6 +2128,7 @@ class bookCollection extends collectionType
             'openliblink':true,
             'isbn':true,
             'author':true,
+            'sortableAuthor':true,
             'publisher':true
         };
     }
@@ -2169,6 +2170,30 @@ class bookCollection extends collectionType
         if(data.genre)
         {
             this._meta.genres = this._meta.genres.concat(data.genre.split(/,\s*/));
+        }
+        if(data.author)
+        {
+            let prevAuthorValue;
+            let possibleAuthors = data.author.split(/\s+/);
+            let sortableAuthor = '';
+            for(let entry of possibleAuthors)
+            {
+                if(entry.substr(0,1) == entry.substr(0,1).toLowerCase())
+                {
+                    sortableAuthor += prevAuthorValue;
+                    continue;
+                }
+                else if(/\,$/.test(prevAuthorValue))
+                {
+                    sortableAuthor += prevAuthorValue;
+                }
+                prevAuthorValue = entry;
+            }
+            if(prevAuthorValue)
+            {
+                sortableAuthor += prevAuthorValue;
+            }
+            data.sortableAuthor = sortableAuthor;
         }
     }
 

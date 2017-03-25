@@ -925,8 +925,8 @@
             {
                 orderButtons.buttons.push(
                 {
-                    id: 'author',
-                    value: 'author',
+                    id: 'sortableAuthor',
+                    value: 'sortableAuthor',
                     name: rotcelloc.translate('Author')
                 });
             }
