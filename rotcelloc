@@ -340,12 +340,12 @@ class rotcellocCache
                 // 100800 seconds = four weeks
                 if (this._persistCache._meta[accessKey] === undefined || (now-this._persistCache._meta[accessKey]) >= 100800)
                 {
+                    this._writesSinceFlush++;
                     printv(7,'Removed expired cache entry of type '+type+' for '+entry);
                     delete result[entry];
                 }
             }
         }
-        this._writesSinceFlush++;
     }
 }
 
@@ -1478,7 +1478,7 @@ class gameCollection extends collectionType
                     apiLimiter = 0;
                     printv(2,'Sleeping 10 seconds to avoid Steam API limits.');
                     printv(1,'Status: processed '+ (i + 1)+' of '+games.length+' games for '+name);
-                    cache.write();
+                    cache.flushIfNeeded();
                     helper.sleep(10);
                 }
                 let data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
@@ -1500,7 +1500,7 @@ class gameCollection extends collectionType
                 {
                     errLimit++;
                     i--;
-                    cache.write();
+                    cache.flushIfNeeded();
                     if(errLimit > 5)
                     {
                         printv(1,'Aborting Steam retrieval for now, error limit exceeded.');
@@ -2690,7 +2690,7 @@ var core = {
             core.writeOutResult(entry.result.meta, entry.result.data, entry.groupNo, entry.name, entry.config, results);
         }
         cache.autoExpireOutdatedEntries();
-        cache.write();
+        cache.flushIfNeeded();
     },
     /*
      * Expires unused entries from the database. Will perform a database
@@ -2768,7 +2768,7 @@ var core = {
                 }
             }
         }
-        cache.write();
+        cache.flushIfNeeded();
     },
     /*
      * Verifies command-line dependencies
