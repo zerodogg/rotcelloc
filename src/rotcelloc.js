@@ -964,7 +964,7 @@
                     name: rotcelloc.translate('Random')
             });
 
-            if (rotcelloc.workingMeta.type != 'games')
+            if (rotcelloc.workingMeta.type == 'movies' || rotcelloc.workingMeta.type == 'series')
             {
                 orderButtons.buttons.push(
                 {
@@ -1002,7 +1002,7 @@
                         name: rotcelloc.translate('Metascore')
                     });
             }
-            if (rotcelloc.workingMeta.type != 'games')
+            if (rotcelloc.workingMeta.type == 'movies' || rotcelloc.workingMeta.type == 'series')
             {
                 orderButtons.buttons.push(
                     {
