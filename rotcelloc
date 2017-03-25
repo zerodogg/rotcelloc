@@ -2746,84 +2746,6 @@ var core = {
         cache.flushIfNeeded();
     },
     /*
-     * Expires unused entries from the database. Will perform a database
-     * construction first
-     */
-    performCacheExpiry: function ()
-    {
-        printv(1,'First generating database to get cache usage information ...');
-        // Reset verbosity so that we don't get a lot of messages while performing
-        // the database construction
-        let verbosity = commander.verbose;
-        commander.verbose = 0;
-        // Construct the database
-        core.constructDatabase();
-        // Reset the verbosity
-        commander.verbose = verbosity;
-
-        let cacheTypes = [ 'URLs', 'meta','gameMeta' ],
-            ckey;
-        printv(2,'Searching for and purging unused cache keys...');
-        for (let type of cacheTypes)
-        {
-            if(cache[type])
-            {
-                for(ckey in cache[type])
-                {
-                    if (!runtimeCache._cacheReads[ckey])
-                    {
-                        printv(1,'Expired unused key "'+ckey+'" of the type '+type);
-                        delete(cache[type][ckey]);
-                    }
-                }
-            }
-        }
-        printv(2,'Searching for and purging unused files...');
-        let reverseFileMap = {};
-        for(ckey in cache.URLs)
-        {
-            reverseFileMap[ cache.get('URLs',ckey) ] = ckey;
-        }
-        let files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
-        for(let file of files)
-        {
-            let baseFile = path.basename(file);
-            let remove = null;
-            if (!cache.get('fileMap',baseFile))
-            {
-                remove = "not in fileMap";
-            }
-            else
-            {
-                let url = cache.get('fileMap',baseFile);
-                if (!reverseFileMap[url])
-                {
-                    remove = "not in reverseFileMap ["+url+"]";
-                }
-            }
-            if(remove)
-            {
-                fs.unlinkSync(file);
-                printv(1,'Removed file: '+file);
-                printv(2,'Reason for removal: '+remove);
-            }
-        }
-        let resizedFiles = wait.for(glob,helper.resolveOutPath('.images/*'));
-        for(let resizedFile of resizedFiles)
-        {
-            if(fs.statSync(resizedFile).isFile())
-            {
-                let baseResizedFile = path.basename(resizedFile);
-                if (! fs.existsSync(helper.resolveOutPath('.images/orig/'+baseResizedFile)))
-                {
-                    fs.unlinkSync(resizedFile);
-                    printv(1,'Removed file: '+resizedFile);
-                }
-            }
-        }
-        cache.flushIfNeeded();
-    },
-    /*
      * Verifies command-line dependencies
      */
     verifyDeps: function ()
@@ -3213,10 +3135,6 @@ function getCacheID (entry,type,opts)
     {
         ckey += '//'+type;
     }
-    if(runtimeCache._cacheReads)
-    {
-        runtimeCache._cacheReads[ckey] = true;
-    }
     return ckey;
 }
 /*
@@ -3273,7 +3191,6 @@ function main()
     .option('--expire-covers','expire all cached covers from the cache')
     .option('--expire-matching [match]','expire all cached data where the key case insensitively matches [match] and exit')
     .option('--expire-matching-miss [match]','same as above, but only expire cached failures')
-    .option('--expire-unused','expire all unused cache entries')
     .option('--force-steam-update','force an update of the lists of Steam games')
     .option('--config [file]','read [file] instead of ./rotcelloc.config.json')
     .option('--lazy','only use cached data')
@@ -3286,10 +3203,6 @@ function main()
     else if (!commander.verbose)
     {
         commander.verbose = 1;
-    }
-    if(commander.expireUnused)
-    {
-        runtimeCache._cacheReads = {};
     }
 
     if (!fs.existsSync(helper.resolvePath('src/rotcelloc.js')))
@@ -3309,12 +3222,6 @@ function main()
     {
         cache = new rotcellocCache();
         cache.cacheExpiry(commander.expireMatchingMiss,true);
-        process.exit(0);
-    }
-
-    if(commander.expireUnused)
-    {
-        core.performCacheExpiry();
         process.exit(0);
     }
 
