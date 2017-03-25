@@ -352,9 +352,15 @@
                 html += ', ';
                 html += '<a target="_blank" href="https://www.themoviedb.org/search/'+( rotcelloc.workingMeta.type == 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
             }
-            else if(data.type == 'book')
+            else if(data.type == 'books')
             {
-                html += '<a target="_blank" href="https://www.goodreads.com/search?utf8=%E2%9C%93&query='+data.isbn+'">Goodreads</a>';
+                html += '<a target="_blank" href="https://openlibrary.org/search?q='+data.isbn+'">OpenLibrary</a>, ';
+                html += '<a target="_blank" href="https://www.goodreads.com/search?utf8=%E2%9C%93&query='+data.isbn+'">Goodreads</a>, ';
+                html += '<a target="_blank" href="https://www.librarything.com/search.php?search='+data.isbn+'&searchtype=38&searchtype=38&sortchoice=0">LibraryThing</a>';
+            }
+            else
+            {
+                warn('Unknown/unhandled type: '+data.type);
             }
             // Add a trailer link (to YouTube) if the type is something where a
             // trailer makes sense
