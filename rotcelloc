@@ -2112,8 +2112,12 @@ class bookCollection extends collectionType
         else
         {
             printv(4,'Performing metadata request for ISBN '+data.isbn);
-            remote = wait.for(isbn.resolve,data.isbn);
-            cache.set(remote,'bookMeta',ckey);
+            try
+            {
+                remote = wait.for(isbn.resolve,data.isbn);
+                cache.set(remote,'bookMeta',ckey);
+            }
+            catch (e) {}
         }
         return remote;
     }
