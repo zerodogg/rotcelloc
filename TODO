@@ -1,7 +1,4 @@
 TODO list for rotcelloc, in no particular order:
 - Factor out header remapping into an external file to make additions easier
-- Generate the filenames for images locally.
-    The current version can theoretically result in conflicts (and rotcelloc will
-    tell the user if one occurred)
 - Package rotcelloc for installation through npm
 - Allow the webapp to run in "local" mode, with local copies of the CDN files
