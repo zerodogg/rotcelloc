@@ -688,6 +688,11 @@ class collectionType
         {
             return _.clone(cached,true);
         }
+        if(commander.lazy)
+        {
+            printv(4,'XMLtoJSONRequest: skipping request due to --lazy');
+            return;
+        }
         printv(4,'Performing XMLtoJSONRequest to: '+url);
         let data;
         try
@@ -2302,6 +2307,7 @@ var helper = {
     {
         if(commander.lazy)
         {
+            printv(4,'GETJSON: skipping download due to --lazy');
             return;
         }
         printv(4,'Performing GET request for JSON to '+url);
