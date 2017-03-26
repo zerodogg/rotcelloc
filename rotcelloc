@@ -2253,16 +2253,14 @@ class gameCollection extends collectionType
      */
     TGD_request(call,parameters)
     {
-        let rqURL = 'http://thegamesdb.net/api/'+call+'.php?',
-            finalParams = [],
-            result;
-        for(let key in parameters)
+        let rqURL = 'http://thegamesdb.net/api/'+call+'.php?';
+        const finalParams = [];
+        for(const key in parameters)
         {
             finalParams.push(encodeURIComponent(key)+'='+encodeURIComponent(parameters[key]));
         }
         rqURL += finalParams.join('&');
-        result = this.XMLtoJSONRequest(rqURL);
-        return result;
+        return this.XMLtoJSONRequest(rqURL);
     }
 }
 
