@@ -67,7 +67,8 @@
                         $('#searchBox').focus();
                     }
 
-                    $(window).scroll(function(){
+                    $(window).scroll(() =>
+                    {
                             if (this.currentResults.length && $(window).scrollTop() + $(window).height() >= $(document).height() - 1000)
                             {
                                 this.showNextResults();
