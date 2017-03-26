@@ -593,8 +593,11 @@ class collectionType
     generateSource (source)
     {
         let data = this.loadData(source);
+        let entryNumber = 0;
         for(let collItem of data)
         {
+            entryNumber++;
+            printv(10,'Processing collection entry '+entryNumber+' of '+data.length);
             this.generateEntry(collItem);
         }
         if(source.hasDisneySort)
