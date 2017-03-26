@@ -393,7 +393,6 @@ class collectionType
 
         let input  = fs.readFileSync(helper.resolveOutPath(entry.file),{ encoding: 'utf-8'} );
         let CSV = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
-        let baseF = path.basename(entry.file);
         let config = helper.getConfig();
         let blameData;
         if(config.enableAutoAdded !== false)
@@ -844,14 +843,12 @@ class movieCollection extends collectionType
     getPoster (entry)
     {
         let url;
-        let ckey;
         let mTitle = entry.title;
         let type = entry.type;
         if(entry.origTitle)
         {
             mTitle = entry.origTitle;
         }
-        ckey = getCacheID(entry,entry.type);
         if(entry.customCover)
         {
             url = entry.customCover;
@@ -1581,7 +1578,6 @@ class gameCollection extends collectionType
                     helper.sleep(10);
                 }
                 let data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
-                let useful = false;
                 if(data)
                 {
                     downloaded++;
@@ -2280,7 +2276,6 @@ class bookCollection extends collectionType
         // FIXME: Try to find an image in 'data' first
         let posterID = data.isbn;
         posterID.replace(/-/g,'');
-        let ckey = getCacheID(data.isbn,'bookPoster');
         let file = this.downloadPoster('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',data);
         if(file)
         {
@@ -2434,7 +2429,6 @@ var helper = {
         {
             throw('attemptGenericReplacements got null origTitle');
         }
-        let fixedTitle;
         let replacements = [
             {
                 index: 'III',
@@ -2691,7 +2685,7 @@ var core = {
         let strDataset = JSON.stringify(dataset);
         let checksum = helper.checksum(strDataset);
 
-        let filename = webappGen.writePageFor(name,groupNo,results,checksum);
+        webappGen.writePageFor(name,groupNo,results,checksum);
 
         fs.writeFileSync(helper.resolveOutPath('out/'+name.toLowerCase().replace(/\s+/g,'_')+'.dataset.json'),strDataset);
     },
@@ -2701,8 +2695,7 @@ var core = {
      */
     constructDatabase:function()
     {
-        let config  = helper.getConfig(),
-            nameMap = {};
+        let config  = helper.getConfig();
 
         cache = new rotcellocCache();
         if(config.language && fs.existsSync(helper.resolvePath('i18n/'+config.language+'.po')))
