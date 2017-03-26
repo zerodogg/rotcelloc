@@ -6,13 +6,12 @@ extends: 'eslint:recommended'
 parserOptions:
   sourceType: module
 rules:
-  indent:
-    - off
+  indent: off
   linebreak-style:
     - error
     - unix
   semi:
     - error
     - always
-  no-console:
-    - off
+  no-console: off
+  prefer-const: error
