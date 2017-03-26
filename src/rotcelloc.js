@@ -75,7 +75,7 @@
                             }
                     });
                     $('body').removeClass('loading');
-                    let self = this;
+                    const self = this;
                     // Handle clicks on the show more links
                     $('body').on('click','.showMoreLink > a',function (ev)
                     {
@@ -89,7 +89,7 @@
          */
         initAutoSearcher()
         {
-            let runSearch = () =>
+            const runSearch = () =>
             {
                 this.performSearchFromHTML();
             };
@@ -107,8 +107,8 @@
          */
         getDataSet(cb)
         {
-            let $colResT = $('#collResultTarget');
-            let pagetype = $colResT.data('pagetype');
+            const $colResT = $('#collResultTarget');
+            const pagetype = $colResT.data('pagetype');
             if(pagetype === undefined)
             {
                 return;
@@ -180,9 +180,9 @@
             let cols             = 0,
                 htmlContent      = [],
                 out              = '',
-                entriesNoTracker = 0,
-                renderedResults  = [];
-            let pruneRows = () =>
+                entriesNoTracker = 0;
+            const renderedResults  = [];
+            const pruneRows = () =>
             {
                 out += '<div class="row"><div class="col-sm-3">\n';
                 out += htmlContent.join('</div><div class="col-sm-3">');
@@ -195,7 +195,7 @@
                 cols++;
                 entriesNoTracker++;
 
-                let entry = result[entryI];
+                const entry = result[entryI];
 
                 var html = '<div class="col-entry" id="colEntryNo_'+entry.id+'">'+this.renderCover(entry);
                 html += '<div class="description"><h3>'+entry.title;
@@ -272,14 +272,14 @@
          */
         showMore(entryID)
         {
-            let data = this.workingData[entryID];
+            const data = this.workingData[entryID];
             if(data === null || data === undefined)
             {
                 throw('Unhandled showMore ID: '+entryID);
             }
-            let $root   = $('#colEntryNo_'+entryID);
-            let $target = $root.find('.showMore'),
-                html    = '';
+            const $root   = $('#colEntryNo_'+entryID);
+            const $target = $root.find('.showMore');
+            let html    = '';
             if(data.altTitle && data.altTitle != data.title)
             {
                 html += '<div class="original-title"><div class="meta-label">'+this.translate('Alternativ title')+':</div> '+data.altTitle+'</div>';
@@ -311,10 +311,10 @@
             if(this.data.config.collections[this.pagetype].sources.length > 1)
             {
                 html += '<div class="group"><div class="meta-label">'+this.translate('Group')+':</div> ';
-                let sources = data.bSource.split(", ");
+                const sources = data.bSource.split(", ");
                 for(let source = 0; source < sources.length; source++)
                 {
-                    let sourceN = sources[source];
+                    const sourceN = sources[source];
                     if(source > 0)
                     {
                         html += ', ';
@@ -323,7 +323,7 @@
                 }
                 html += '</div>';
             }
-            let genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn' ],
+            const genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn' ],
                 genericEntries = {
                 'rating':{
                     'label':this.translate('Custom rating'),
@@ -353,11 +353,11 @@
 
             for(let genericEntryCurrI = 0; genericEntryCurrI < genericEntriesOrder.length; genericEntryCurrI++)
             {
-                let genericEntryCurr = genericEntriesOrder[genericEntryCurrI];
+                const genericEntryCurr = genericEntriesOrder[genericEntryCurrI];
                 if(data[genericEntryCurr])
                 {
-                    let renderRules = genericEntries[genericEntryCurr],
-                        value       = data[genericEntryCurr];
+                    const renderRules = genericEntries[genericEntryCurr];
+                    let   value       = data[genericEntryCurr];
                     if(renderRules.renderer)
                     {
                         value = renderRules.renderer(value,data);
@@ -467,7 +467,7 @@
          */
         performSearchFromHTML()
         {
-            let query           = {},
+            const query           = {},
                 $group          = $('#group .active input'),
                 platform        = $('#platform .active input').attr('data-value'),
                 order           = $('#order option:selected()').attr('data-value'),
@@ -477,7 +477,7 @@
                 $watchedSearch     = $('#watchedSearch .active input'),
                 genreSearchType = $('#genre_searchtype option:selected()').attr('data-value'),
                 text            = $('#searchBox').val();
-            let group           = $group.attr('data-value'),
+            const group         = $group.attr('data-value'),
                 groupDisneySort = $group.attr('data-disneysort');
             if(group)
             {
@@ -545,8 +545,8 @@
             for(let collectionN = 0; collectionN < this.workingData.length; collectionN++)
             {
                 let searchScore = 10,
-                    collectionEntry = this.workingData[collectionN],
                     hit;
+                const collectionEntry = this.workingData[collectionN];
                 if (query.watchedSearch)
                 {
                     if (collectionEntry.watched === undefined || collectionEntry.watched === true)
@@ -559,7 +559,7 @@
                     if (/,/.test(collectionEntry.bSource))
                     {
                         hit = false;
-                        let sources = collectionEntry.bSource.split(/,\s+/);
+                        const sources = collectionEntry.bSource.split(/,\s+/);
                         for(let keyN = 0; keyN < sources.length; keyN++)
                         {
                             if(sources[keyN] == query.group)
@@ -587,9 +587,9 @@
                     {
                         continue;
                     }
-                    for (let formatI in query.formats)
+                    for (const formatI in query.formats)
                     {
-                        let queryFormat = query.formats[formatI];
+                        const queryFormat = query.formats[formatI];
                         let found = false;
                         for(let format = 0; format < collectionEntry.format.length; format++)
                         {
@@ -683,7 +683,7 @@
                         if(query.genreSearchType == 'any')
                         {
                             hit = false;
-                            for (let genreAI in query.genres)
+                            for (const genreAI in query.genres)
                             {
                                 if(collectionEntry.genre.indexOf(query.genres[genreAI]) != -1)
                                 {
@@ -694,7 +694,7 @@
                         }
                         else
                         {
-                            for (let genreI in query.genres)
+                            for (const genreI in query.genres)
                             {
                                 if(collectionEntry.genre.indexOf(query.genres[genreI]) == -1)
                                 {
@@ -709,7 +709,7 @@
                         hit = true;
                         if(collectionEntry.genre)
                         {
-                            for (let genreNI in query.genres)
+                            for (const genreNI in query.genres)
                             {
                                 if(collectionEntry.genre.indexOf(query.genres[genreNI]) != -1)
                                 {
@@ -818,7 +818,7 @@
             let sorted = false;
             if(query.order)
             {
-                let orderByOptionalField = function (optField,orderType)
+                const orderByOptionalField = function (optField,orderType)
                 {
                     return function (a,b)
                     {
@@ -900,7 +900,7 @@
          */
         renderSearchPanel()
         {
-            let plotSearchBool = {
+            const plotSearchBool = {
                 id: 'plotSearch',
                 buttons: [
                     {
@@ -1045,7 +1045,7 @@
                     }
                 );
             }
-            let platformButtons = {
+            const platformButtons = {
                 id: 'platform',
                 buttons: [{
                         id: 'platforms_none',
@@ -1056,9 +1056,9 @@
             };
             if(this.workingMeta.platforms && this.workingMeta.platforms.length > 1)
             {
-                for (let platformI in this.workingMeta.platforms)
+                for (const platformI in this.workingMeta.platforms)
                 {
-                    let platform = this.workingMeta.platforms[platformI];
+                    const platform = this.workingMeta.platforms[platformI];
                     platformButtons.buttons.push({
                             id: 'platforms_'+platformI,
                             value: platform,
@@ -1066,7 +1066,7 @@
                     });
                 }
             }
-            let groupButtons = {
+            const groupButtons = {
                 id: 'group',
                 buttons: [{
                         id: 'groups_none',
@@ -1075,9 +1075,9 @@
                         name: this.translate('All')
                 }]
             };
-            for (let groupI in this.data.config.collections[this.pagetype].sources)
+            for (const groupI in this.data.config.collections[this.pagetype].sources)
             {
-                let group = this.data.config.collections[this.pagetype].sources[groupI];
+                const group = this.data.config.collections[this.pagetype].sources[groupI];
                 groupButtons.buttons.push({
                         id: 'groups_'+groupI,
                         value: group.bSource ,
@@ -1085,7 +1085,7 @@
                         name: group.name
                 });
             }
-            let genreButtons = {
+            const genreButtons = {
                 id: 'genre',
                 type: 'checkbox',
                 buttons: []
@@ -1094,7 +1094,7 @@
             {
                 for(let genreN = 0; genreN < this.workingMeta.genres.length; genreN++)
                 {
-                    let genre = this.workingMeta.genres[genreN];
+                    const genre = this.workingMeta.genres[genreN];
                     genreButtons.buttons.push({
                         id: 'genre_'+genre,
                         value: genre,
@@ -1102,7 +1102,7 @@
                     });
                 }
             }
-            let formatButtons = {
+            const formatButtons = {
                 id: 'format',
                 type: 'checkbox',
                 buttons: []
@@ -1111,7 +1111,7 @@
             {
                 for(let formatN = 0; formatN < this.workingMeta.formats.length; formatN++)
                 {
-                    let format = this.workingMeta.formats[formatN];
+                    const format = this.workingMeta.formats[formatN];
                     formatButtons.buttons.push({
                         id: 'format_'+format,
                         value: format,
@@ -1151,7 +1151,7 @@
             }
             if(genreButtons.buttons.length)
             {
-                let genreType = {
+                const genreType = {
                     id: 'genre_searchtype',
                     buttons: [
                         {
@@ -1204,7 +1204,7 @@
          */
         setPageTitle(add)
         {
-            let $title    = $('title');
+            const $title    = $('title');
             let origTitle = $title.text();
             if($title.attr('orig-title'))
             {
@@ -1221,7 +1221,7 @@
             let html = '<select class="form-control" id="'+data.id+'">';
             for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
             {
-                let button = data.buttons[buttonI];
+                const button = data.buttons[buttonI];
                 html += '<option data-value="'+button.value+'"'+(button.active ? ' selected' : '' )+'>'+button.name+'</option>';
             }
             html += '</select>';
@@ -1242,7 +1242,7 @@
             let allText = '';
             for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
             {
-                let button = data.buttons[buttonI];
+                const button = data.buttons[buttonI];
                 html += '<label class="btn btn-primary';
                 if(button.active)
                 {
@@ -1262,7 +1262,7 @@
                 html +='</label>';
                 allText += button.name;
             }
-            let avgLength = allText.length/data.buttons.length;
+            const avgLength = allText.length/data.buttons.length;
             if( ( allText.length > 115 && avgLength < 9.5) || allText.length > 140 || data.buttons.length > 25)
             {
                 htmlClass += ' btn-group-xs';
