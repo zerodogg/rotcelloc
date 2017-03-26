@@ -67,12 +67,13 @@ try
         po2json       = require('po2json'),
         // Loads CSON files
         CSON          = require('cson'),
-        // Used for hasing
+        // Used for hashing
         crypto        = require('crypto'),
         // Used to fetch book metadata
         isbn          = require('node-isbn'),
         // Used to compile the client-side JS
         babel         = require('babel-core');
+
 }
     catch(e)
 {
@@ -84,8 +85,13 @@ try
 var
     // Global cache object
     cache = null,
-    // Used for caching during a single run, ie. for http-requests
-    runtimeCache = {},
+    // Used for caching data during a single run
+    runtimeCache = {
+        // The config file
+        config: null,
+        // Used posters
+        postersUsed: {}
+    },
     // Stores a parsed version of package.json, basically just used
     // to lazily get our version number without having to duplicate it
     // in multiple files.
@@ -120,18 +126,14 @@ class rotcellocCache
         this._lastWritten = 0;
 
         // Load and initialize _persistCache
-        if(fs.existsSync(helper.resolveOutPath('.cache.json')))
+        if(fs.existsSync(helper.resolveOutPath('.rotcellocdata/cache.json')))
         {
-            printv(3,'Loading cache from .cache.json');
-            this._persistCache = JSON.parse(fs.readFileSync(helper.resolveOutPath('.cache.json')));
+            printv(3,'Loading cache from .rotcellocdata/cache.json');
+            this._persistCache = JSON.parse(fs.readFileSync(helper.resolveOutPath('.rotcellocdata/cache.json')));
         }
-        if (!this._persistCache.URLs)
+        if (!this._persistCache.posterFiles || commander.expireMeta)
         {
-            this._persistCache = { URLs: this._persistCache };
-        }
-        if (!this._persistCache.fileMap || commander.expireCovers)
-        {
-            this._persistCache.fileMap = {};
+            this._persistCache.posterFiles = {};
         }
         if (!this._persistCache.meta || commander.expireMeta)
         {
@@ -265,9 +267,9 @@ class rotcellocCache
         this._persistCache.lastVersion = packageJSON.version;
         this._persistCache.formatVersion = 0;
         this._persistCache.lastObjID = this._objectLifetimeID;
-        printv(5,'Writing cache to .cache.json');
-        fs.writeFileSync('.cache.json.out',JSON.stringify(this._persistCache));
-        fs.renameSync('.cache.json.out','.cache.json');
+        printv(5,'Writing cache to .rotcellocdata/cache.json');
+        fs.writeFileSync('.rotcellocdata/cache.json.out',JSON.stringify(this._persistCache));
+        fs.renameSync('.rotcellocdata/cache.json.out','.rotcellocdata/cache.json');
     }
 
     autoWrite()
@@ -293,7 +295,7 @@ class rotcellocCache
     cacheExpiry (byvalue,onlyMiss)
     {
         byvalue = byvalue.toLowerCase();
-        for (let type of [ 'meta', 'URLs', 'gameMeta','arbitrary','steamMeta' ])
+        for (let type of [ 'meta', 'gameMeta','arbitrary','steamMeta' ])
         {
             let result = this._persistCache[type];
             for (let entry in result)
@@ -331,7 +333,7 @@ class rotcellocCache
     autoExpireOutdatedEntries ()
     {
         let now = Math.floor(Date.now() / 1000);
-        for (let type of [ 'meta', 'URLs', 'gameMeta','arbitrary','steamMeta' ])
+        for (let type of [ 'meta', 'gameMeta','arbitrary','steamMeta' ])
         {
             let result = this._persistCache[type];
             for (let entry in result)
@@ -709,6 +711,82 @@ class collectionType
         cache.set(result,'externalAPI',url);
         return result;
     }
+
+    /*
+     * Downloads a poster for an entry
+     */
+    downloadPoster(url,entry)
+    {
+        if(!helper.isValidCoverURL(url))
+        {
+            printv(1,'Failed to retrieve poster for '+entry.title+( entry.origTitle ? ' ('+entry.origTitle+')' : ''));
+            return;
+        }
+        let ftype = url.replace(/.*\.([^\.]+)$/,'$1').replace(/\W.*/,'');
+        let hash  = this._posterIdentifier(entry);
+        let fname = hash+'.'+ftype;
+        if (!fs.existsSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+fname)))
+        {
+            if(commander.lazy)
+            {
+                printv(4,'downloadPoster: skipping download due to --lazy');
+                return;
+            }
+            printv(4,'Downloading: '+url+' to '+'.rotcellocdata/images/orig/'+fname);
+            let data = wait.forMethod(httpreq,'get',url, {binary: true });
+            if(data.statusCode === 200)
+            {
+                fs.writeFileSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+fname),data.body);
+                printv(1,'Downloaded poster for '+entry.title);
+            }
+            else
+            {
+                printv(1,'Failed to download poster from '+url+': '+data.statusCode);
+                return;
+            }
+        }
+        runtimeCache.postersUsed[fname] = true;
+        return fname;
+    }
+
+    /*
+     * Checks if a poster has been downloaded
+     */
+    hasPosterBeenDownloaded(entry)
+    {
+        let hash = this._posterIdentifier(entry);
+        let files = wait.for(glob,helper.resolveOutPath('.rotcellocdata/images/orig/'+hash+'.*'));
+        return files.length > 0;
+    }
+
+    /*
+     * Retrieves the "poster" identifier for an entry
+     */
+    _posterIdentifier(entry)
+    {
+        // Generate an identifier
+        let identifier = 'poster';
+        // If we have a unique identifier already, use that
+        if (entry.isbn || entry.steamID)
+        {
+            identifier += '-'+(entry.isbn || entry.steamID);
+        }
+        // Otherwise generate one from a set of fields that together should
+        // uniquely identify an entry
+        else
+        {
+            for(let idEntry of [ 'title','origTitle','altTitle','year','author','platform' ])
+            {
+                if(entry[idEntry] !== undefined && entry[idEntry] !== null)
+                {
+                    identifier += '-'+entry[idEntry];
+                }
+            }
+        }
+        identifier += '-'+this._curBsource;
+        let hash = crypto.createHash('sha256').update(identifier).digest("hex");
+        return hash;
+    }
 }
 
 class movieCollection extends collectionType
@@ -746,12 +824,12 @@ class movieCollection extends collectionType
     // Adds a poster to a collection entry
     addPosterToItem (collectionEntry)
     {
-        let theURL   = this.getPoster(collectionEntry);
-        if(!theURL)
+        let theFname   = this.getPoster(collectionEntry);
+        if(!theFname)
         {
             return;
         }
-        collectionEntry.poster = encodeURIComponent(path.basename(theURL));
+        collectionEntry.poster = encodeURIComponent(theFname);
     }
 
     // Finds and downloads a poster for the provided entry
@@ -770,68 +848,25 @@ class movieCollection extends collectionType
         {
             url = entry.customCover;
             delete entry.customCover;
-            if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
-            {
-                return url;
-            }
         }
         else
         {
-            let cached = cache.get('URLs',ckey);
-            if(cached !== undefined)
+            // Remap type so that movieArt can handle it
+            if(type == 'movies')
             {
-                if(cached == 'MISS')
-                {
-                    if(! commander.retryMiss)
-                    {
-                        return;
-                    }
-                }
-                else if (fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(cached))))
-                {
-                    let mapped = cache.get('fileMap',path.basename(cached));
-                    if(mapped !== undefined && mapped != cached)
-                    {
-                        printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cached)+' ('+cached+' and '+mapped+')');
-                    }
-                    return cached;
-                }
+                type = 'movie';
             }
-        }
-        // Remap type so that movieArt can handle it
-        if(type == 'movies')
-        {
-            type = 'movie';
-        }
-        else if(type == 'series')
-        {
-            type = 'tv';
-        }
-        if(!helper.isValidCoverURL(url))
-        {
-            if(!helper.isValidCoverURL(url) && entry.imdbID && entry.poster)
+            else if(type == 'series')
             {
-                url = entry.Poster;
-            }
-            if(!helper.isValidCoverURL(url) && entry.year)
-            {
-                url = this.submitMovieArtRequest(mTitle,entry.year,type);
+                type = 'tv';
             }
             if(!helper.isValidCoverURL(url))
             {
-                url = this.submitMovieArtRequest(mTitle,null,type);
-            }
-            if(!helper.isValidCoverURL(url))
-            {
-                if(type == 'tv')
+                if(!helper.isValidCoverURL(url) && entry.imdbID && entry.poster)
                 {
-                    type = 'movie';
+                    url = entry.poster;
                 }
-                else
-                {
-                    type = 'tv';
-                }
-                if(entry.year && !url)
+                if(!helper.isValidCoverURL(url) && entry.year)
                 {
                     url = this.submitMovieArtRequest(mTitle,entry.year,type);
                 }
@@ -839,16 +874,33 @@ class movieCollection extends collectionType
                 {
                     url = this.submitMovieArtRequest(mTitle,null,type);
                 }
-                if(!helper.isValidCoverURL(url) && entry.poster)
+                if(!helper.isValidCoverURL(url))
                 {
-                    url = entry.poster;
+                    if(type == 'tv')
+                    {
+                        type = 'movie';
+                    }
+                    else
+                    {
+                        type = 'tv';
+                    }
+                    if(entry.year && !url)
+                    {
+                        url = this.submitMovieArtRequest(mTitle,entry.year,type);
+                    }
+                    if(!helper.isValidCoverURL(url))
+                    {
+                        url = this.submitMovieArtRequest(mTitle,null,type);
+                    }
+                    if(!helper.isValidCoverURL(url) && entry.poster)
+                    {
+                        url = entry.poster;
+                    }
                 }
             }
         }
-        if (helper.downloadAndCacheURL(url,ckey,entry))
-        {
-            return url;
-        }
+        let fname = this.downloadPoster(url,entry);
+        return fname;
     }
 
     // Submits a movieArt request
@@ -1397,11 +1449,7 @@ class gameCollection extends collectionType
     {
         if(collectionEntry.poster)
         {
-            let ckey = getCacheID(collectionEntry,'game');
-            if (helper.downloadAndCacheURL(collectionEntry.poster,ckey,collectionEntry))
-            {
-                collectionEntry.poster = encodeURIComponent(path.basename(collectionEntry.poster));
-            }
+            collectionEntry.poster = this.downloadPoster(collectionEntry.poster,collectionEntry);
         }
     }
 
@@ -2225,13 +2273,13 @@ class bookCollection extends collectionType
         let posterID = data.isbn;
         posterID.replace(/-/g,'');
         let ckey = getCacheID(data.isbn,'bookPoster');
-        let file = helper.downloadAndCacheURL('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',ckey,data);
+        let file = this.downloadPoster('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',data);
         if(file)
         {
-            data.poster = posterID+'-L.jpg';
+            data.poster = file;
             // If the file is tiny that means that it's not actually a poster
             // we can use (it's a complete black image)
-            if(fs.statSync(helper.resolveOutPath('.images/orig/'+data.poster)).size < 1000)
+            if(fs.statSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+data.poster)).size < 1000)
             {
                 data.poster = undefined;
             }
@@ -2459,56 +2507,6 @@ var helper = {
         return origTitle.replace(/\s*™/,'');
     },
     /*
-     * Downloads a URL to a file and caches some metadata for it
-     *
-     * Used for poster downloading.
-     */
-    downloadAndCacheURL: function (url,ckey,entry)
-    {
-        if(!helper.isValidCoverURL(url))
-        {
-            printv(1,'Failed to retrieve poster for '+entry.title+( entry.origTitle ? ' ('+entry.origTitle+')' : ''));
-            cache.set('MISS','URLs',ckey);
-            return;
-        }
-        if(ckey == null || ckey === "")
-        {
-            console.log('WARNING: downloadAndCacheURL received null/empty ckey');
-        }
-        cache.lazySet(url,'URLs',ckey);
-        if (!fs.existsSync(helper.resolveOutPath('.images/orig/'+path.basename(url))))
-        {
-            if(commander.lazy)
-            {
-                return;
-            }
-            if (cache.get('fileMap',path.basename(cache.get('URLs',ckey))) !== undefined && cache.get('fileMap',path.basename(cache.get('URLs',ckey))) != cache.get('URLs',ckey))
-            {
-                printv(1,'WARNING: CONFLICTING URLs WITH BASENAME '+path.basename(cache.get('URLs',ckey))+' ('+cache.get('URLs',ckey)+' and '+cache.get('fileMap',path.basename(cache.get('URLs',ckey)))+')');
-            }
-            else
-            {
-                printv(4,'Downloading: '+url+' to '+'.images/orig/'+path.basename(url));
-                let data = wait.forMethod(httpreq,'get',url, {binary: true });
-                if(data.statusCode === 200)
-                {
-                    fs.writeFileSync(helper.resolveOutPath('.images/orig/'+path.basename(url)),data.body);
-                    printv(1,'Downloaded poster for '+entry.title);
-                }
-                else
-                {
-                    printv(1,'Failed to download poster from '+url+': '+data.statusCode);
-                    return;
-                }
-            }
-        }
-        if (!cache.get('fileMap',path.basename(url)))
-        {
-            cache.set(url,'fileMap',path.basename(url));
-        }
-        return true;
-    },
-    /*
      * Checks if url is a valid url to a cover
      */
     isValidCoverURL: function (url)
@@ -2555,9 +2553,9 @@ var helper = {
      */
     getConfig: function ()
     {
-        if(runtimeCache.__config)
+        if(runtimeCache.config)
         {
-            return runtimeCache.__config;
+            return runtimeCache.config;
         }
         let configCSON = helper.resolveOutPath('rotcelloc.config.cson'),
             config;
@@ -2596,7 +2594,7 @@ var helper = {
             config.maxEntriesPerRenderedPageMobile = config.maxMoviesPerRenderedPageMobile;
             delete config.maxMoviesPerRenderedPageMobile;
         }
-        runtimeCache.__config = config;
+        runtimeCache.config = config;
         return config;
     },
     /*
@@ -2814,29 +2812,42 @@ var core = {
         {
             fs.mkdirSync(helper.resolveOutPath('out'));
         }
-        if (!fs.existsSync(helper.resolveOutPath('.images')))
+        if (!fs.existsSync(helper.resolveOutPath('.rotcellocdata')))
         {
-            fs.mkdirSync(helper.resolveOutPath('.images'));
+            fs.mkdirSync(helper.resolveOutPath('.rotcellocdata'));
         }
-        if (!fs.existsSync(helper.resolveOutPath('.images/orig')))
+        if (!fs.existsSync(helper.resolveOutPath('.rotcellocdata/images')))
         {
-            fs.mkdirSync(helper.resolveOutPath('.images/orig'));
+            fs.mkdirSync(helper.resolveOutPath('.rotcellocdata/images'));
+        }
+        if (!fs.existsSync(helper.resolveOutPath('.rotcellocdata/images/orig')))
+        {
+            fs.mkdirSync(helper.resolveOutPath('.rotcellocdata/images/orig'));
         }
         if(fs.existsSync(helper.resolveOutPath('.rotcelloc.tar.bz2~')))
         {
             fs.renameSync(helper.resolveOutPath('.rotcelloc.tar.bz2~'),helper.resolveOutPath('out/rotcelloc.tar.bz2'));
         }
+        if(fs.existsSync(helper.resolveOutPath('.images')))
+        {
+            console.log('Note: you appear to have an old rotcelloc 0.1 .images directory\n      This can be safely deleted.');
+        }
+        if(fs.existsSync(helper.resolveOutPath('.cache.json')) && !fs.existsSync(helper.resolveOutPath('.rotcellocdata/cache.json')))
+        {
+            printv(2,'Moved .cache.json to .rotcellocdata/cache.json');
+            fs.renameSync('.cache.json','.rotcellocdata/cache.json');
+        }
 
         printv(1,'Building database...');
         core.constructDatabase();
         printv(1,'Preparing images...');
-        let files = wait.for(glob,helper.resolveOutPath('.images/orig/*'));
+        let files = wait.for(glob,helper.resolveOutPath('.rotcellocdata/images/orig/*'));
         for(let file of files)
         {
-            if(! fs.existsSync(helper.resolveOutPath('.images/'+path.basename(file))))
+            if(! fs.existsSync(helper.resolveOutPath('.rotcellocdata/images/'+path.basename(file))))
             {
                 printv(3,'Creating resized version of '+path.basename(file));
-                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolveOutPath('.images/'+path.basename(file)) ], { stdio: 'inherit' });
+                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolveOutPath('.rotcellocdata/images/'+path.basename(file)) ], { stdio: 'inherit' });
             }
         }
         printv(1,'Preparing webapp...');
@@ -3025,7 +3036,7 @@ var webappGen = {
 
         printv(3,'Copying images...');
         // Copies the downloaded posters
-        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=orig/', helper.resolveOutPath('.images/'), helper.resolveOutPath('./out/images/') ]);
+        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=orig/', helper.resolveOutPath('.rotcellocdata/images/'), helper.resolveOutPath('./out/images/') ]);
         // Copy .gitignore if neded
         if (!fs.existsSync(helper.resolveOutPath('.gitignore')))
         {
