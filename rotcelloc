@@ -737,9 +737,9 @@ class collectionType
             printv(1,'Failed to retrieve poster for '+entry.title+( entry.origTitle ? ' ('+entry.origTitle+')' : ''));
             return;
         }
-        const ftype = url.replace(/.*\.([^\.]+)$/,'$1').replace(/\W.*/,'');
+        const type = url.replace(/.*\.([^\.]+)$/,'$1').replace(/\W.*/,'');
         const hash  = this._posterIdentifier(entry);
-        const fname = hash+'.'+ftype;
+        const fname = hash+'.'+type;
         if (!fs.existsSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+fname)))
         {
             if(commander.lazy)
@@ -756,7 +756,7 @@ class collectionType
             if(data.statusCode === 200)
             {
                 fs.writeFileSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+fname),data.body);
-                cache.set({ hash, type: ftype },'posterFiles',url);
+                cache.set({ hash, type},'posterFiles',url);
                 printv(1,'Downloaded poster for '+entry.title);
             }
             else
