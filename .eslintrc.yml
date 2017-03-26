@@ -14,4 +14,18 @@ rules:
     - error
     - always
   no-console: off
+  no-template-curly-in-string: error
+  dot-notation: error
+  no-useless-concat: error
+  no-var: warn
   prefer-const: error
+  prefer-arrow-callback: warn
+  no-useless-constructor: error
+  object-shorthand: warn
+  spaced-comment: warn
+  consistent-this:
+      - error
+      - self
+  brace-style:
+      - warn
+      - allman

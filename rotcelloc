@@ -747,7 +747,7 @@ class collectionType
             {
                 return;
             }
-            printv(4,'Downloading: '+url+' to '+'.rotcellocdata/images/orig/'+fname);
+            printv(4,'Downloading: '+url+' to .rotcellocdata/images/orig/'+fname);
             const data = wait.forMethod(httpreq,'get',url, {binary: true });
             if(data.statusCode === 200)
             {
@@ -1584,7 +1584,7 @@ class gameCollection extends collectionType
                 const iter = this.mustBeArray(metadata.Images.boxart);
                 for (const img of iter)
                 {
-                    image = img['$t']; // jshint ignore:line
+                    image = img.$t;
                     if(img.side == 'front')
                     {
                         break;
