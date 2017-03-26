@@ -480,7 +480,7 @@ class collectionType
             data[collectionEntryI].id = collectionEntryI;
             this.filterUnusedDataFromEntry(data[collectionEntryI]);
         }
-        return { 'data':data, 'meta':this.getFinalizedMetadata()};
+        return { data, 'meta':this.getFinalizedMetadata()};
     }
 
     // Removes extranious data from an entry
@@ -756,7 +756,7 @@ class collectionType
             if(data.statusCode === 200)
             {
                 fs.writeFileSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+fname),data.body);
-                cache.set({ hash: hash, type: ftype },'posterFiles',url);
+                cache.set({ hash, type: ftype },'posterFiles',url);
                 printv(1,'Downloaded poster for '+entry.title);
             }
             else
@@ -2231,7 +2231,7 @@ class gameCollection extends collectionType
      */
     TGD_infoByID(id)
     {
-        const result = this.TGD_request('GetGame',{ id: id});
+        const result = this.TGD_request('GetGame',{ id});
         if(result && result.Data && result.Data.Game)
         {
             result.Data.Game.baseImgUrl = result.Data.baseImgUrl;
@@ -2411,7 +2411,7 @@ const helper = {
     /*
      * Downloads a URL synchronously and returns the JSON data from it
      */
-    GETJSON: function (url)
+    GETJSON(url)
     {
         if(commander.lazy)
         {
@@ -2450,7 +2450,7 @@ const helper = {
      * Remaps fields on an object (CSV-file) from various variations that we
      * accept into the actual fields we use internally
      */
-    remapCSVFields: function (content)
+    remapCSVFields(content)
     {
         // FIXME: This should be translateable in other languages
         const map = {
@@ -2516,7 +2516,7 @@ const helper = {
     /*
      * Parses and sets the "added" field
      */
-    handleGenericFields: function(content)
+    handleGenericFields(content)
     {
         if(content.added)
         {
@@ -2533,7 +2533,7 @@ const helper = {
      * the Arabic numerals (and the other way around), and converting & to and
      * or and to &
      */
-    attemptGenericReplacements: function (origTitle)
+    attemptGenericReplacements(origTitle)
     {
         if(origTitle == null)
         {
@@ -2615,14 +2615,14 @@ const helper = {
      * Performs some simple replacements to remove entities from a title
      * that obviously isn't suppose to be there
      */
-    normalizeTitle: function (origTitle)
+    normalizeTitle(origTitle)
     {
         return origTitle.replace(/\s*™/,'');
     },
     /*
      * Checks if url is a valid url to a cover
      */
-    isValidCoverURL: function (url)
+    isValidCoverURL(url)
     {
         if (url == null || !/^http/.test(url) || /originalnull/i.test(url))
         {
@@ -2633,14 +2633,14 @@ const helper = {
     /*
      * Resolve the path to a file relative to our source directory
      */
-    resolvePath: function(file)
+    resolvePath(file)
     {
         return __dirname+'/'+file;
     },
     /*
      * Resolve a path relative to our output directory
      */
-    resolveOutPath: function(file)
+    resolveOutPath(file)
     {
         if(outputDir === null)
         {
@@ -2664,7 +2664,7 @@ const helper = {
     /*
      * Return the config datastructure
      */
-    getConfig: function ()
+    getConfig()
     {
         if(runtimeCache.config)
         {
@@ -2713,7 +2713,7 @@ const helper = {
     /*
      * Check if a command is available in PATH
      */
-    inPath: function (command)
+    inPath(command)
     {
         for(const directory of process.env.PATH.split(':'))
         {
@@ -2728,7 +2728,7 @@ const helper = {
     /*
      * Parse a boolean-ish string
      */
-    parseBool: function (boolStr)
+    parseBool(boolStr)
     {
         boolStr = boolStr.toLowerCase();
         // Translators: Used in boolean values in files
@@ -2750,7 +2750,7 @@ const helper = {
      * A simple "sleep" function that takes a sleep time in seconds and then
      * uses wait.for and a setTimeout to do the sleeping
      */
-    sleep: function (sleepTime)
+    sleep(sleepTime)
     {
         sleepTime = sleepTime*1000;
         wait.for((cb) =>
@@ -2763,7 +2763,7 @@ const helper = {
     /*
      * Retrieve a checksum
      */
-    checksum: function (targetStr)
+    checksum(targetStr)
     {
 		const shasum = crypto.createHash('sha1');
         shasum.update(targetStr);
@@ -2779,11 +2779,11 @@ const core = {
     /*
      * Writes a out the final dataset and HTML fiels for a collection group
      */
-    writeOutResult: function (groupMeta,groupData,groupNo,name,config,results)
+    writeOutResult(groupMeta,groupData,groupNo,name,config,results)
     {
         const dataset = {
             i18n: i18n.strings,
-            config: config,
+            config,
             data: groupData,
             meta: groupMeta,
             // dVer is the dataset version, it is validated in the front-end JS
@@ -2805,7 +2805,7 @@ const core = {
      * Loads the config, the i18n data, then hands control over to the various
      * APIs to let them build the actual databases.
      */
-    constructDatabase:function()
+    constructDatabase()
     {
         const config  = helper.getConfig();
 
@@ -2845,10 +2845,10 @@ const core = {
                 throw('Unhandled group type: '+groupConf.type+' for '+groupConf.name);
             }
             results.push({
-                    result: result,
-                    groupNo: groupNo,
-                    name: name,
-                    config: config,
+                    result,
+                    groupNo,
+                    name,
+                    config,
             });
         }
         for(const entry of results)
@@ -2861,7 +2861,7 @@ const core = {
     /*
      * Verifies command-line dependencies
      */
-    verifyDeps: function ()
+    verifyDeps()
     {
         let errOut = false;
         if (!helper.inPath('sass'))
@@ -2882,7 +2882,7 @@ const core = {
     /*
      * Wrapper that performs the actual building
      */
-    build: function ()
+    build()
     {
         core.verifyDeps();
         // Load the config. Also verifies that it actually exists and outputs
@@ -2985,7 +2985,7 @@ const core = {
      * Write the "complete and corresponding" source code for the installed
      * version of rotcelloc to a file
      */
-    writeCCS: function ()
+    writeCCS()
     {
         const selfFiles = [
             { 'path': 'README.md' },
@@ -3101,7 +3101,7 @@ const webappGen = {
         jQueryVersion: '2.2.1',
         bootstrapVersion: '3.3.6'
     },
-    createFilename: function(name,groupNo)
+    createFilename(name,groupNo)
     {
         let filename;
         if(groupNo == 1)
@@ -3115,7 +3115,7 @@ const webappGen = {
         }
         return filename;
     },
-    writePageFor: function (name,groupNo,results,checksum)
+    writePageFor(name,groupNo,results,checksum)
     {
         const filename = webappGen.createFilename(name,groupNo);
         let template = fs.readFileSync(helper.resolvePath('src/template.ejs'));
@@ -3137,8 +3137,8 @@ const webappGen = {
                 },
                 versions: webappGen.versions,
                 config: helper.getConfig(),
-                footer: footer,
-                menu: menu,
+                footer,
+                menu,
                 content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-checksum="'+checksum+'" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>',
             },
             {
@@ -3147,7 +3147,7 @@ const webappGen = {
         );
         fs.writeFileSync(helper.resolveOutPath('out/'+filename),content);
     },
-    finalize: function ()
+    finalize()
     {
 
         if (!fs.existsSync(helper.resolvePath('src/deps/bootstrap-variables.scss')))
