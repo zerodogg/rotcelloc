@@ -71,6 +71,8 @@ try
         crypto        = require('crypto'),
         // Used to fetch book metadata
         isbn          = require('node-isbn'),
+        // Used to resize and identify images
+        gm            = require('gm'),
         // Used to compile the client-side JS
         babel         = require('babel-core');
 
@@ -2772,11 +2774,6 @@ var core = {
             console.log('Error: "sass" is missing, it is required to compile the CSS\nPlease install sass (either through the package manager or with "gem install sass")');
             errOut = true;
         }
-        if (!helper.inPath('convert'))
-        {
-            console.log('Error: "convert" is missing, it is required to resize images\nPlease install imagemagick');
-            errOut = true;
-        }
         if (!helper.inPath('rsync'))
         {
             console.log('Error: "rsync" is missing, it is required to copy files\nPlease install rsync');
@@ -2857,6 +2854,17 @@ var core = {
 
         printv(1,'Building database...');
         core.constructDatabase();
+        this.resizeImages();
+        printv(1,'Preparing webapp...');
+        webappGen.finalize();
+        if(commander.deploy)
+        {
+            printv(1,'Deploying with rsync...');
+            child_process.execFileSync('rsync', [ '--checksum', '-avh', '--progress', '--partial', '--inplace','--exclude=images/orig', '--copy-links', '--delete-excluded', '--delete','out/',config.deployTo ], { stdio: 'inherit' });
+        }
+    },
+    resizeImages ()
+    {
         printv(1,'Preparing images...');
         let files = wait.for(glob,helper.resolveOutPath('.rotcellocdata/images/orig/*'));
         for(let file of files)
@@ -2864,15 +2872,18 @@ var core = {
             if(! fs.existsSync(helper.resolveOutPath('.rotcellocdata/images/'+path.basename(file))))
             {
                 printv(3,'Creating resized version of '+path.basename(file));
-                child_process.execFileSync('convert', [ '-resize', '270x', file, helper.resolveOutPath('.rotcellocdata/images/'+path.basename(file)) ], { stdio: 'inherit' });
+                const targetFile = helper.resolveOutPath('.rotcellocdata/images/'+path.basename(file));
+                const imgObj = gm(file);
+                let width = wait.forMethod(imgObj,'size');
+                if(width !== undefined && width.width > 270)
+                {
+                    printv(4,'Skipped resizing '+path.basename(file)+' - it is smaller than our target');
+                    fs.symlinkSync(file,targetFile);
+                    continue;
+                }
+                imgObj.resize('270');
+                wait.forMethod(imgObj,'write',targetFile);
             }
-        }
-        printv(1,'Preparing webapp...');
-        webappGen.finalize();
-        if(commander.deploy)
-        {
-            printv(1,'Deploying with rsync...');
-            child_process.execFileSync('rsync', [ '--checksum', '-avh', '--progress', '--partial', '--inplace','--exclude=images/orig', '--delete-excluded', '--delete','out/',config.deployTo ], { stdio: 'inherit' });
         }
     },
     /*
