@@ -454,12 +454,14 @@ class collectionType
     }
 
     // Download metadata for an item
+    // eslint-disable-next-line no-unused-vars
     addMetadataTo(collItem)
     {
         throw('collectionType: generic addMetadataTo called: should be overridden by subclass');
     }
 
     // Download the poster for an item
+    // eslint-disable-next-line no-unused-vars
     addPosterToItem(collItem)
     {
         throw('collectionType: generic addPosterToItem called: should be overridden by subclass');
@@ -922,7 +924,11 @@ class movieCollection extends collectionType
         try
         {
             url = wait.for(movieArt,mTitle,year,null,type);
-        } catch(e) {}
+        }
+        catch(e)
+        {
+            // Ignore errors, url will be undefined which is fine
+        }
         cache.set(url,'externalAPI',identifier);
         return url;
     }
@@ -2265,7 +2271,10 @@ class bookCollection extends collectionType
             {
                 remote = wait.for(isbn.resolve,data.isbn);
             }
-            catch (e) {}
+            catch (e)
+            {
+                // Ignore errors, remote will be undefined which is fine
+            }
             cache.set(remote,'bookMeta',ckey);
         }
         return remote;
