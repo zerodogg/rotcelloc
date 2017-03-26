@@ -854,6 +854,7 @@ class movieCollection extends collectionType
         let theFname   = this.getPoster(collectionEntry);
         if(!theFname)
         {
+            collectionEntry.poster = undefined;
             return;
         }
         collectionEntry.poster = encodeURIComponent(theFname);
