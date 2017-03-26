@@ -3163,11 +3163,13 @@ var webappGen = {
         let babelified, uglified;
         try
         {
-            babelified = babel.transformFileSync(
-                helper.resolvePath('src/rotcelloc.js'),
+            babelified = babel.transform(fs.readFileSync(helper.resolvePath('src/rotcelloc.js')),
                 {
                     'babelrc':false,
-                    'presets':['es2015']
+                    sourceMaps: true,
+                    sourceFileName: 'rotcelloc.js',
+                    sourceMapTarget: 'rotcelloc.js',
+                    'presets':['babel-preset-es2015'].map(require.resolve)
                 }
             );
         }
@@ -3178,10 +3180,10 @@ var webappGen = {
         try
         {
             uglified = UglifyJS.minify({ 'rotcelloc.js':babelified.code},{
+                    warnings: true,
                     inSourceMap: babelified.map,
                     fromString: true,
                     outSourceMap: 'rotcelloc.js.map',
-                    sourceMapIncludeSources: true
                 });
         }
         catch(e)
