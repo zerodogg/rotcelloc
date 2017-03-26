@@ -804,6 +804,16 @@ class collectionType
         let hash = crypto.createHash('sha256').update(identifier).digest("hex");
         return hash;
     }
+
+    /*
+     * Retrieves the size of an image.
+     * Returns undefined or an object with the keys width and height
+     */
+    imageSize(file)
+    {
+        const img = gm(file);
+        return wait.forMethod(img,'size');
+    }
 }
 
 class movieCollection extends collectionType
@@ -854,7 +864,13 @@ class movieCollection extends collectionType
     {
         let url;
         let mTitle = entry.title;
-        let type = entry.type;
+        let source;
+        let posterMeta = {};
+        const posterCkey = 'poster:'+getCacheID(entry);
+        if(cache.exists('meta',posterCkey))
+        {
+            posterMeta = cache.get('meta',posterCkey);
+        }
         if(entry.origTitle)
         {
             mTitle = entry.origTitle;
@@ -863,59 +879,132 @@ class movieCollection extends collectionType
         {
             url = entry.customCover;
             delete entry.customCover;
+            source = 'custom';
         }
         else
         {
-            // Remap type so that movieArt can handle it
-            if(type == 'movies')
+            if(!helper.isValidCoverURL(url) && entry.imdbID && entry.poster)
+            {
+                url = entry.poster;
+                source = 'OMDB';
+            }
+            if (!helper.isValidCoverURL(url))
+            {
+                url = this.getPosterFromMovieArt(entry,mTitle);
+                source = 'movieArt';
+            }
+        }
+        // Download poster
+        let fname = this.downloadPoster(url,entry);
+        // Now, if the poster was from OMDB we want to make sure that it is a good one.
+        // Sometimes OMDB has low-res posters, and in these cases movieArt will often
+        // return a nicer poster. Thus we try to fetch one from movieArt and see if that
+        // is better. We only do this once.
+        if(fname !== undefined && source === 'OMDB' && !posterMeta.triedMovieArt)
+        {
+            // This is the path the current poster is saved to
+            const fullPath = helper.resolveOutPath('.rotcellocdata/images/orig/'+fname);
+            // The dimensions of the current poster
+            const omdbFsize = this.imageSize(fullPath);
+            // Only try movieArt if the current poster is bad
+            if(omdbFsize.width < 270 || omdbFsize.height < 380)
+            {
+                printv(1,'Poster for "'+mTitle+'" was of poor quality, trying to find better poster with movieArt...');
+                // Try to get a poster from movieArt
+                let movieArtUrl = this.getPosterFromMovieArt(entry,mTitle);
+                // If movieArt had a poster, try to process that
+                if (movieArtUrl !== undefined)
+                {
+                    const origFname = fname;
+                    let useMovieArt = false;
+                    let movieArtFullPath;
+                    // Rename the old poster so that if it turns out that movieArt isn't better
+                    // we don't bother re-downloading the original
+                    fs.renameSync(fullPath,fullPath+'~');
+                    // Download the movieArt poster
+                    fname = this.downloadPoster(movieArtUrl,entry);
+                    // If we got a movieArt poster
+                    if(fname !== undefined)
+                    {
+                        movieArtFullPath = helper.resolveOutPath('.rotcellocdata/images/orig/'+fname);
+                        const movieArtSize = this.imageSize(movieArtFullPath);
+                        // Check if it is better than the OMDB one, if it is, we use it
+                        if( (movieArtSize.width > omdbFsize.width) || (movieArtSize.height > omdbFsize.height) )
+                        {
+                            useMovieArt = true;
+                        }
+                    }
+                    // If we were told to use movieArt, output a message about it and
+                    // delete the old OMDB poster
+                    if(useMovieArt)
+                    {
+                        printv(2,'Found a better poster using movieArt, using that');
+                        fs.unlinkSync(fullPath+'~');
+                    }
+                    // If we're not using movieArt, move the previous poster back into
+                    // place and remove the one from movieArt
+                    else
+                    {
+                        printv(2,'movieArt did not return a better poster, using the previous one');
+                        fs.unlinkSync(movieArtFullPath);
+                        fs.renameSync(fullPath+'~',fullPath);
+                        fname = origFname;
+                    }
+                }
+            }
+            // Store that we've tried movieArt in the cache so we don't try it
+            // again later
+            posterMeta.triedMovieArt = true;
+            cache.set(posterMeta,'meta',posterCkey);
+        }
+        return fname;
+    }
+
+    getPosterFromMovieArt(entry,mTitle)
+    {
+        let url;
+        let type = entry.type;
+        // Remap type so that movieArt can handle it
+        if(type == 'movies')
+        {
+            type = 'movie';
+        }
+        else if(type == 'series')
+        {
+            type = 'tv';
+        }
+        if(!helper.isValidCoverURL(url) && entry.year)
+        {
+            url = this.submitMovieArtRequest(mTitle,entry.year,type);
+        }
+        if(!helper.isValidCoverURL(url))
+        {
+            url = this.submitMovieArtRequest(mTitle,null,type);
+        }
+        if(!helper.isValidCoverURL(url))
+        {
+            if(type == 'tv')
             {
                 type = 'movie';
             }
-            else if(type == 'series')
+            else
             {
                 type = 'tv';
             }
+            if(entry.year && !url)
+            {
+                url = this.submitMovieArtRequest(mTitle,entry.year,type);
+            }
             if(!helper.isValidCoverURL(url))
             {
-                if(!helper.isValidCoverURL(url) && entry.imdbID && entry.poster)
-                {
-                    url = entry.poster;
-                }
-                if(!helper.isValidCoverURL(url) && entry.year)
-                {
-                    url = this.submitMovieArtRequest(mTitle,entry.year,type);
-                }
-                if(!helper.isValidCoverURL(url))
-                {
-                    url = this.submitMovieArtRequest(mTitle,null,type);
-                }
-                if(!helper.isValidCoverURL(url))
-                {
-                    if(type == 'tv')
-                    {
-                        type = 'movie';
-                    }
-                    else
-                    {
-                        type = 'tv';
-                    }
-                    if(entry.year && !url)
-                    {
-                        url = this.submitMovieArtRequest(mTitle,entry.year,type);
-                    }
-                    if(!helper.isValidCoverURL(url))
-                    {
-                        url = this.submitMovieArtRequest(mTitle,null,type);
-                    }
-                    if(!helper.isValidCoverURL(url) && entry.poster)
-                    {
-                        url = entry.poster;
-                    }
-                }
+                url = this.submitMovieArtRequest(mTitle,null,type);
+            }
+            if(!helper.isValidCoverURL(url) && entry.poster)
+            {
+                url = entry.poster;
             }
         }
-        let fname = this.downloadPoster(url,entry);
-        return fname;
+        return url;
     }
 
     // Submits a movieArt request
