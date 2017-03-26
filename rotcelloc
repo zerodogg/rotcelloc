@@ -30,6 +30,7 @@
 // Load modules
 try
 {
+    // eslint-disable-next-line no-var
     var
         // For parsing the collection files
         parse         = require('csv').parse,
@@ -84,6 +85,7 @@ try
     process.exit(1);
 }
 
+// eslint-disable-next-line no-var
 var
     // Global cache object
     cache = null,
@@ -103,7 +105,7 @@ var
     // Global i18n handling (including translation function)
     i18n = {
         strings: {},
-        translate: function (s)
+        translate (s)
         {
             return this.strings[s] ? this.strings[s] : s;
         }
@@ -520,13 +522,15 @@ class collectionType
         // Sort
         if(this._entry.defaultSort === undefined || this._entry.defaultSort !== 'year')
         {
-            data.sort(function(a,b) {
+            data.sort((a,b) =>
+            {
                     return a.title.localeCompare(b.title);
             });
         }
         else
         {
-            data.sort(function(a,b) {
+            data.sort((a,b) =>
+            {
                     if(a.year && b.year && a.year != b.year)
                     {
                         return b.year - a.year;
@@ -559,7 +563,7 @@ class collectionType
                 result = _.uniq(result);
                 // Ensure nothing is null or undefined
                 result = _.filter(result,
-                    function (entry)
+                    (entry) =>
                     {
                         return entry !== null && entry !== undefined;
                     }
@@ -1341,7 +1345,7 @@ class movieCollection extends collectionType
         printv(8,'Request key: '+serialish);
         httpreq.get(url, {
                 parameters: requestQuery
-            },function (err,res)
+            },(err,res) =>
             {
                 if (!err)
                 {
@@ -2201,7 +2205,8 @@ class gameCollection extends collectionType
 
             response.score = points;
         }
-        search = search.sort(function(a,b) {
+        search = search.sort((a,b) =>
+        {
                 return b.score - a.score;
         });
         while(search.length > 0)
@@ -2402,7 +2407,7 @@ class bookCollection extends collectionType
 /*
  * Various helper functions for the rest of the program
  */
-var helper = {
+const helper = {
     /*
      * Downloads a URL synchronously and returns the JSON data from it
      */
@@ -2748,8 +2753,10 @@ var helper = {
     sleep: function (sleepTime)
     {
         sleepTime = sleepTime*1000;
-        wait.for(function (cb) {
-                setTimeout(function() { cb(); }, sleepTime);
+        wait.for((cb) =>
+        {
+            // eslint-disable-next-line brace-style
+                setTimeout(() => { cb(); }, sleepTime);
         });
     },
 
@@ -2768,7 +2775,7 @@ var helper = {
  * Core bits of software not directly related to games, movies or tv, and not
  * quite helpers for other things
  */
-var core = {
+const core = {
     /*
      * Writes a out the final dataset and HTML fiels for a collection group
      */
@@ -3065,7 +3072,8 @@ var core = {
             child_process.execFileSync('cp',[ file.qualified,helper.resolveOutPath('out/rotcelloc/'+file.path) ]);
         }
         child_process.execFileSync('tar',['-jcf','./rotcelloc.tar.bz2','./rotcelloc' ]);
-        directories.sort(function(a, b){
+        directories.sort((a, b) =>
+        {
                 return b.length - a.length;
         });
         for(const fileI of selfFiles)
@@ -3088,7 +3096,7 @@ var core = {
 /*
  * Web application generator components
  */
-var webappGen = {
+const webappGen = {
     versions: {
         jQueryVersion: '2.2.1',
         bootstrapVersion: '3.3.6'
@@ -3293,7 +3301,8 @@ function printv(reqVerb,message)
 function main()
 {
     // Handle SIGINT
-    process.on('SIGINT', () => {
+    process.on('SIGINT', () =>
+    {
             console.log('Received SIGINT, flushing cache and exiting.');
             if(cache !== undefined && cache.flushIfNeeded)
             {
@@ -3313,7 +3322,8 @@ function main()
     commander
     .version(packageJSON.version)
     .option('-q, --quiet','be quiet (overrides any --verbose arguments)')
-    .option('-v, --verbose','increase verbosity', function (v,total) { return total + 1;},1)
+    // eslint-disable-next-line brace-style
+    .option('-v, --verbose','increase verbosity', (v,total) => { return total + 1;},1)
     .option('--deploy','build the collection and webapp and then deploy as defined in the config')
     .option('--retry-miss','retry fetching data or covers where those have failed previously')
     .option('--include-debug','include debugging metadata')
