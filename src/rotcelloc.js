@@ -21,9 +21,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 // jshint esversion: 6
-/*global jQuery*/
-/*global _*/
-(function ($){
+/* global jQuery*/
+/* global _*/
+(function ($)
+{
     "use strict";
     function warn(message)
     {
@@ -197,7 +198,7 @@
 
                 const entry = result[entryI];
 
-                var html = '<div class="col-entry" id="colEntryNo_'+entry.id+'">'+this.renderCover(entry);
+                let html = '<div class="col-entry" id="colEntryNo_'+entry.id+'">'+this.renderCover(entry);
                 html += '<div class="description"><h3>'+entry.title;
                 if(entry.year)
                 {
@@ -327,19 +328,22 @@
                 genericEntries = {
                 'rating':{
                     'label':this.translate('Custom rating'),
-                    'renderer':(val) => {
+                    'renderer':(val) =>
+                    {
                         return val+'/6';
                     }
                 },
                 'metascore':{
                     'label':this.translate('Metascore'),
-                    'renderer':(val) => {
+                    'renderer':(val) =>
+                    {
                         return val+'/100';
                     }
                 },
                 'imdbRating':{
                     'label':this.translate('IMDB rating'),
-                    'renderer': (val,data) => {
+                    'renderer': (val,data) =>
+                    {
                         return data.imdbRating+'/10 ('+data.imdbVotes+' '+this.translate('votes'  )+')';
                     }
                 },
@@ -844,7 +848,8 @@
                 if(query.order == 'alpha')
                 {
                     sorted = true;
-                    results.sort(function(a,b) {
+                    results.sort((a,b) =>
+                    {
                             return a.title.localeCompare(b.title,'no-nn');
                     });
                 }
@@ -870,7 +875,8 @@
             }
             if(sorted === false)
             {
-                results.sort(function(a,b) {
+                results.sort((a,b) =>
+                {
                         if(a.searchScore != b.searchScore)
                         {
                             return b.searchScore - a.searchScore;
@@ -1289,7 +1295,8 @@
     /*
      * Runs our init function on jquery load
      */
-    $(function () {
+    $(() =>
+    {
             window.rotcelloc = new rotcelloc();
     });
     // Expose the object so that it can be called from the console
