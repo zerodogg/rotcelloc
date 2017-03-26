@@ -741,15 +741,21 @@ class collectionType
                 printv(4,'downloadPoster: skipping download due to --lazy');
                 return;
             }
+            if (!commander.retryMiss && cache.exists('posterFiles',url) && cache.get('posterFiles',url) === null)
+            {
+                return;
+            }
             printv(4,'Downloading: '+url+' to '+'.rotcellocdata/images/orig/'+fname);
             let data = wait.forMethod(httpreq,'get',url, {binary: true });
             if(data.statusCode === 200)
             {
                 fs.writeFileSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+fname),data.body);
+                cache.set({ hash: hash, type: ftype },'posterFiles',url);
                 printv(1,'Downloaded poster for '+entry.title);
             }
             else
             {
+                cache.set(null,'posterFiles',url);
                 printv(1,'Failed to download poster from '+url+': '+data.statusCode);
                 return;
             }
