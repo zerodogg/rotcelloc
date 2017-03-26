@@ -30,8 +30,9 @@
             console.log('rotcelloc: warning: '+message);
         }
     }
-    let BOT_LOAD_TRIGGER_PX = 1000,
-        rotcelloc = {
+
+    class rotcelloc
+    {
         /*
          * Initializes the page:
          * - Sets up object variables
@@ -39,48 +40,55 @@
          * - Performs initial render
          * - Sets up event handlers
          */
-        init: function()
+        constructor ()
         {
-            rotcelloc.currentResults = [];
-            rotcelloc.prevQuery      = null;
-            rotcelloc.getDataSet(function (data)
-            {
-                $('#menuToggle').text(rotcelloc.translate('Show/hide menu'));
-                if (/(Android|Mobile|iOS|iPhone)/.test(navigator.userAgent))
+            this.currentResults = [];
+            this.prevQuery      = null;
+            this.getDataSet(data =>
                 {
-                    rotcelloc.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPageMobile;
-                    rotcelloc.mobile = true;
-                }
-                else
-                {
-                    rotcelloc.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPage;
-                    rotcelloc.mobile = false;
-                }
-                rotcelloc.renderSearchPanel();
-                rotcelloc.initAutoSearcher();
-                rotcelloc.renderResults(rotcelloc.workingData);
-                if (!rotcelloc.mobile)
-                {
-                    $('#searchBox').focus();
-                }
+                    $('#menuToggle').text(this.translate('Show/hide menu'));
+                    if (/(Android|Mobile|iOS|iPhone)/.test(navigator.userAgent))
+                    {
+                        this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPageMobile;
+                        this.mobile = true;
+                    }
+                    else
+                    {
+                        this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPage;
+                        this.mobile = false;
+                    }
+                    this.renderSearchPanel();
+                    this.initAutoSearcher();
+                    this.renderResults(this.workingData);
+                    if (!this.mobile)
+                    {
+                        $('#searchBox').focus();
+                    }
 
-                $(window).scroll(function(){
-                        if (rotcelloc.currentResults.length && $(window).scrollTop() + $(window).height() >= $(document).height() - BOT_LOAD_TRIGGER_PX)
-                        {
-                            rotcelloc.showNextResults();
-                        }
-                });
-                $('body').removeClass('loading');
+                    $(window).scroll(function(){
+                            if (this.currentResults.length && $(window).scrollTop() + $(window).height() >= $(document).height() - 1000)
+                            {
+                                this.showNextResults();
+                            }
+                    });
+                    $('body').removeClass('loading');
+                    let self = this;
+                    // Handle clicks on the show more links
+                    $('body').on('click','.showMoreLink > a',function (ev)
+                    {
+                        self.showMore($(this).attr('data-id'));
+                        ev.preventDefault();
+                    });
             });
-        },
+        }
         /*
          * Initializes the auto-search event listeners
          */
-        initAutoSearcher: function ()
+        initAutoSearcher()
         {
-            let runSearch = function ()
+            let runSearch = () =>
             {
-                rotcelloc.performSearchFromHTML();
+                this.performSearchFromHTML();
             };
             $('#searchForm').on('change','input,select',runSearch);
             $('#searchForm').on('keyup','#searchBox',function ()
@@ -90,11 +98,11 @@
                     runSearch();
                 }
             });
-        },
+        }
         /*
          * Downloads and prepares the dataset for the collection on the current page
          */
-        getDataSet: function(cb)
+        getDataSet(cb)
         {
             let $colResT = $('#collResultTarget');
             let pagetype = $colResT.data('pagetype');
@@ -102,38 +110,38 @@
             {
                 return;
             }
-            $.getJSON(pagetype.toLowerCase().replace(/\s+/g,'_')+'.dataset.json?'+$colResT.data('checksum'),function (data)
+            $.getJSON(pagetype.toLowerCase().replace(/\s+/g,'_')+'.dataset.json?'+$colResT.data('checksum'),(data) =>
             {
-                    rotcelloc.data    = data;
-                    rotcelloc.pagetype    = pagetype;
-                    rotcelloc.workingData = data.data;
-                    rotcelloc.workingMeta = data.meta;
-                    rotcelloc.workingConfig = rotcelloc.data.config.collections[pagetype];
-                    if(rotcelloc.data.dVer !== 0)
+                    this.data    = data;
+                    this.pagetype    = pagetype;
+                    this.workingData = data.data;
+                    this.workingMeta = data.meta;
+                    this.workingConfig = this.data.config.collections[pagetype];
+                    if(this.data.dVer !== 0)
                     {
-                        $colResT.text('ERROR: Dataset is of an unsupported version: '+rotcelloc.data.dVer);
+                        $colResT.text('ERROR: Dataset is of an unsupported version: '+this.data.dVer);
                     }
                     else
                     {
                         cb(data);
                     }
             });
-        },
+        }
         /*
          * Render cover
          */
-        renderCover: function(entry)
+        renderCover(entry)
         {
             if(!entry.poster)
             {
                 return this.generateCover(entry);
             }
             return '<div class="poster"><img src="images/'+entry.poster+'" alt="" class="img-responsive img-rounded" /></div>';
-        },
+        }
         /*
          * Generate a cover
          */
-        generateCover: function(entry)
+        generateCover (entry)
         {
             let coverHTML = '<div class="poster img-rounded poster-generated text-center">';
             coverHTML += '<h1>'+entry.title+'</h1>';
@@ -144,7 +152,7 @@
             }
             else if (entry.seasons)
             {
-                secondaryText = seasons;
+                secondaryText = entry.seasons;
             }
             if(entry.publisher)
             {
@@ -160,18 +168,18 @@
             }
             coverHTML += '</div>';
             return coverHTML;
-        },
+        }
         /*
          * Renders a result set
          */
-        renderResults: function(result)
+        renderResults(result)
         {
             let cols             = 0,
                 htmlContent      = [],
                 out              = '',
                 entriesNoTracker = 0,
                 renderedResults  = [];
-            let pruneRows = function ()
+            let pruneRows = () =>
             {
                 out += '<div class="row"><div class="col-sm-3">\n';
                 out += htmlContent.join('</div><div class="col-sm-3">');
@@ -199,21 +207,21 @@
                 }
                 if(entry.seasons)
                 {
-                    html += '<div class="seasons"><div class="meta-label">'+rotcelloc.translate('Seasons')+':</div> '+entry.seasons+'</div>';
+                    html += '<div class="seasons"><div class="meta-label">'+this.translate('Seasons')+':</div> '+entry.seasons+'</div>';
                 }
                 if(entry.origTitle && entry.origTitle != entry.title)
                 {
-                    html += '<div class="original-title"><div class="meta-label">'+rotcelloc.translate('Original title')+':</div> '+entry.origTitle+'</div>';
+                    html += '<div class="original-title"><div class="meta-label">'+this.translate('Original title')+':</div> '+entry.origTitle+'</div>';
                 }
                 if(entry.disneyClassicNo)
                 {
-                    html += '<div class="disney-number"><div class="meta-label">'+rotcelloc.translate('Disney classics no.')+':</div> '+entry.disneyClassicNo+'</div>';
+                    html += '<div class="disney-number"><div class="meta-label">'+this.translate('Disney classics no.')+':</div> '+entry.disneyClassicNo+'</div>';
                 }
                 if(entry.genre)
                 {
-                    html += '<div class="title-format"><div class="meta-label">'+rotcelloc.translate('Genre')+':</div> '+entry.genre+'</div>';
+                    html += '<div class="title-format"><div class="meta-label">'+this.translate('Genre')+':</div> '+entry.genre+'</div>';
                 }
-                html += '<div class="showMoreLink"><a href="#" onclick="rotcelloc.showMore('+entry.id+'); return false;">'+rotcelloc.translate('Show more information')+'</a></div><div class="showMore collapse"></div>';
+                html += '<div class="showMoreLink"><a href="#" data-id="'+entry.id+'">'+this.translate('Show more information')+'</a></div><div class="showMore collapse"></div>';
                 html += '</div></div>';
 
                 htmlContent.push(html);
@@ -239,29 +247,29 @@
                 renderedResults.push(out);
             }
 
-            rotcelloc.currentResults = renderedResults;
+            this.currentResults = renderedResults;
 
             $('#collResultTarget').html('');
-            rotcelloc.showNextResults();
-            rotcelloc.setPageTitle('('+result.length+')');
-        },
+            this.showNextResults();
+            this.setPageTitle('('+result.length+')');
+        }
         /*
          * Function that gets triggered on scroll to render more items if needed
          */
-        showNextResults: function ()
+        showNextResults()
         {
-            if(rotcelloc.currentResults && rotcelloc.currentResults.length)
+            if(this.currentResults && this.currentResults.length)
             {
-                $('#collResultTarget').append(rotcelloc.currentResults.shift());
+                $('#collResultTarget').append(this.currentResults.shift());
             }
-        },
+        }
         /*
          * Renders the "more" component of a collections entry, this will be called
          * when the user clicks the "Show more information" link
          */
-        showMore: function(entryID)
+        showMore(entryID)
         {
-            let data = rotcelloc.workingData[entryID];
+            let data = this.workingData[entryID];
             if(data === null || data === undefined)
             {
                 throw('Unhandled showMore ID: '+entryID);
@@ -271,35 +279,35 @@
                 html    = '';
             if(data.altTitle && data.altTitle != data.title)
             {
-                html += '<div class="original-title"><div class="meta-label">'+rotcelloc.translate('Alternativ title')+':</div> '+data.altTitle+'</div>';
+                html += '<div class="original-title"><div class="meta-label">'+this.translate('Alternativ title')+':</div> '+data.altTitle+'</div>';
             }
             if(data.runtime)
             {
-                html += '<div class="title-runtime"><div class="meta-label">'+rotcelloc.translate('Runtime')+':</div> '+data.runtime+'</div>';
+                html += '<div class="title-runtime"><div class="meta-label">'+this.translate('Runtime')+':</div> '+data.runtime+'</div>';
             }
             if(data.platform)
             {
-                html += '<div class="title-runtime"><div class="meta-label">'+rotcelloc.translate('Platform')+':</div> '+data.platform.join(', ')+'</div>';
+                html += '<div class="title-runtime"><div class="meta-label">'+this.translate('Platform')+':</div> '+data.platform.join(', ')+'</div>';
             }
             if(data.developer)
             {
-                html += '<div class="title-runtime"><div class="meta-label">'+rotcelloc.translate('Developer')+':</div> '+data.developer+'</div>';
+                html += '<div class="title-runtime"><div class="meta-label">'+this.translate('Developer')+':</div> '+data.developer+'</div>';
             }
             if(data.actors)
             {
-                html += '<div class="title-actors"><div class="meta-label">'+rotcelloc.translate('Actors')+':</div> '+data.actors+'</div>';
+                html += '<div class="title-actors"><div class="meta-label">'+this.translate('Actors')+':</div> '+data.actors+'</div>';
             }
             if(data.director)
             {
-                html += '<div class="title-director"><div class="meta-label">'+rotcelloc.translate('Director')+':</div> '+data.director+'</div>';
+                html += '<div class="title-director"><div class="meta-label">'+this.translate('Director')+':</div> '+data.director+'</div>';
             }
             if(data.writer)
             {
-                html += '<div class="title-writer"><div class="meta-label">'+rotcelloc.translate('Writer')+':</div> '+data.writer+'</div>';
+                html += '<div class="title-writer"><div class="meta-label">'+this.translate('Writer')+':</div> '+data.writer+'</div>';
             }
-            if(rotcelloc.data.config.collections[rotcelloc.pagetype].sources.length > 1)
+            if(this.data.config.collections[this.pagetype].sources.length > 1)
             {
-                html += '<div class="group"><div class="meta-label">'+rotcelloc.translate('Group')+':</div> ';
+                html += '<div class="group"><div class="meta-label">'+this.translate('Group')+':</div> ';
                 let sources = data.bSource.split(", ");
                 for(let source = 0; source < sources.length; source++)
                 {
@@ -308,35 +316,35 @@
                     {
                         html += ', ';
                     }
-                    html += rotcelloc.workingMeta.sourceToNameMap[sourceN];
+                    html += this.workingMeta.sourceToNameMap[sourceN];
                 }
                 html += '</div>';
             }
             let genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn' ],
                 genericEntries = {
                 'rating':{
-                    'label':rotcelloc.translate('Custom rating'),
-                    'renderer':function (val) {
+                    'label':this.translate('Custom rating'),
+                    'renderer':(val) => {
                         return val+'/6';
                     }
                 },
                 'metascore':{
-                    'label':rotcelloc.translate('Metascore'),
-                    'renderer':function (val) {
+                    'label':this.translate('Metascore'),
+                    'renderer':(val) => {
                         return val+'/100';
                     }
                 },
                 'imdbRating':{
-                    'label':rotcelloc.translate('IMDB rating'),
-                    'renderer': function (val,data) {
-                        return data.imdbRating+'/10 ('+data.imdbVotes+' '+rotcelloc.translate('votes'  )+')';
+                    'label':this.translate('IMDB rating'),
+                    'renderer': (val,data) => {
+                        return data.imdbRating+'/10 ('+data.imdbVotes+' '+this.translate('votes'  )+')';
                     }
                 },
                 'isbn':{
-                    'label':rotcelloc.translate('ISBN'),
+                    'label':this.translate('ISBN'),
                 },
                 'format':{
-                    'label':rotcelloc.translate('Format'),
+                    'label':this.translate('Format'),
                 }
             };
 
@@ -355,7 +363,7 @@
                 }
             }
 
-            html += '<div class="entry-links"><div class="meta-label">'+rotcelloc.translate('Links')+':</div> ';
+            html += '<div class="entry-links"><div class="meta-label">'+this.translate('Links')+':</div> ';
 
             if(data.type == 'game')
             {
@@ -388,11 +396,11 @@
                 }
                 else
                 {
-                    imdbURL = 'http://www.imdb.com/find?s=all&amp;s=tt&amp;q='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'&amp;ttype='+ ( rotcelloc.workingMeta.type == 'series' ? 'tv' : 'ft' );
+                    imdbURL = 'http://www.imdb.com/find?s=all&amp;s=tt&amp;q='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'&amp;ttype='+ ( this.workingMeta.type == 'series' ? 'tv' : 'ft' );
                 }
                 html += '<a target="_blank" href="'+imdbURL+'">IMDB</a>';
                 html += ', ';
-                html += '<a target="_blank" href="https://www.themoviedb.org/search/'+( rotcelloc.workingMeta.type == 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
+                html += '<a target="_blank" href="https://www.themoviedb.org/search/'+( this.workingMeta.type == 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
             }
             else if(data.type == 'books')
             {
@@ -436,11 +444,11 @@
             html += '</div>';
             if(data.note)
             {
-                html += '<div class="note"><div class="meta-label">'+rotcelloc.translate('Note')+':</div> '+data.note+'</div>';
+                html += '<div class="note"><div class="meta-label">'+this.translate('Note')+':</div> '+data.note+'</div>';
             }
             if(data.addedRaw)
             {
-                html += '<div class="note"><div class="meta-label">'+rotcelloc.translate('Date added')+':</div> '+data.addedRaw+'</div>';
+                html += '<div class="note"><div class="meta-label">'+this.translate('Date added')+':</div> '+data.addedRaw+'</div>';
             }
             if(data.plot)
             {
@@ -449,12 +457,12 @@
             $root.find('.showMoreLink').slideUp();
             $target.html(html);
             $target.slideDown();
-        },
+        }
         /*
          * Reads values from the DOM that will then be handed over to the search
          * function
          */
-        performSearchFromHTML: function ()
+        performSearchFromHTML()
         {
             let query           = {},
                 $group          = $('#group .active input'),
@@ -514,27 +522,27 @@
                 });
                 query.genreSearchType = genreSearchType;
             }
-            rotcelloc.performSearch(query);
-        },
+            this.performSearch(query);
+        }
         /*
          * Searches our dataset, handling many different fields and scoring hits
          * appropriately
          */
-        performSearch: function (query)
+        performSearch(query)
         {
             let results = [];
-            if(_.isEqual(query,rotcelloc.prevQuery))
+            if(_.isEqual(query,this.prevQuery))
             {
                 return;
             }
             else
             {
-                rotcelloc.prevQuery = query;
+                this.prevQuery = query;
             }
-            for(let collectionN = 0; collectionN < rotcelloc.workingData.length; collectionN++)
+            for(let collectionN = 0; collectionN < this.workingData.length; collectionN++)
             {
                 let searchScore = 10,
-                    collectionEntry = rotcelloc.workingData[collectionN],
+                    collectionEntry = this.workingData[collectionN],
                     hit;
                 if (query.watchedSearch)
                 {
@@ -882,12 +890,12 @@
                         return a.title.localeCompare(b.title);
                 });
             }
-            rotcelloc.renderResults(results);
-        },
+            this.renderResults(results);
+        }
         /*
          * Renders the search panel on the page
          */
-        renderSearchPanel: function()
+        renderSearchPanel()
         {
             let plotSearchBool = {
                 id: 'plotSearch',
@@ -896,13 +904,13 @@
                         id: 'search_plot_yes',
                         value: 'true',
                         active: false,
-                        name: rotcelloc.translate('Yes')
+                        name: this.translate('Yes')
                     },
                     {
                         id: 'search_plot_no',
                         value: 'false',
                         active: true,
-                        name: rotcelloc.translate('No')
+                        name: this.translate('No')
                     }
                 ],
             },
@@ -913,13 +921,13 @@
                         id: 'only_unwatched_yes',
                         value: 'true',
                         active: false,
-                        name: rotcelloc.translate('Yes')
+                        name: this.translate('Yes')
                     },
                     {
                         id: 'only_unwatched_no',
                         value: 'false',
                         active: true,
-                        name: rotcelloc.translate('No')
+                        name: this.translate('No')
                     }
                 ],
             },
@@ -929,53 +937,53 @@
                     {
                         id: 'order_none',
                         value: '',
-                        active: rotcelloc.workingConfig.defaultSort !== 'year',
-                        name: rotcelloc.translate('Automatic')
+                        active: this.workingConfig.defaultSort !== 'year',
+                        name: this.translate('Automatic')
                     }
                 ]
             };
-            if(rotcelloc.workingMeta.type == 'books')
+            if(this.workingMeta.type == 'books')
             {
                 orderButtons.buttons.push(
                 {
                     id: 'sortableAuthor',
                     value: 'sortableAuthor',
-                    name: rotcelloc.translate('Author')
+                    name: this.translate('Author')
                 });
             }
-            if(rotcelloc.workingMeta.hasDisneySort)
+            if(this.workingMeta.hasDisneySort)
             {
                 orderButtons.buttons.push(
                     {
                         id: 'order_alpha',
                         value: 'alpha',
-                        name: rotcelloc.translate('Alphabetic')
+                        name: this.translate('Alphabetic')
                     }
                 );
             }
             else
             {
-                orderButtons.buttons[0].name = rotcelloc.translate('Alphabetic');
+                orderButtons.buttons[0].name = this.translate('Alphabetic');
             }
-            if (rotcelloc.workingMeta.fields.year)
+            if (this.workingMeta.fields.year)
             {
                 orderButtons.buttons.push(
                     {
                         id: 'order_year',
                         value: 'sortYear',
-                        name: rotcelloc.translate('Year'),
-                        active: rotcelloc.workingConfig.defaultSort === 'year'
+                        name: this.translate('Year'),
+                        active: this.workingConfig.defaultSort === 'year'
                     }
                 );
             }
-            if (rotcelloc.workingMeta.fields.added)
+            if (this.workingMeta.fields.added)
             {
                 orderButtons.buttons.push(
                     {
                         id: 'order_added',
                         value: 'added',
-                        name: rotcelloc.translate('Date added'),
-                        active: rotcelloc.workingConfig.defaultSort === 'added'
+                        name: this.translate('Date added'),
+                        active: this.workingConfig.defaultSort === 'added'
                     }
                 );
             }
@@ -983,54 +991,54 @@
                 {
                     id: 'order_rand',
                     value: 'random',
-                    name: rotcelloc.translate('Random')
+                    name: this.translate('Random')
             });
 
-            if (rotcelloc.workingMeta.type == 'movies' || rotcelloc.workingMeta.type == 'series')
+            if (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
             {
                 orderButtons.buttons.push(
                 {
                     id: 'runtime',
                     value: 'runtimeMin',
-                    name: rotcelloc.translate('Length')
+                    name: this.translate('Length')
                 });
             }
-            if(rotcelloc.workingMeta.enableNormalized)
+            if(this.workingMeta.enableNormalized)
             {
                 orderButtons.buttons.push(
                     {
                         id: 'order_normalRating',
                         value: 'normalizedRating',
-                        name: rotcelloc.translate('Rating (smart)')
+                        name: this.translate('Rating (smart)')
                     }
                 );
             }
-            if(rotcelloc.workingMeta.fields.rating)
+            if(this.workingMeta.fields.rating)
             {
                 orderButtons.buttons.push(
                     {
                         id: 'order_rating',
                         value: 'rating',
-                        name: rotcelloc.translate('Custom rating')
+                        name: this.translate('Custom rating')
                     }
                 );
             }
-            if (rotcelloc.workingMeta.fields.metascore)
+            if (this.workingMeta.fields.metascore)
             {
                 orderButtons.buttons.push(
                     {
                         id: 'order_meta',
                         value: 'metascore',
-                        name: rotcelloc.translate('Metascore')
+                        name: this.translate('Metascore')
                     });
             }
-            if (rotcelloc.workingMeta.type == 'movies' || rotcelloc.workingMeta.type == 'series')
+            if (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
             {
                 orderButtons.buttons.push(
                     {
                         id: 'order_imdb',
                         value: 'imdbRating',
-                        name: rotcelloc.translate('IMDB rating')
+                        name: this.translate('IMDB rating')
                     }
                 );
             }
@@ -1040,14 +1048,14 @@
                         id: 'platforms_none',
                         value: '',
                         active: true,
-                        name: rotcelloc.translate('All')
+                        name: this.translate('All')
                 }]
             };
-            if(rotcelloc.workingMeta.platforms && rotcelloc.workingMeta.platforms.length > 1)
+            if(this.workingMeta.platforms && this.workingMeta.platforms.length > 1)
             {
-                for (let platformI in rotcelloc.workingMeta.platforms)
+                for (let platformI in this.workingMeta.platforms)
                 {
-                    let platform = rotcelloc.workingMeta.platforms[platformI];
+                    let platform = this.workingMeta.platforms[platformI];
                     platformButtons.buttons.push({
                             id: 'platforms_'+platformI,
                             value: platform,
@@ -1061,12 +1069,12 @@
                         id: 'groups_none',
                         value: '',
                         active: true,
-                        name: rotcelloc.translate('All')
+                        name: this.translate('All')
                 }]
             };
-            for (let groupI in rotcelloc.data.config.collections[rotcelloc.pagetype].sources)
+            for (let groupI in this.data.config.collections[this.pagetype].sources)
             {
-                let group = rotcelloc.data.config.collections[rotcelloc.pagetype].sources[groupI];
+                let group = this.data.config.collections[this.pagetype].sources[groupI];
                 groupButtons.buttons.push({
                         id: 'groups_'+groupI,
                         value: group.bSource ,
@@ -1079,11 +1087,11 @@
                 type: 'checkbox',
                 buttons: []
             };
-            if(rotcelloc.workingMeta.genres && rotcelloc.workingMeta.genres.length)
+            if(this.workingMeta.genres && this.workingMeta.genres.length)
             {
-                for(let genreN = 0; genreN < rotcelloc.workingMeta.genres.length; genreN++)
+                for(let genreN = 0; genreN < this.workingMeta.genres.length; genreN++)
                 {
-                    let genre = rotcelloc.workingMeta.genres[genreN];
+                    let genre = this.workingMeta.genres[genreN];
                     genreButtons.buttons.push({
                         id: 'genre_'+genre,
                         value: genre,
@@ -1096,11 +1104,11 @@
                 type: 'checkbox',
                 buttons: []
             };
-            if(rotcelloc.workingMeta.formats && rotcelloc.workingMeta.formats.length)
+            if(this.workingMeta.formats && this.workingMeta.formats.length)
             {
-                for(let formatN = 0; formatN < rotcelloc.workingMeta.formats.length; formatN++)
+                for(let formatN = 0; formatN < this.workingMeta.formats.length; formatN++)
                 {
-                    let format = rotcelloc.workingMeta.formats[formatN];
+                    let format = this.workingMeta.formats[formatN];
                     formatButtons.buttons.push({
                         id: 'format_'+format,
                         value: format,
@@ -1118,25 +1126,25 @@
             html += '<div class="col-sm-2 form-inline row-padding">';
             if(hasMore)
             {
-                html +='<div class="btn-group" data-toggle="buttons-checkbox"><a class="btn btn-primary collapse-data-btn" data-toggle="collapse" href="#moreFilters">'+rotcelloc.translate('Show filter')+'</a></div>';
+                html +='<div class="btn-group" data-toggle="buttons-checkbox"><a class="btn btn-primary collapse-data-btn" data-toggle="collapse" href="#moreFilters">'+this.translate('Show filter')+'</a></div>';
             }
             html += '</div>';
-            html += '<div class="col-sm-10 form-inline row-padding text-right"><div class="input-group"><div class="input-group-addon">'+rotcelloc.translate('Order')+'</div>'+rotcelloc.renderSelectElement(orderButtons)+'</div><input type="text" class="form-control pull-right" placeholder="'+rotcelloc.translate('Search')+'" id="searchBox" /></div>';
+            html += '<div class="col-sm-10 form-inline row-padding text-right"><div class="input-group"><div class="input-group-addon">'+this.translate('Order')+'</div>'+this.renderSelectElement(orderButtons)+'</div><input type="text" class="form-control pull-right" placeholder="'+this.translate('Search')+'" id="searchBox" /></div>';
             if(hasMore)
             {
                 html += '</div><div class="collapse" id="moreFilters"><div class="well">';
             }
             if(groupButtons.buttons.length > 2)
             {
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+rotcelloc.translate('Group')+':</div>'+rotcelloc.renderRadioOrCheckButtons(groupButtons)+'</div></div>';
+                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+this.translate('Group')+':</div>'+this.renderRadioOrCheckButtons(groupButtons)+'</div></div>';
             }
             if(platformButtons.buttons.length > 2)
             {
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+rotcelloc.translate('Platform')+':</div>'+rotcelloc.renderRadioOrCheckButtons(platformButtons)+'</div></div>';
+                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+this.translate('Platform')+':</div>'+this.renderRadioOrCheckButtons(platformButtons)+'</div></div>';
             }
             if(formatButtons.buttons.length > 1)
             {
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+rotcelloc.translate('Format')+':</div>'+rotcelloc.renderRadioOrCheckButtons(formatButtons)+'</div></div>';
+                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+this.translate('Format')+':</div>'+this.renderRadioOrCheckButtons(formatButtons)+'</div></div>';
             }
             if(genreButtons.buttons.length)
             {
@@ -1147,35 +1155,35 @@
                             id: 'genre_inall',
                             value: 'all',
                             active: true,
-                            name: rotcelloc.translate('In genre (all selected)'),
+                            name: this.translate('In genre (all selected)'),
                         },
                         {
                             id: 'genre_inany',
                             value: 'any',
                             active: false,
-                            name: rotcelloc.translate('In genre (any selected)')
+                            name: this.translate('In genre (any selected)')
                         },
                         {
                             id: 'genre_notin',
                             value: 'notin',
                             active: false,
-                            name: rotcelloc.translate('Not in genre'),
+                            name: this.translate('Not in genre'),
                         },
                     ]
                 };
 
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label genre-select-line form-inline">'+rotcelloc.renderSelectElement(genreType)+':</div>'+rotcelloc.renderRadioOrCheckButtons(genreButtons)+'</div></div>';
+                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label genre-select-line form-inline">'+this.renderSelectElement(genreType)+':</div>'+this.renderRadioOrCheckButtons(genreButtons)+'</div></div>';
             }
-            if(rotcelloc.workingMeta.fields.watched || rotcelloc.workingMeta.fields.plot)
+            if(this.workingMeta.fields.watched || this.workingMeta.fields.plot)
             {
                 html += '<div class="row"><div class="col-sm-12 row-padding">';
-                if(rotcelloc.workingMeta.fields.plot)
+                if(this.workingMeta.fields.plot)
                 {
-                    html += '<div class="searchbar-label-inline">'+rotcelloc.translate('Search in plot descriptions')+'</div>'+rotcelloc.renderRadioOrCheckButtons(plotSearchBool);
+                    html += '<div class="searchbar-label-inline">'+this.translate('Search in plot descriptions')+'</div>'+this.renderRadioOrCheckButtons(plotSearchBool);
                 }
-                if(rotcelloc.workingMeta.fields.watched === true)
+                if(this.workingMeta.fields.watched === true)
                 {
-                    html += '<div class="searchbar-additional searchbar-label-inline">'+rotcelloc.translate('Only display unwatched titles')+'</div>'+rotcelloc.renderRadioOrCheckButtons(watchedSearchBool);
+                    html += '<div class="searchbar-additional searchbar-label-inline">'+this.translate('Only display unwatched titles')+'</div>'+this.renderRadioOrCheckButtons(watchedSearchBool);
                 }
                 html += '</div></div>';
             }
@@ -1185,13 +1193,13 @@
             }
             html += '</div>';
             $('#searchForm').html(html);
-        },
+        }
         /*
          * Sets the page title. Useful because it also tracks the original title
          * for us and just appends whatever we supply to this function to the
          * original title
          */
-        setPageTitle: function (add)
+        setPageTitle(add)
         {
             let $title    = $('title');
             let origTitle = $title.text();
@@ -1201,11 +1209,11 @@
             }
             $title.attr('orig-title',origTitle);
             $title.text(origTitle+' '+add);
-        },
+        }
         /*
          * Renders a single "select"
          */
-        renderSelectElement: function (data)
+        renderSelectElement(data)
         {
             let html = '<select class="form-control" id="'+data.id+'">';
             for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
@@ -1215,11 +1223,11 @@
             }
             html += '</select>';
             return html;
-        },
+        }
         /*
          * Renders a single set of radio or check-style buttons
          */
-        renderRadioOrCheckButtons: function (data)
+        renderRadioOrCheckButtons(data)
         {
             let html = '',
                 type = 'radio';
@@ -1262,25 +1270,24 @@
             }
             html = '<div class="'+htmlClass+'" data-toggle="buttons" id="'+data.id+'">'+html+'</div>';
             return html;
-        },
+        }
         /*
          * Translates a single string
          */
-        translate: function (s)
+        translate(s)
         {
-            if(rotcelloc.data.i18n[s])
+            if(this.data.i18n[s])
             {
-                return rotcelloc.data.i18n[s];
+                return this.data.i18n[s];
             }
             return s;
         }
-    };
+    }
     /*
      * Runs our init function on jquery load
      */
     $(function () {
-            rotcelloc.init();
+            window.rotcelloc = new rotcelloc();
     });
     // Expose the object so that it can be called from the console
-    window.rotcelloc = rotcelloc;
 })(jQuery);
