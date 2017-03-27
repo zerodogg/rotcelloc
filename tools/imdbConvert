@@ -21,8 +21,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+// jshint esversion: 6
 
-var csv = require('csv')
+// eslint-disable-next-line no-var
+var csv = require('csv'),
     fs            = require('fs'),
     wait          = require('wait.for');
 
@@ -37,31 +39,32 @@ function usage ()
 
 function main ()
 {
-    var infile = process.argv[2];
-    var outfile1 = process.argv[3];
-    var outfile2 = process.argv[4];
+    const infile = process.argv[2];
+    const outfile1 = process.argv[3];
+    const outfile2 = process.argv[4];
 
-    var input  = fs.readFileSync(infile,{ encoding: 'utf-8'} );
-    var output = wait.for(csv.parse,input, {comment: '#', trim: true, columns: true});
-    var data = {
+
+    const input  = fs.readFileSync(infile,{ encoding: 'utf-8'} );
+    const output = wait.for(csv.parse,input, {comment: '#', trim: true, columns: true});
+    const data = {
         tv: [],
         movies: []
     };
-    var seenTypes = {
+    const seenTypes = {
         movie: false,
         tv: false
     };
-    var outputConfig = { header: true, delimiter: ';', columns: [ 'Title','Year','rating','note','imdbID'] };
-    for(var entry of output)
+    const outputConfig = { header: true, delimiter: ';', columns: [ 'Title','Year','rating','note','imdbID'] };
+    for(const entry of output)
     {
-        var outEntry = {
+        const outEntry = {
             'imdbID':entry.const,
             'Title':entry.Title,
             'Year':entry.Year,
         };
         if(entry['You rated'])
         {
-            var personalRating = entry['You rated']/(10/6)
+            const personalRating = entry['You rated']/(10/6);
             outEntry.rating = personalRating;
         }
         if(entry.description.length > 0)
