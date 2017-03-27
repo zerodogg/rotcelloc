@@ -23,6 +23,14 @@ rules:
   no-useless-constructor: error
   object-shorthand: warn
   spaced-comment: warn
+  no-unsafe-negation: error
+  no-eval: error
+  no-implied-eval: error
+  no-labels: error
+  no-shadow: warn
+  no-lone-blocks: warn
+  no-new: error
+  no-unused-expressions: error
   consistent-this:
       - error
       - self
