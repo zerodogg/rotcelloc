@@ -2993,6 +2993,7 @@ const core = {
             { 'path': 'LICENSE' },
             { 'path': 'NEWS' },
             { 'path': 'package.json' },
+            { 'path': 'yarn.lock' },
             { 'path': 'rotcelloc.config.cson.tpl' },
             { 'path': 'src/rotcelloc.js' },
             { 'path': 'src/template.ejs' },
