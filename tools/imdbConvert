@@ -43,6 +43,11 @@ function main ()
     const outfile1 = process.argv[3];
     const outfile2 = process.argv[4];
 
+    if (infile === undefined || outfile1 === undefined)
+    {
+        console.log('Usage: imdbconvert [exported imdb file] [outfile.csv]');
+        process.exit(1);
+    }
 
     const input  = fs.readFileSync(infile,{ encoding: 'utf-8'} );
     const output = wait.for(csv.parse,input, {comment: '#', trim: true, columns: true});
