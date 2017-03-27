@@ -149,31 +149,31 @@ class rotcellocCache
             console.log('.rotcellocdata/cache.json');
             process.exit(1);
         }
-        if (!this._persistCache.posterFiles || commander.expireMeta)
+        if (!this._persistCache.posterFiles)
         {
             this._persistCache.posterFiles = {};
         }
-        if (!this._persistCache.meta || commander.expireMeta)
+        if (!this._persistCache.meta)
         {
             this._persistCache.meta = {};
         }
-        if (!this._persistCache.gameMeta || commander.expireMeta)
+        if (!this._persistCache.gameMeta)
         {
             this._persistCache.gameMeta = {};
         }
-        if (!this._persistCache.bookMeta || commander.expireMeta)
+        if (!this._persistCache.bookMeta)
         {
             this._persistCache.bookMeta = {};
         }
-        if (!this._persistCache.steamMeta || commander.expireMeta)
+        if (!this._persistCache.steamMeta)
         {
             this._persistCache.steamMeta = {};
         }
-        if (!this._persistCache.arbitrary || commander.expireMeta)
+        if (!this._persistCache.arbitrary)
         {
             this._persistCache.arbitrary = {};
         }
-        if (!this._persistCache.externalAPI || commander.expireMeta)
+        if (!this._persistCache.externalAPI)
         {
             this._persistCache.externalAPI = {};
         }
@@ -3314,7 +3314,6 @@ function main()
     .option('--deploy','build the collection and webapp and then deploy as defined in the config')
     .option('--retry-miss','retry fetching data or covers where those have failed previously')
     .option('--include-debug','include debugging metadata')
-    .option('--expire-meta','expire all cached metadata from the cache')
     .option('--expire-matching [match]','expire all cached data where the key case insensitively matches [match] and exit')
     .option('--force-steam-update','force an update of the lists of Steam games')
     .option('--config [file]','read [file] instead of ./rotcelloc.config.json')
