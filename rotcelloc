@@ -128,12 +128,26 @@ class rotcellocCache
         // Used to check how long it is since we last did a write
         // to avoid writing too often
         this._lastWritten = 0;
+        // Our current formatVersion
+        this._currFormatVersion = 1;
 
         // Load and initialize _persistCache
         if(fs.existsSync(helper.resolveOutPath('.rotcellocdata/cache.json')))
         {
             printv(3,'Loading cache from .rotcellocdata/cache.json');
             this._persistCache = JSON.parse(fs.readFileSync(helper.resolveOutPath('.rotcellocdata/cache.json')));
+        }
+        if(this._persistCache.formatVersion < 1)
+        {
+            printv(3,'Forcing retryMiss in order to upgrade the cache');
+            commander.retryMiss = true;
+        }
+        if(this._persistCache.formatVersion > this._currFormatVersion)
+        {
+            console.log('The cache file format is newer than rotcelloc.');
+            console.log('You will need to either upgrade rotcelloc or delete');
+            console.log('.rotcellocdata/cache.json');
+            process.exit(1);
         }
         if (!this._persistCache.posterFiles || commander.expireMeta)
         {
@@ -213,9 +227,13 @@ class rotcellocCache
         {
             return this.exists(cacheType,ckey);
         }
-        if(this.exists(cacheType,ckey) && this.get(cacheType,ckey) === null)
+        if(this.exists(cacheType,ckey))
         {
-            return false;
+            const entry = this.get(cacheType,ckey);
+            if(entry === null || entry === 'MISS')
+            {
+                return false;
+            }
         }
         return true;
     }
@@ -269,7 +287,7 @@ class rotcellocCache
         this._writesSinceFlush = 0;
         this._lastWritten = Math.floor(Date.now() / 1000);
         this._persistCache.lastVersion = packageJSON.version;
-        this._persistCache.formatVersion = 0;
+        this._persistCache.formatVersion = this._currFormatVersion;
         this._persistCache.lastObjID = this._objectLifetimeID;
         printv(5,'Writing cache to .rotcellocdata/cache.json');
         fs.writeFileSync('.rotcellocdata/cache.json.out',JSON.stringify(this._persistCache));
@@ -306,7 +324,7 @@ class rotcellocCache
             {
                 if(entry.toLowerCase().indexOf(byvalue) != -1 || byvalue === '')
                 {
-                    if(onlyMiss && result[entry] != 'MISS')
+                    if(onlyMiss && result[entry] !== null)
                     {
                         continue;
                     }
@@ -321,7 +339,7 @@ class rotcellocCache
                     const data = result[entry];
                     if(data.name && data.name.toLowerCase().indexof(byvalue) != -1)
                     {
-                        if(onlyMiss && result[entry] != 'MISS')
+                        if(onlyMiss && result[entry] !== null)
                         {
                             continue;
                         }
@@ -747,7 +765,7 @@ class collectionType
                 printv(4,'downloadPoster: skipping download due to --lazy');
                 return;
             }
-            if (!commander.retryMiss && cache.exists('posterFiles',url) && cache.get('posterFiles',url) === null)
+            if (cache.existsNotMiss('posterFiles',url) && cache.get('posterFiles',url) === null)
             {
                 return;
             }
@@ -1184,29 +1202,15 @@ class movieCollection extends collectionType
     retrieveMetadataFor(entry)
     {
         const ckey = getCacheID(entry);
-        if (cache.get('meta',ckey))
+        if(cache.existsNotMiss('meta',ckey))
         {
-            if(cache.get('meta',ckey) == 'MISS')
-            {
-                if(! commander.retryMiss)
-                {
-                    return;
-                }
-            }
-            else
-            {
-                if(cache.get('meta',ckey).Response != 'True')
-                {
-                    cache.unset('meta',ckey);
-                }
-                return cache.get('meta',ckey);
-            }
+            return cache.get('meta',ckey);
         }
         const data = this.fetchFromOMDB(entry);
         if(data && data.Response == "False")
         {
             printv(3,'Could not retrieve data from OMDB on '+ (entry.origTitle ? entry.origTitle : entry.title) );
-            cache.set('MISS','meta',ckey);
+            cache.set(null,'meta',ckey);
             return;
         }
         if ((entry.type == 'movies' && (!entry.year || parseInt(entry.year) == parseInt(data.Year)))|| (entry.type == 'series' || parseInt(entry.year) == parseInt(data.Year)) || (entry.imdbID && data.imdbID == entry.imdbID) )
@@ -1229,7 +1233,7 @@ class movieCollection extends collectionType
                     printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the OMDB entry claims '+data.Year+': ignoring data from server');
                 }
             }
-            cache.set('MISS','meta',ckey);
+            cache.set(null,'meta',ckey);
         }
         return;
     }
@@ -1570,7 +1574,7 @@ class gameCollection extends collectionType
     {
         try
         {
-            if(metadata === undefined)
+            if(metadata === undefined || metadata === null)
             {
                 metadata = {};
             }
@@ -1696,7 +1700,7 @@ class gameCollection extends collectionType
                     }
                     else
                     {
-                        cache.set('MISS','steamMeta','MISS');
+                        cache.set(null,'steamMeta',null);
                     }
                 }
                 else
@@ -1976,19 +1980,9 @@ class gameCollection extends collectionType
     getGameInfoFromTGD(game)
     {
         const ckey = getCacheID(game,'game', { ignoreSteam: true });
-        if(cache.get('gameMeta',ckey))
+        if(cache.existsNotMiss('gameMeta',ckey))
         {
-            if(cache.get('gameMeta',ckey) == 'MISS')
-            {
-                if(! commander.retryMiss)
-                {
-                    return;
-                }
-            }
-            else
-            {
-                return cache.get('gameMeta',ckey);
-            }
+            return cache.get('gameMeta',ckey);
         }
         let data = this.fetchDataFromTGD(game,ckey),
             newName;
@@ -2074,7 +2068,7 @@ class gameCollection extends collectionType
             meta;
         if (!search)
         {
-            cache.set('MISS','gameMeta',ckey);
+            cache.set(null,'gameMeta',ckey);
             return;
         }
         let platform = this.doPlatformRemap(game.platform);
@@ -2222,7 +2216,7 @@ class gameCollection extends collectionType
                 }
             }
         }
-        cache.set('MISS','gameMeta',ckey);
+        cache.set(null,'gameMeta',ckey);
         return;
     }
 
