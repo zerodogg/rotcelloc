@@ -19,6 +19,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+/*
+ * USAGE:
+ * Navigate to your gog.com collection page
+ * Add this script as a bookmarklet and click it, or open up the developer tools
+ * and paste the script source there
+ */
+
 // jshint esversion: 6
 /* global jQuery*/
 
