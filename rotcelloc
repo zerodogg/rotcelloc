@@ -405,16 +405,16 @@ class collectionType
         }
         for(let i = 0; i < CSV.length; i++)
         {
-            const entry = CSV[i];
-            helper.remapCSVFields(entry);
-            helper.handleGenericFields(entry);
-            if (blameData != null && entry.added === 0)
+            const csvEntry = CSV[i];
+            helper.remapCSVFields(csvEntry);
+            helper.handleGenericFields(csvEntry);
+            if (blameData != null && csvEntry.added === 0)
             {
                 const blameLine = i-1;
                 const blamed = blameData[blameLine];
                 if(blamed && blamed['committer-time'])
                 {
-                    entry.added = blamed['committer-time'];
+                    csvEntry.added = blamed['committer-time'];
                 }
             }
         }
@@ -423,12 +423,12 @@ class collectionType
     }
 
     // Load git blame data for a file
-    loadGitBlame(path)
+    loadGitBlame(filePath)
     {
         let gitBlameOutput;
         try
         {
-            gitBlameOutput = child_process.execFileSync('git',['blame','--line-porcelain','-w','--minimal','-C',path],{ stdio: [ 'ignore','pipe','ignore' ] });
+            gitBlameOutput = child_process.execFileSync('git',['blame','--line-porcelain','-w','--minimal','-C',filePath],{ stdio: [ 'ignore','pipe','ignore' ] });
         }
         catch(e)
         {

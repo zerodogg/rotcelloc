@@ -342,9 +342,9 @@
                 },
                 'imdbRating':{
                     'label':this.translate('IMDB rating'),
-                    'renderer': (val,data) =>
+                    'renderer': (val,entryData) =>
                     {
-                        return data.imdbRating+'/10 ('+data.imdbVotes+' '+this.translate('votes'  )+')';
+                        return entryData.imdbRating+'/10 ('+entryData.imdbVotes+' '+this.translate('votes'  )+')';
                     }
                 },
                 'isbn':{
