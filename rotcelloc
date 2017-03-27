@@ -314,7 +314,7 @@ class rotcellocCache
         }
     }
 
-    cacheExpiry (byvalue,onlyMiss)
+    cacheExpiry (byvalue)
     {
         byvalue = byvalue.toLowerCase();
         for (const type of [ 'meta', 'gameMeta','arbitrary','steamMeta' ])
@@ -324,10 +324,6 @@ class rotcellocCache
             {
                 if(entry.toLowerCase().indexOf(byvalue) != -1 || byvalue === '')
                 {
-                    if(onlyMiss && result[entry] !== null)
-                    {
-                        continue;
-                    }
                     console.log(type+': removed "'+entry+'"');
                     delete result[entry];
                 }
@@ -339,10 +335,6 @@ class rotcellocCache
                     const data = result[entry];
                     if(data.name && data.name.toLowerCase().indexof(byvalue) != -1)
                     {
-                        if(onlyMiss && result[entry] !== null)
-                        {
-                            continue;
-                        }
                         console.log(type+': removed "'+entry+'"');
                         delete result[entry];
                     }
@@ -3325,7 +3317,6 @@ function main()
     .option('--expire-meta','expire all cached metadata from the cache')
     .option('--expire-covers','expire all cached covers from the cache')
     .option('--expire-matching [match]','expire all cached data where the key case insensitively matches [match] and exit')
-    .option('--expire-matching-miss [match]','same as above, but only expire cached failures')
     .option('--force-steam-update','force an update of the lists of Steam games')
     .option('--config [file]','read [file] instead of ./rotcelloc.config.json')
     .option('--lazy','only use cached data')
@@ -3351,12 +3342,6 @@ function main()
     {
         cache = new rotcellocCache();
         cache.cacheExpiry(commander.expireMatching);
-        process.exit(0);
-    }
-    else if(commander.expireMatchingMiss !== undefined)
-    {
-        cache = new rotcellocCache();
-        cache.cacheExpiry(commander.expireMatchingMiss,true);
         process.exit(0);
     }
 
