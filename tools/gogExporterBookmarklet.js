@@ -19,20 +19,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// jshint esversion: 6
+/* global jQuery*/
+
 // Boilerplate for fetching jQuery
+// eslint-disable-next-line
 void function($){var loadBookmarklet=function($){
         // Start of actual code
+// eslint-disable-next-line
 (function ($){
-        var result = [],
-            totalPages = $('.pagin__total').last().text();
-        var parsePage = function () {
-            currentPage = $('.pagin__current').find('input').last().val();
-            $('.product-title:first-child').each(function () {
-                    var entry = $(this).children().first().text().split(/\s+/);
-                    var sentence = '';
-                    for(var partI in entry)
+        const result = [],
+              totalPages = $('.pagin__total').last().text();
+        const parsePage = function ()
+        {
+            const currentPage = $('.pagin__current').find('input').last().val();
+            $('.product-title:first-child').each(function ()
+            {
+                    const entry = $(this).children().first().text().split(/\s+/);
+                    let sentence = '';
+                    for(const partI in entry)
                     {
-                        var part = entry[partI];
+                        const part = entry[partI];
                         if(sentence.length > 0)
                         {
                             sentence += ' ';
@@ -44,8 +51,7 @@ void function($){var loadBookmarklet=function($){
             if(totalPages > currentPage)
             {
                 $('.pagin__next').click();
-                var interval;
-                interval = setInterval(function ()
+                const interval = setInterval(() =>
                 {
                     if($('.pagin__current').find('input').last().val() != currentPage)
                     {
@@ -56,8 +62,8 @@ void function($){var loadBookmarklet=function($){
             }
             else
             {
-                var CSV = 'Title;Platform;Format\n'+result.join("\n");
-                var $a = $('<a />').attr('download','gog.csv').attr('href','data:text/csv;charset=utf-8,'+ encodeURIComponent(CSV));
+                const CSV = 'Title;Platform;Format\n'+result.join("\n");
+                const $a = $('<a />').attr('download','gog.csv').attr('href','data:text/csv;charset=utf-8,'+ encodeURIComponent(CSV));
                 $a.appendTo('body');
                 $a[0].click();
             }
@@ -65,4 +71,5 @@ void function($){var loadBookmarklet=function($){
         parsePage();
 })(jQuery); // end of code
 // More boilerplate for fetching jQuery
+// eslint-disable-next-line
 },hasJQuery=$&&$.fn&&parseFloat($.fn.jquery)>=1.7;if(hasJQuery)loadBookmarklet($);else{var s=document.createElement("script");s.src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.js",s.onload=s.onreadystatechange=function(){var state=this.readyState;state&&"loaded"!==state&&"complete"!==state||loadBookmarklet(jQuery.noConflict())}}document.getElementsByTagName("head")[0].appendChild(s)}(window.jQuery); // jshint ignore:line
