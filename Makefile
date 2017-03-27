@@ -32,6 +32,12 @@ endif
 VERSION=$(shell grep version package.json|perl -p -e 's/[^\d\.]+//g')
 BINDIR ?= $(prefix)/bin
 
+default: deps localinstall
+
+# Install deps
+deps:
+	if which yarn &>/dev/null; then yarn install;else npm install;fi
+
 # Install symlinks
 localinstall:
 	mkdir -p "$(BINDIR)"
