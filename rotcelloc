@@ -81,7 +81,7 @@ try
     catch(e)
 {
     console.log('You are missing some rotcelloc dependencies: '+e.message);
-    console.log('Please install the dependencies with "npm install" and try again');
+    console.log('Please install the dependencies with "yarn install" or "npm install" and try again');
     process.exit(1);
 }
 
