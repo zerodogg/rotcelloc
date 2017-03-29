@@ -2312,6 +2312,10 @@ class bookCollection extends collectionType
             {
                 data.author = this.mustBeString(remote.authors);
             }
+            if(remote.imageLinks && remote.imageLinks.thumbnail !== undefined && helper.isValidCoverURL(remote.imageLinks.thumbnail))
+            {
+                data.metadataPoster = remote.imageLinks.thumbnail;
+            }
         }
         if(data.genre)
         {
@@ -2373,16 +2377,22 @@ class bookCollection extends collectionType
         // FIXME: Try to find an image in 'data' first
         const posterID = data.isbn;
         posterID.replace(/-/g,'');
-        const file = this.downloadPoster('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg',data);
+        let file;
+        if(data.poster)
+        {
+            file = this.downloadPoster(data.poster,data);
+        }
+        if(file === undefined)
+        {
+            file = this.downloadPoster('http://covers.openlibrary.org/b/isbn/'+posterID+'-L.jpg?default=false',data);
+        }
+        if(file === undefined && data.metadataPoster)
+        {
+            file = this.downloadPoster(data.metadataPoster,data);
+        }
         if(file)
         {
             data.poster = file;
-            // If the file is tiny that means that it's not actually a poster
-            // we can use (it's a complete black image)
-            if(fs.statSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+data.poster)).size < 1000)
-            {
-                data.poster = undefined;
-            }
         }
         else
         {
