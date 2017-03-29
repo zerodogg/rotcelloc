@@ -2345,7 +2345,8 @@ class bookCollection extends collectionType
 
     getMetadataFor(data)
     {
-        const ckey = getCacheID(data.isbn,'book');
+        const isbnNumber = data.isbn.replace(/\D/g,'');
+        const ckey = getCacheID(isbnNumber,'book');
         let remote;
         if(cache.existsNotMiss('bookMeta',ckey))
         {
@@ -2353,10 +2354,10 @@ class bookCollection extends collectionType
         }
         else
         {
-            printv(4,'Performing metadata request for ISBN '+data.isbn);
+            printv(4,'Performing metadata request for ISBN '+isbnNumber);
             try
             {
-                remote = wait.for(isbn.resolve,data.isbn);
+                remote = wait.for(isbn.resolve,isbnNumber);
             }
             catch (e)
             {
