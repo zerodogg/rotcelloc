@@ -2299,7 +2299,7 @@ class bookCollection extends collectionType
             for (const source in remote)
             {
                 let targetName = fieldRemap[source];
-                if(targetName !== undefined)
+                if(targetName === undefined)
                 {
                     targetName = source;
                 }
