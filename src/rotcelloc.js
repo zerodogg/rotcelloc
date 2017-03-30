@@ -324,7 +324,7 @@
                 }
                 html += '</div>';
             }
-            const genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn' ],
+            const genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn','format','publisher' ],
                 genericEntries = {
                 'rating':{
                     'label':this.translate('Custom rating'),
@@ -346,6 +346,9 @@
                     {
                         return entryData.imdbRating+'/10 ('+entryData.imdbVotes+' '+this.translate('votes'  )+')';
                     }
+                },
+                'publisher':{
+                    'label':this.translate('Publisher'),
                 },
                 'isbn':{
                     'label':this.translate('ISBN'),
