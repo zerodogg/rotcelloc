@@ -3164,7 +3164,7 @@ const webappGen = {
 
         printv(3,'Copying images...');
         // Copies the downloaded posters
-        child_process.execFileSync('rsync', [ '-a','--delete', '--exclude=orig/', helper.resolveOutPath('.rotcellocdata/images/'), helper.resolveOutPath('./out/images/') ]);
+        child_process.execFileSync('rsync', [ '-a','--copy-links','--delete', '--exclude=orig/', helper.resolveOutPath('.rotcellocdata/images/'), helper.resolveOutPath('./out/images/') ]);
         // Copy .gitignore if neded
         if (!fs.existsSync(helper.resolveOutPath('.gitignore')))
         {
