@@ -2293,7 +2293,6 @@ class bookCollection extends collectionType
                 'description':'plot',
                 'publishedDate':'published',
                 'pageCount':'pages',
-                'infoLink':'openliblink',
                 'publisher':'publisher'
             };
             for (const source in remote)
@@ -2306,6 +2305,13 @@ class bookCollection extends collectionType
                 if (!data[targetName] && remote[source])
                 {
                     data[targetName] = remote[source];
+                }
+            }
+            if(remote.infoLink)
+            {
+                if(/^https?:\/\/(www\.)?openlibrary.org/.test(remote.infoLink))
+                {
+                    data.openliblink = remote.infoLink;
                 }
             }
             if (!data.author && remote.authors)
