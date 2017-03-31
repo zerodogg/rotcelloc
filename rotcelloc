@@ -1163,43 +1163,42 @@ class movieCollection extends collectionType
     // Adds metadata to an entry
     addMetadataTo(collectionEntry)
     {
+        // We rely upon the title to locate metadata
         if(collectionEntry.title == null || !/\S/.test(collectionEntry.title))
         {
             this.warn('has no title entry - skipping it');
             return;
         }
+        // Parse the "watched" field if needed
         if(collectionEntry.watched != null)
         {
             collectionEntry.watched      = helper.parseBool(collectionEntry.watched);
         }
 
+        // Download the metadata
         const meta = this.retrieveMetadataFor(collectionEntry);
         if(meta != null)
         {
-            if(this.isValidOMDBField(meta.imdbID))
+            const genericRemapping = {
+                imdbID: 'imdbID',
+                Actors: 'actors',
+                Metascore: 'metascore',
+                imdbRating: 'imdbRating',
+                imdbVotes: 'imdbVotes',
+                Plot: 'plot',
+                Director:'director',
+                Year: 'year',
+                // This *will* get overridden by addPosterToItem(). It is used
+                // so that we can provide a poster URL hint to getPoster().
+                Poster: 'poster',
+            };
+            for(const fromField in genericRemapping)
             {
-                collectionEntry.imdbID = meta.imdbID;
-            }
-            if(!collectionEntry.actors && this.isValidOMDBField(meta.Actors))
-            {
-                collectionEntry.actors = meta.Actors;
-            }
-            if(this.isValidOMDBField(meta.Metascore))
-            {
-                collectionEntry.metascore = meta.Metascore;
-            }
-            if(this.isValidOMDBField(meta.imdbRating))
-            {
-                collectionEntry.imdbRating = meta.imdbRating;
-                collectionEntry.imdbVotes  = meta.imdbVotes;
-            }
-            if(this.isValidOMDBField(meta.Plot))
-            {
-                collectionEntry.plot = meta.Plot;
-            }
-            if(this.isValidOMDBField(meta.Director))
-            {
-                collectionEntry.director = meta.Director;
+                const toField = genericRemapping[fromField];
+                if(collectionEntry[fromField] === undefined && this.isValidOMDBField(meta[fromField]))
+                {
+                    collectionEntry[toField] = meta[fromField];
+                }
             }
             if(this.isValidOMDBField(meta.Writer))
             {
@@ -1221,10 +1220,6 @@ class movieCollection extends collectionType
             if (this._curSource.autoGenre &&!collectionEntry.genre && this.isValidOMDBField(meta.Genre))
             {
                 collectionEntry.genre = meta.Genre;
-            }
-            if(!collectionEntry.imdbID && this.isValidOMDBField(meta.imdbID))
-            {
-                collectionEntry.imdbID = meta.imdbID;
             }
             if(this.isValidOMDBField(meta.Runtime))
             {
@@ -1251,12 +1246,6 @@ class movieCollection extends collectionType
                     }
                 }
                 collectionEntry.runtime = runtime;
-            }
-            // This *will* get overridden by addPosterToItem(). It is used so that we can
-            // provide a poster URL hint to getPoster().
-            if(!collectionEntry.poster && this.isValidOMDBField(meta.Poster))
-            {
-                collectionEntry.poster = meta.Poster;
             }
         }
         if(collectionEntry.genre)
@@ -1293,10 +1282,6 @@ class movieCollection extends collectionType
         {
             collectionEntry.normalizedRating = collectionEntry.metascore;
             this._meta.enableNormalized   = true;
-        }
-        if(meta && !collectionEntry.year && this.isValidOMDBField(meta.Year))
-        {
-            collectionEntry.year = meta.Year;
         }
         if(collectionEntry.year)
         {
