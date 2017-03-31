@@ -665,7 +665,7 @@ class collectionType
      */
     mustBeArray(thing)
     {
-        if (!_.isArray(thing))
+        if (!Array.isArray(thing))
         {
             return [ thing ];
         }
@@ -681,7 +681,7 @@ class collectionType
         {
             return thing;
         }
-        if (_.isArray(thing))
+        if (Array.isArray(thing))
         {
             return thing.join(', ');
         }
@@ -1544,7 +1544,7 @@ class gameCollection extends collectionType
             this._meta.platforms = this._meta.platforms.concat(collItem.platform);
             this._meta.genres = this._meta.genres.concat(genres);
         }
-        if (!_.isArray(collItem.platform))
+        if (!Array.isArray(collItem.platform))
         {
             collItem.platform = [ this.doPlatformRemap(collItem.platform,true) ];
         }
