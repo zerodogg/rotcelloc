@@ -118,6 +118,7 @@ class rotcellocCache
 {
     constructor ()
     {
+        // This is where we store the cache data
         this._persistCache = {};
         // Used to keep track of the number of times the cache data has
         // been changed since the last time we wrote it to disk.
@@ -137,11 +138,14 @@ class rotcellocCache
             printv(3,'Loading cache from .rotcellocdata/cache.json');
             this._persistCache = JSON.parse(fs.readFileSync(helper.resolveOutPath('.rotcellocdata/cache.json')));
         }
+        // Version 1 'miss' values are deprecated, so we force an upgrade if
+        // the cache is version 1
         if(this._persistCache.formatVersion < 1)
         {
             printv(3,'Forcing retryMiss in order to upgrade the cache');
             commander.retryMiss = true;
         }
+        // Check if the cache is newer than we are
         if(this._persistCache.formatVersion > this._currFormatVersion)
         {
             console.log('The cache file format is newer than rotcelloc.');
@@ -149,6 +153,7 @@ class rotcellocCache
             console.log('.rotcellocdata/cache.json');
             process.exit(1);
         }
+        // Initialize all of the various caches if needed
         if (!this._persistCache.posterFiles)
         {
             this._persistCache.posterFiles = {};
@@ -183,6 +188,9 @@ class rotcellocCache
         }
     }
 
+    /*
+     * Retrieves a value from the cache
+     */
     get (cacheType,ckey)
     {
         if(this._persistCache[cacheType] === undefined)
@@ -193,22 +201,34 @@ class rotcellocCache
         return this._persistCache[cacheType][ckey];
     }
 
+    /*
+     * Sets a value in the cache
+     */
     set (content,cacheType,ckey)
     {
         if(this._persistCache[cacheType] === undefined)
         {
             throw('Attempt to set() to unknown cache type: '+cacheType);
         }
+        // JSON doesn't store "undefined", so we make it "null" instead.
+        // null is treated as "an attempt has been made to find the value this
+        // entry should have had, but it failed". Used to avoid making useless API
+        // calls to fetch data that's not there on each run.
         if(content === undefined)
         {
             content = null;
         }
+        // We make deep clones for data in the cache so that any modifications made
+        // by the caller after setting the cache won't also modify the cached value
         this._persistCache[cacheType][ckey] = _.cloneDeep(content);
         this.bumpAccessTime(cacheType,ckey);
         this._writesSinceFlush++;
         this.autoWrite();
     }
 
+    /*
+     * Checks if a value exists in the cache for the supplied cache key
+     */
     exists(cacheType,ckey)
     {
         if(this._persistCache[cacheType] === undefined)
@@ -253,35 +273,56 @@ class rotcellocCache
         }
     }
 
+    /*
+     * This bumps the "access time" for a key. Access times are
+     * used to check if a cache entry has been retrieved or written to
+     * recently, so that we can expire outdated entries
+     */
     bumpAccessTime (cacheType,ckey)
     {
         this._persistCache._meta[ cacheType + '___' + ckey ] = this._objectLifetimeID;
     }
 
+    /*
+     * This is a variant of "get" that will generate the ckey automatically
+     */
     getAutoKey(cacheType,entry,type,opts)
     {
         const ckey = getCacheID(entry,type,opts);
         return this.get(cacheType,ckey);
     }
 
+    /*
+     * This is a variant of "set" that will generate the ckey automatically
+     */
     setAutoKey(content,cacheType,entry,type,opts)
     {
         const ckey = getCacheID(entry,type,opts);
         return this.set(content,cacheType,ckey);
     }
 
+    /*
+     * Deletes a value from the cache
+     */
     unset(cacheType,ckey)
     {
         delete this._persistCache[cacheType][ckey];
         this.autoWrite();
     }
 
+    /*
+     * This is a variant of "unset" that will generate the ckey automatically
+     */
     unsetAutoKey(cacheType,entry,type,opts)
     {
         const ckey = getCacheID(entry,type,opts);
         return this.unset(cacheType,ckey);
     }
 
+    /*
+     * Writes the cache to disk. This will ALWAYS trigger a write, even if
+     * we haven't modified the cache data since the last write
+     */
     write()
     {
         this._writesSinceFlush = 0;
@@ -294,6 +335,11 @@ class rotcellocCache
         fs.renameSync('.rotcellocdata/cache.json.out','.rotcellocdata/cache.json');
     }
 
+    /*
+     * Writes cache data to disk if it has been modified more than 50 times
+     * since the last write and it has been more than 4 seconds since the last
+     * write
+     */
     autoWrite()
     {
         if(this._writesSinceFlush > 50)
@@ -306,6 +352,11 @@ class rotcellocCache
         }
     }
 
+    /*
+     * Variant of write() that only writes the cache to disk if it has been
+     * modified since the last time we wrote it. This is almost always what you
+     * want
+     */
     flushIfNeeded()
     {
         if(this._writesSinceFlush > 0)
@@ -314,6 +365,10 @@ class rotcellocCache
         }
     }
 
+    /*
+     * Method that expires all cache entries that case-insensitively matches
+     * 'byvalue'
+     */
     cacheExpiry (byvalue)
     {
         byvalue = byvalue.toLowerCase();
@@ -344,6 +399,10 @@ class rotcellocCache
         this.write();
     }
 
+    /*
+     * Expires all outdated entries in the cache, based upon their last access
+     * time
+     */
     autoExpireOutdatedEntries ()
     {
         const now = Math.floor(Date.now() / 1000);
@@ -373,42 +432,54 @@ class collectionType
 {
     constructor(entry, name, groupNumber)
     {
+        // Permanent references to the entry, name and groupNumber
         this._entry = entry;
         this._name = name;
         this._groupNo = groupNumber;
-        this._ID = 0;
+        // Stores the basename of the current data source (usually basename of
+        // an ics file)
         this._curBsource = null;
+        // Stores the full name/path of the current data source
         this._curSource = null;
+        // Initializes various metadata that the frontend needs
         this._meta = {
             sourceToNameMap: {},
             fields: {},
             type: this._entry.type
         };
+        // Calls initialization on our parent if it has one
         if(this.initialize)
         {
             this.initialize();
         }
     }
 
-    // Load data from a source
+    /*
+     * Load data from a source. This is a stupid version that only supports loading
+     * CSV-files (and assumes everything is a CSV-file). Subclasses can override this
+     * method to support more data sources
+     */
     loadData(source)
     {
-        // This basic version assumes CSV data. Subclasses can override
-        // loadData() with its own logic.
         return this.loadCSVData(source);
     }
 
-    // Load data from a CSV
+    /*
+     * Loads data from a CSV-file
+     */
     loadCSVData(entry)
     {
         printv(3,'Interpreting file "'+entry.file+'"');
+        // Add a basename-to-full-path map
         this._meta.sourceToNameMap[path.basename(entry.file)] = entry.name;
+        // Set the current bSource
         this._curBsource = path.basename( entry.file );
 
         const input  = fs.readFileSync(helper.resolveOutPath(entry.file),{ encoding: 'utf-8'} );
         const CSV = wait.for(parse,input, {comment: '#', delimiter: ';', trim: true, columns: true, relax_column_count: true, skip_empty_lines: false});
         const config = helper.getConfig();
         let blameData;
+        // If automatic 'added' dates are enabled, load that data from git
         if(config.enableAutoAdded !== false)
         {
             blameData = this.loadGitBlame(entry.file);
@@ -418,6 +489,7 @@ class collectionType
             const csvEntry = CSV[i];
             helper.remapCSVFields(csvEntry);
             helper.handleGenericFields(csvEntry);
+            // Add 'added' dates if needed/available for this entry
             if (blameData != null && csvEntry.added === 0)
             {
                 const blameLine = i-1;
@@ -467,21 +539,28 @@ class collectionType
         return blame;
     }
 
-    // Download metadata for an item
+    // Placeholder method: Download metadata for an item
+    // This MUST be overridden by subclasses
+    //
     // eslint-disable-next-line no-unused-vars
     addMetadataTo(collItem)
     {
         throw('collectionType: generic addMetadataTo called: should be overridden by subclass');
     }
 
-    // Download the poster for an item
+    // Placeholder method: Download the poster for an item
+    // This MUST be overridden by subclasses
+    //
     // eslint-disable-next-line no-unused-vars
     addPosterToItem(collItem)
     {
         throw('collectionType: generic addPosterToItem called: should be overridden by subclass');
     }
 
-    // Finalize the collection
+    /*
+     * Finalize the collection.
+     * This will add id-numbers and filter unused data
+     */
     finalizeCollection(data)
     {
         data = this.sortFinalCollection(data);
@@ -572,6 +651,10 @@ class collectionType
         return data;
     }
 
+    /*
+     * Finalizes metadata. It deduplicates subarrays and removes
+     * null/undefined entries
+     */
     getFinalizedMetadata ()
     {
         for(const metaEntry in this._meta)
@@ -606,7 +689,11 @@ class collectionType
         collItem.bSource = this._curBsource;
     }
 
-    // Handles a single item from a source in this collection
+    /*
+     * Performs everything needed to prepare a single collection item.
+     * It will add static metadata, dynamic metadata, store helper data for
+     * the front-end and download a poster
+     */
     generateEntry (collItem)
     {
         if(this._entry.contentType)
@@ -619,7 +706,9 @@ class collectionType
         this.addPosterToItem(collItem);
     }
 
-    // Handles a single source in this collection
+    /*
+     * Generates a single source belonging to a collection
+     */
     generateSource (source)
     {
         const data = this.loadData(source);
@@ -843,6 +932,10 @@ class collectionType
     }
 }
 
+/*
+ * This is the API that generates the collection with metadata and posters for
+ * a movie and/or TV series collection
+ */
 class movieCollection extends collectionType
 {
     // Parent constructor will call initialize for us after it has done the construction
@@ -899,10 +992,13 @@ class movieCollection extends collectionType
         {
             posterMeta = cache.get('meta',posterCkey);
         }
+        // origTitle is usually much more consistent for fetching posters, so use
+        // that if available
         if(entry.origTitle)
         {
             mTitle = entry.origTitle;
         }
+        // Support custom covers
         if(entry.customCover)
         {
             url = entry.customCover;
@@ -911,11 +1007,13 @@ class movieCollection extends collectionType
         }
         else
         {
+            // Use OMDB if we can
             if(!helper.isValidCoverURL(url) && entry.imdbID && entry.poster)
             {
                 url = entry.poster;
                 source = 'OMDB';
             }
+            // Fall back to movieArt if OMDB can't provide data
             if (!helper.isValidCoverURL(url))
             {
                 url = this.getPosterFromMovieArt(entry,mTitle);
@@ -1001,16 +1099,20 @@ class movieCollection extends collectionType
         {
             type = 'tv';
         }
+        // Try to fetch with a year value first
         if(!helper.isValidCoverURL(url) && entry.year)
         {
             url = this.submitMovieArtRequest(mTitle,entry.year,type);
         }
+        // Fall back to only using the title
         if(!helper.isValidCoverURL(url))
         {
             url = this.submitMovieArtRequest(mTitle,null,type);
         }
         if(!helper.isValidCoverURL(url))
         {
+            // Try to see if we can find something if we switch the types
+            // around
             if(type == 'tv')
             {
                 type = 'movie';
@@ -1387,6 +1489,10 @@ class movieCollection extends collectionType
     }
 }
 
+/*
+ * This is the API that generates the collection with metadata and posters for
+ * a video game collection
+ */
 class gameCollection extends collectionType
 {
     // Parent constructor will call initialize for us after it has done the construction
