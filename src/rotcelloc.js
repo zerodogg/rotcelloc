@@ -960,7 +960,8 @@
                 {
                     id: 'sortableAuthor',
                     value: 'sortableAuthor',
-                    name: this.translate('Author')
+                    name: this.translate('Author'),
+                    active: this.workingConfig.defaultSort === 'sortableAuthor'
                 });
             }
             if(this.workingMeta.hasDisneySort)
