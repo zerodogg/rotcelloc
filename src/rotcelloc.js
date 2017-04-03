@@ -1301,7 +1301,7 @@
      */
     $(() =>
     {
-            window.rotcelloc = new rotcelloc();
+        // Expose the object so that it can be called from the console
+        window.rotcelloc = new rotcelloc();
     });
-    // Expose the object so that it can be called from the console
 })(jQuery);
