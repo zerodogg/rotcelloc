@@ -456,124 +456,32 @@
     }
 
     /*
-     * This is our base class, it handles data retrieval, search, rendering
-     * etc., calling *Renderer classes as needed
+     * Search filters renderer
      */
-    class rotcelloc
+    class rotcellocFiltersListRenderer
     {
-        /*
-         * Initializes the page:
-         * - Sets up object variables
-         * - Loads data
-         * - Performs initial render
-         * - Sets up event handlers
-         */
-        constructor ()
-        {
-            this.currentResults = [];
-            this.prevQuery      = null;
-            this.getDataSet(data =>
-                {
-                    $('#menuToggle').text(this.translate('Show/hide menu'));
-                    if (/(Android|Mobile|iOS|iPhone)/.test(navigator.userAgent))
-                    {
-                        this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPageMobile;
-                        this.mobile = true;
-                    }
-                    else
-                    {
-                        this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPage;
-                        this.mobile = false;
-                    }
-                    this.renderer = new rotcellocResultRenderer(
-                        $('#collResultTarget'),
-                        this.maxEntriesPerRenderedPage,
-                        this.data.config.collections[this.pagetype].sources.length
-                    );
-                    this.renderSearchPanel();
-                    this.initAutoSearcher();
-                    this.renderResults(this.workingData);
-                    if (!this.mobile)
-                    {
-                        $('#searchBox').focus();
-                    }
 
-                    $(window).scroll(() =>
-                    {
-                            if ($(window).scrollTop() + $(window).height() >= $(document).height() - 1000)
-                            {
-                                this.showNextResults();
-                            }
-                    });
-                    $('body').removeClass('loading');
-            });
-        }
-        /*
-         * Initializes the auto-search event listeners
-         */
-        initAutoSearcher()
+        constructor(workingMeta, workingConfig, onSearch)
         {
-            const runSearch = () =>
-            {
-                this.performSearchFromHTML();
-            };
-            $('#searchForm').on('change','input,select',runSearch);
-            $('#searchForm').on('keyup','#searchBox',function ()
-            {
-                if($(this).val().length > 2 || $(this).val().length === 0)
-                {
-                    runSearch();
-                }
-            });
+            this.workingMeta = workingMeta;
+            this.workingConfig = workingConfig;
+            this.onSearch = onSearch;
+            this.additionalFilters = 0;
         }
-        /*
-         * Downloads and prepares the dataset for the collection on the current page
-         */
-        getDataSet(cb)
+
+        render ()
         {
-            const $colResT = $('#collResultTarget');
-            const pagetype = $colResT.data('pagetype');
-            if(pagetype === undefined)
-            {
-                return;
-            }
-            $.getJSON(pagetype.toLowerCase().replace(/\s+/g,'_')+'.dataset.json?'+$colResT.data('checksum'),(data) =>
-            {
-                    this.data    = data;
-                    this.pagetype    = pagetype;
-                    this.workingData = data.data;
-                    this.workingMeta = data.meta;
-                    this.workingConfig = this.data.config.collections[pagetype];
-                    if(this.data.dVer !== 0)
-                    {
-                        $colResT.text('ERROR: Dataset is of an unsupported version: '+this.data.dVer);
-                    }
-                    else
-                    {
-                        cb(data);
-                    }
-            });
+            this.renderOrderButtons();
+            this.renderGroupButtons();
+            this.renderFormatButtons();
+            this.renderGenreButtons();
+            this.renderPlatformButtons();
+            this.renderBoolButtons();
+            this.finalizeRendering();
+            this.eventsSetup();
         }
-        /*
-         * Renders a result set
-         */
-        renderResults(result)
-        {
-            this.renderer.setResults(result);
-            this.setPageTitle('('+result.length+')');
-        }
-        /*
-         * Function that gets triggered on scroll to render more items if needed
-         */
-        showNextResults()
-        {
-            this.renderer.renderSubset();
-        }
-        /*
-         * Reads values from the DOM that will then be handed over to the search
-         * function
-         */
-        performSearchFromHTML()
+
+        getSearch ()
         {
             const query           = {},
                 $group          = $('#group .active input'),
@@ -633,7 +541,528 @@
                 });
                 query.genreSearchType = genreSearchType;
             }
-            this.performSearch(query);
+            return query;
+        }
+
+        finalizeRendering ()
+        {
+            const $moreFiltersButton = $('#moreFiltersButton');
+            if(this.additionalFilters == 1)
+            {
+                const $additional = $('#moreFilters');
+                $moreFiltersButton.remove();
+                $additional.find('.well').removeClass('well');
+                $additiona.removeClass('collapse');
+            }
+            else
+            {
+                $('#moreFiltersButton').removeClass('hidden');
+            }
+        }
+
+        eventsSetup()
+        {
+            const self = this;
+            $('#searchForm').on('change','input,select',this.onSearch);
+            $('#searchForm').on('keyup','#searchBox',function ()
+            {
+                if($(this).val().length > 2 || $(this).val().length === 0)
+                {
+                    self.onSearch();
+                }
+            });
+        }
+
+        addAdditionalFilter ($content)
+        {
+            this.initializeAdditionalFilter();
+
+            this.additionalFilters++;
+
+            const $wrapper = $('<div />');
+            const $colWrapper = $('<div />');
+            $wrapper.addClass('row').appendTo(this.$additionalRoot);
+            $colWrapper.addClass('col-sm-12').addClass('row-padding').appendTo($wrapper);
+            $content.appendTo($colWrapper);
+        }
+
+        initializeAdditionalFilter ()
+        {
+            if(this.$additionalRoot === undefined)
+            {
+                // FIXME
+                const moreF = $('<div class="btn-group col-sm-2" data-toggle="buttons-checkbox"><a class="btn btn-primary collapse-data-btn hidden" id="moreFiltersButton" data-toggle="collapse" href="#moreFilters">'+this.translate('Show filter')+'</a></div>');
+                this.addAlwaysVisible(moreF, true);
+
+                const $collapse = $('<div />');
+                $collapse.addClass('collapse').attr('id','moreFilters').appendTo('#searchForm');
+                this.$additionalRoot = $('<div />');
+                this.$additionalRoot.addClass('well').appendTo($collapse);
+            }
+        }
+
+        addAlwaysVisible ($content, prepend = false)
+        {
+            this.initializeAlwaysVisible();
+
+            if(prepend)
+            {
+                $content.prependTo(this.$rootVisible);
+            }
+            else
+            {
+                $content.appendTo(this.$rootVisible);
+            }
+        }
+
+        initializeAlwaysVisible ()
+        {
+            if(this.$rootVisible === undefined)
+            {
+                this.$rootVisible = $('<div />');
+                this.$rootVisible.addClass('row').appendTo('#searchForm');
+            }
+        }
+
+        renderOrderButtons ()
+        {
+            const orderButtons = {
+                id: 'order',
+                buttons: [
+                    {
+                        id: 'order_none',
+                        value: '',
+                        active: this.workingConfig.defaultSort !== 'year',
+                        name: this.translate('Automatic'),
+                        renderWhen: true, // always
+                    },
+                    {
+                        id: 'sortableAuthor',
+                        value: 'sortableAuthor',
+                        name: this.translate('Author'),
+                        active: this.workingConfig.defaultSort === 'sortableAuthor',
+                        renderWhen: this.workingMeta.type == 'books'
+                    },
+                    {
+                        id: 'order_alpha',
+                        value: 'alpha',
+                        name: this.translate('Alphabetic'),
+                        renderWhen: this.workingMeta.hasDisneySort
+                    },
+                    {
+                        id: 'order_year',
+                        value: 'sortYear',
+                        name: this.translate('Year'),
+                        active: this.workingConfig.defaultSort === 'year',
+                        renderWhen: this.workingMeta.fields.year
+                    },
+                    {
+                        id: 'order_added',
+                        value: 'added',
+                        name: this.translate('Date added'),
+                        active: this.workingConfig.defaultSort === 'added',
+                        renderWhen: this.workingMeta.fields.added,
+                    },
+                    {
+                        id: 'order_rand',
+                        value: 'random',
+                        name: this.translate('Random'),
+                        renderWhen: (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
+                    },
+                    {
+                        id: 'runtime',
+                        value: 'runtimeMin',
+                        name: this.translate('Length'),
+                        renderWhen: (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
+                    },
+                    {
+                        id: 'order_normalRating',
+                        value: 'normalizedRating',
+                        name: this.translate('Rating (smart)'),
+                        renderWhen: this.workingMeta.enableNormalized,
+                    },
+                    {
+                        id: 'order_rating',
+                        value: 'rating',
+                        name: this.translate('Custom rating'),
+                        renderWhen: this.workingMeta.fields.rating,
+                    },
+                    {
+                        id: 'order_meta',
+                        value: 'metascore',
+                        name: this.translate('Metascore'),
+                        renderWhen: this.workingMeta.fields.metascore
+                    },
+                    {
+                        id: 'order_imdb',
+                        value: 'imdbRating',
+                        name: this.translate('IMDB rating'),
+                        renderWhen: (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
+                    }
+                ]
+            };
+            // FIXME: We should handle this in some declarative manner inside
+            // the definition for order_none
+            if(!this.workingMeta.hasDisneySort)
+            {
+                orderButtons.buttons[0].name = this.translate('Alphabetic');
+            }
+            this.addAlwaysVisible($('<div class="col-sm-10 form-inline row-padding text-right"><div class="input-group"><div class="input-group-addon">'+this.translate('Order')+'</div>'+this.renderSelectElement(orderButtons,true)+'</div><input type="text" class="form-control pull-right" placeholder="'+this.translate('Search')+'" id="searchBox" /></div>'));
+            return orderButtons;
+        }
+
+        renderGroupButtons ()
+        {
+            const groupButtons = {
+                id: 'group',
+                buttons: [{
+                        id: 'groups_none',
+                        value: '',
+                        active: true,
+                        name: this.translate('All')
+                }]
+            };
+            for (const groupI in this.workingConfig.sources)
+            {
+                const group = this.workingConfig.sources[groupI];
+                groupButtons.buttons.push({
+                        id: 'groups_'+groupI,
+                        value: group.bSource ,
+                        disneySort: group.disneySort,
+                        name: group.name
+                });
+            }
+            this.addAdditionalFilter($('<div class="searchbar-label">'+this.translate('Group')+':</div>'+this.renderRadioOrCheckButtons(groupButtons)));
+        }
+
+        renderBoolButtons ()
+        {
+            const plotSearchBool = {
+                id: 'plotSearch',
+                buttons: [
+                    {
+                        id: 'search_plot_yes',
+                        value: 'true',
+                        active: false,
+                        name: this.translate('Yes')
+                    },
+                    {
+                        id: 'search_plot_no',
+                        value: 'false',
+                        active: true,
+                        name: this.translate('No')
+                    }
+                ],
+            },
+                watchedSearchBool = {
+                id: 'watchedSearch',
+                buttons: [
+                    {
+                        id: 'only_unwatched_yes',
+                        value: 'true',
+                        active: false,
+                        name: this.translate('Yes')
+                    },
+                    {
+                        id: 'only_unwatched_no',
+                        value: 'false',
+                        active: true,
+                        name: this.translate('No')
+                    }
+                ],
+            };
+            if(this.workingMeta.fields.watched || this.workingMeta.fields.plot)
+            {
+                let html = '';
+                if(this.workingMeta.fields.plot)
+                {
+                    html += '<div class="searchbar-label-inline">'+this.translate('Search in plot descriptions')+'</div>'+this.renderRadioOrCheckButtons(plotSearchBool);
+                }
+                if(this.workingMeta.fields.watched === true)
+                {
+                    html += '<div class="searchbar-additional searchbar-label-inline">'+this.translate('Only display unwatched titles')+'</div>'+this.renderRadioOrCheckButtons(watchedSearchBool);
+                }
+                this.addAdditionalFilter($(html));
+            }
+        }
+
+        renderPlatformButtons ()
+        {
+            const platformButtons = {
+                id: 'platform',
+                buttons: [{
+                        id: 'platforms_none',
+                        value: '',
+                        active: true,
+                        name: this.translate('All')
+                }]
+            };
+            if(this.workingMeta.platforms && this.workingMeta.platforms.length > 1)
+            {
+                for (const platformI in this.workingMeta.platforms)
+                {
+                    const platform = this.workingMeta.platforms[platformI];
+                    platformButtons.buttons.push({
+                            id: 'platforms_'+platformI,
+                            value: platform,
+                            name: platform
+                    });
+                }
+            }
+            if(platformButtons.buttons.length > 2)
+            {
+                this.addAdditionalFilter($('<div class="searchbar-label">'+this.translate('Platform')+':</div>'+this.renderRadioOrCheckButtons(platformButtons)));
+            }
+        }
+
+        renderGenreButtons ()
+        {
+            const genreButtons = {
+                id: 'genre',
+                type: 'checkbox',
+                buttons: []
+            };
+            if(this.workingMeta.genres && this.workingMeta.genres.length)
+            {
+                for(let genreN = 0; genreN < this.workingMeta.genres.length; genreN++)
+                {
+                    const genre = this.workingMeta.genres[genreN];
+                    genreButtons.buttons.push({
+                        id: 'genre_'+genre,
+                        value: genre,
+                        name: genre
+                    });
+                }
+            }
+            if(genreButtons.buttons.length)
+            {
+                const genreType = {
+                    id: 'genre_searchtype',
+                    buttons: [
+                        {
+                            id: 'genre_inall',
+                            value: 'all',
+                            active: true,
+                            name: this.translate('In genre (all selected)'),
+                        },
+                        {
+                            id: 'genre_inany',
+                            value: 'any',
+                            active: false,
+                            name: this.translate('In genre (any selected)')
+                        },
+                        {
+                            id: 'genre_notin',
+                            value: 'notin',
+                            active: false,
+                            name: this.translate('Not in genre'),
+                        },
+                    ]
+                };
+
+                this.addAdditionalFilter($('<div class="searchbar-label genre-select-line form-inline">'+this.renderSelectElement(genreType)+':</div>'+this.renderRadioOrCheckButtons(genreButtons)));
+            }
+        }
+
+        renderFormatButtons ()
+        {
+            const formatButtons = {
+                id: 'format',
+                type: 'checkbox',
+                buttons: []
+            };
+            if(this.workingMeta.formats && this.workingMeta.formats.length)
+            {
+                for(let formatN = 0; formatN < this.workingMeta.formats.length; formatN++)
+                {
+                    const format = this.workingMeta.formats[formatN];
+                    formatButtons.buttons.push({
+                        id: 'format_'+format,
+                        value: format,
+                        name: format
+                    });
+                }
+            }
+            if(formatButtons.buttons.length > 1)
+            {
+                this.addAdditionalFilter( $( '<div class="searchbar-label">'+this.translate('Format')+':</div>'+this.renderRadioOrCheckButtons(formatButtons) ) );
+            }
+        }
+
+        /*
+         * Renders a single "select"
+         */
+        renderSelectElement(data, requireEnabled = false)
+        {
+            let html = '<select class="form-control" id="'+data.id+'">';
+            for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
+            {
+                const button = data.buttons[buttonI];
+                if((requireEnabled && button.renderWhen) || (requireEnabled === false))
+                {
+                    html += '<option data-value="'+button.value+'"'+(button.active ? ' selected' : '' )+'>'+button.name+'</option>';
+                }
+            }
+            html += '</select>';
+            return html;
+        }
+        /*
+         * Renders a single set of radio or check-style buttons
+         */
+        renderRadioOrCheckButtons(data)
+        {
+            let html = '',
+            type = 'radio';
+            if(data.type == 'checkbox')
+            {
+                type = 'checkbox';
+            }
+            let htmlClass = 'btn-group';
+            let allText = '';
+            for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
+            {
+                const button = data.buttons[buttonI];
+                html += '<label class="btn btn-primary';
+                if(button.active)
+                {
+                    html += ' active';
+                }
+                html += '">';
+                html += '<input type="'+type+'" name="options" id="'+button.id+'" autocomplete="off" data-value="'+button.value+'"';
+                if(button.disneySort)
+                {
+                    html += ' data-disneysort="true"';
+                }
+                if(button.active)
+                {
+                    html += ' checked';
+                }
+                html += '> '+button.name;
+                html +='</label>';
+                allText += button.name;
+            }
+            const avgLength = allText.length/data.buttons.length;
+            if( ( allText.length > 115 && avgLength < 9.5) || allText.length > 140 || data.buttons.length > 25)
+            {
+                htmlClass += ' btn-group-xs';
+            }
+            else if(allText.length > 100 || data.buttons.length > 20)
+            {
+                htmlClass += ' btn-group-sm';
+            }
+            html = '<div class="'+htmlClass+'" data-toggle="buttons" id="'+data.id+'">'+html+'</div>';
+            return html;
+        }
+
+        /*
+         * Hack that proxies translations through window.rotcelloc.translate
+         * FIXME: This is ugly, we need a better solution
+         */
+        translate(str)
+        {
+            return window.rotcelloc.translate(str);
+        }
+    }
+
+    /*
+     * This is our base class, it handles data retrieval, search, rendering
+     * etc., calling *Renderer classes as needed
+     */
+    class rotcelloc
+    {
+        /*
+         * Initializes the page:
+         * - Sets up object variables
+         * - Loads data
+         * - Performs initial render
+         * - Sets up event handlers
+         */
+        constructor ()
+        {
+            this.currentResults = [];
+            this.prevQuery      = null;
+            this.getDataSet(data =>
+                {
+                    $('#menuToggle').text(this.translate('Show/hide menu'));
+                    if (/(Android|Mobile|iOS|iPhone)/.test(navigator.userAgent))
+                    {
+                        this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPageMobile;
+                        this.mobile = true;
+                    }
+                    else
+                    {
+                        this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPage;
+                        this.mobile = false;
+                    }
+                    this.renderer = new rotcellocResultRenderer(
+                        $('#collResultTarget'),
+                        this.maxEntriesPerRenderedPage,
+                        this.data.config.collections[this.pagetype].sources.length
+                    );
+                    const search = new rotcellocFiltersListRenderer(this.workingMeta,this.workingConfig, () =>
+                    {
+                        const query = search.getSearch();
+                        this.performSearch(query);
+                    });
+                    search.render();
+                    this.renderResults(this.workingData);
+                    if (!this.mobile)
+                    {
+                        $('#searchBox').focus();
+                    }
+
+                    $(window).scroll(() =>
+                    {
+                            if ($(window).scrollTop() + $(window).height() >= $(document).height() - 1000)
+                            {
+                                this.showNextResults();
+                            }
+                    });
+                    $('body').removeClass('loading');
+            });
+        }
+        /*
+         * Downloads and prepares the dataset for the collection on the current page
+         */
+        getDataSet(cb)
+        {
+            const $colResT = $('#collResultTarget');
+            const pagetype = $colResT.data('pagetype');
+            if(pagetype === undefined)
+            {
+                return;
+            }
+            $.getJSON(pagetype.toLowerCase().replace(/\s+/g,'_')+'.dataset.json?'+$colResT.data('checksum'),(data) =>
+            {
+                    this.data    = data;
+                    this.pagetype    = pagetype;
+                    this.workingData = data.data;
+                    this.workingMeta = data.meta;
+                    this.workingConfig = this.data.config.collections[pagetype];
+                    if(this.data.dVer !== 0)
+                    {
+                        $colResT.text('ERROR: Dataset is of an unsupported version: '+this.data.dVer);
+                    }
+                    else
+                    {
+                        cb(data);
+                    }
+            });
+        }
+        /*
+         * Renders a result set
+         */
+        renderResults(result)
+        {
+            this.renderer.setResults(result);
+            this.setPageTitle('('+result.length+')');
+        }
+        /*
+         * Function that gets triggered on scroll to render more items if needed
+         */
+        showNextResults()
+        {
+            this.renderer.renderSubset();
         }
         /*
          * Searches our dataset, handling many different fields and scoring hits
@@ -1006,309 +1435,6 @@
             this.renderResults(results);
         }
         /*
-         * Renders the search panel on the page
-         */
-        renderSearchPanel()
-        {
-            const plotSearchBool = {
-                id: 'plotSearch',
-                buttons: [
-                    {
-                        id: 'search_plot_yes',
-                        value: 'true',
-                        active: false,
-                        name: this.translate('Yes')
-                    },
-                    {
-                        id: 'search_plot_no',
-                        value: 'false',
-                        active: true,
-                        name: this.translate('No')
-                    }
-                ],
-            },
-                watchedSearchBool = {
-                id: 'watchedSearch',
-                buttons: [
-                    {
-                        id: 'only_unwatched_yes',
-                        value: 'true',
-                        active: false,
-                        name: this.translate('Yes')
-                    },
-                    {
-                        id: 'only_unwatched_no',
-                        value: 'false',
-                        active: true,
-                        name: this.translate('No')
-                    }
-                ],
-            },
-                orderButtons = {
-                id: 'order',
-                buttons: [
-                    {
-                        id: 'order_none',
-                        value: '',
-                        active: this.workingConfig.defaultSort !== 'year',
-                        name: this.translate('Automatic')
-                    }
-                ]
-            };
-            if(this.workingMeta.type == 'books')
-            {
-                orderButtons.buttons.push(
-                {
-                    id: 'sortableAuthor',
-                    value: 'sortableAuthor',
-                    name: this.translate('Author'),
-                    active: this.workingConfig.defaultSort === 'sortableAuthor'
-                });
-            }
-            if(this.workingMeta.hasDisneySort)
-            {
-                orderButtons.buttons.push(
-                    {
-                        id: 'order_alpha',
-                        value: 'alpha',
-                        name: this.translate('Alphabetic')
-                    }
-                );
-            }
-            else
-            {
-                orderButtons.buttons[0].name = this.translate('Alphabetic');
-            }
-            if (this.workingMeta.fields.year)
-            {
-                orderButtons.buttons.push(
-                    {
-                        id: 'order_year',
-                        value: 'sortYear',
-                        name: this.translate('Year'),
-                        active: this.workingConfig.defaultSort === 'year'
-                    }
-                );
-            }
-            if (this.workingMeta.fields.added)
-            {
-                orderButtons.buttons.push(
-                    {
-                        id: 'order_added',
-                        value: 'added',
-                        name: this.translate('Date added'),
-                        active: this.workingConfig.defaultSort === 'added'
-                    }
-                );
-            }
-            orderButtons.buttons.push(
-                {
-                    id: 'order_rand',
-                    value: 'random',
-                    name: this.translate('Random')
-            });
-
-            if (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
-            {
-                orderButtons.buttons.push(
-                {
-                    id: 'runtime',
-                    value: 'runtimeMin',
-                    name: this.translate('Length')
-                });
-            }
-            if(this.workingMeta.enableNormalized)
-            {
-                orderButtons.buttons.push(
-                    {
-                        id: 'order_normalRating',
-                        value: 'normalizedRating',
-                        name: this.translate('Rating (smart)')
-                    }
-                );
-            }
-            if(this.workingMeta.fields.rating)
-            {
-                orderButtons.buttons.push(
-                    {
-                        id: 'order_rating',
-                        value: 'rating',
-                        name: this.translate('Custom rating')
-                    }
-                );
-            }
-            if (this.workingMeta.fields.metascore)
-            {
-                orderButtons.buttons.push(
-                    {
-                        id: 'order_meta',
-                        value: 'metascore',
-                        name: this.translate('Metascore')
-                    });
-            }
-            if (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
-            {
-                orderButtons.buttons.push(
-                    {
-                        id: 'order_imdb',
-                        value: 'imdbRating',
-                        name: this.translate('IMDB rating')
-                    }
-                );
-            }
-            const platformButtons = {
-                id: 'platform',
-                buttons: [{
-                        id: 'platforms_none',
-                        value: '',
-                        active: true,
-                        name: this.translate('All')
-                }]
-            };
-            if(this.workingMeta.platforms && this.workingMeta.platforms.length > 1)
-            {
-                for (const platformI in this.workingMeta.platforms)
-                {
-                    const platform = this.workingMeta.platforms[platformI];
-                    platformButtons.buttons.push({
-                            id: 'platforms_'+platformI,
-                            value: platform,
-                            name: platform
-                    });
-                }
-            }
-            const groupButtons = {
-                id: 'group',
-                buttons: [{
-                        id: 'groups_none',
-                        value: '',
-                        active: true,
-                        name: this.translate('All')
-                }]
-            };
-            for (const groupI in this.data.config.collections[this.pagetype].sources)
-            {
-                const group = this.data.config.collections[this.pagetype].sources[groupI];
-                groupButtons.buttons.push({
-                        id: 'groups_'+groupI,
-                        value: group.bSource ,
-                        disneySort: group.disneySort,
-                        name: group.name
-                });
-            }
-            const genreButtons = {
-                id: 'genre',
-                type: 'checkbox',
-                buttons: []
-            };
-            if(this.workingMeta.genres && this.workingMeta.genres.length)
-            {
-                for(let genreN = 0; genreN < this.workingMeta.genres.length; genreN++)
-                {
-                    const genre = this.workingMeta.genres[genreN];
-                    genreButtons.buttons.push({
-                        id: 'genre_'+genre,
-                        value: genre,
-                        name: genre
-                    });
-                }
-            }
-            const formatButtons = {
-                id: 'format',
-                type: 'checkbox',
-                buttons: []
-            };
-            if(this.workingMeta.formats && this.workingMeta.formats.length)
-            {
-                for(let formatN = 0; formatN < this.workingMeta.formats.length; formatN++)
-                {
-                    const format = this.workingMeta.formats[formatN];
-                    formatButtons.buttons.push({
-                        id: 'format_'+format,
-                        value: format,
-                        name: format
-                    });
-                }
-            }
-            let hasMore = false;
-            if(groupButtons.buttons.length > 2 || genreButtons.buttons.length || formatButtons.buttons.length)
-            {
-                hasMore = true;
-            }
-            let html = '';
-            html += '<div class="row">';
-            html += '<div class="col-sm-2 form-inline row-padding">';
-            if(hasMore)
-            {
-                html +='<div class="btn-group" data-toggle="buttons-checkbox"><a class="btn btn-primary collapse-data-btn" data-toggle="collapse" href="#moreFilters">'+this.translate('Show filter')+'</a></div>';
-            }
-            html += '</div>';
-            html += '<div class="col-sm-10 form-inline row-padding text-right"><div class="input-group"><div class="input-group-addon">'+this.translate('Order')+'</div>'+this.renderSelectElement(orderButtons)+'</div><input type="text" class="form-control pull-right" placeholder="'+this.translate('Search')+'" id="searchBox" /></div>';
-            if(hasMore)
-            {
-                html += '</div><div class="collapse" id="moreFilters"><div class="well">';
-            }
-            if(groupButtons.buttons.length > 2)
-            {
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+this.translate('Group')+':</div>'+this.renderRadioOrCheckButtons(groupButtons)+'</div></div>';
-            }
-            if(platformButtons.buttons.length > 2)
-            {
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+this.translate('Platform')+':</div>'+this.renderRadioOrCheckButtons(platformButtons)+'</div></div>';
-            }
-            if(formatButtons.buttons.length > 1)
-            {
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label">'+this.translate('Format')+':</div>'+this.renderRadioOrCheckButtons(formatButtons)+'</div></div>';
-            }
-            if(genreButtons.buttons.length)
-            {
-                const genreType = {
-                    id: 'genre_searchtype',
-                    buttons: [
-                        {
-                            id: 'genre_inall',
-                            value: 'all',
-                            active: true,
-                            name: this.translate('In genre (all selected)'),
-                        },
-                        {
-                            id: 'genre_inany',
-                            value: 'any',
-                            active: false,
-                            name: this.translate('In genre (any selected)')
-                        },
-                        {
-                            id: 'genre_notin',
-                            value: 'notin',
-                            active: false,
-                            name: this.translate('Not in genre'),
-                        },
-                    ]
-                };
-
-                html += '<div class="row"><div class="col-sm-12 row-padding"><div class="searchbar-label genre-select-line form-inline">'+this.renderSelectElement(genreType)+':</div>'+this.renderRadioOrCheckButtons(genreButtons)+'</div></div>';
-            }
-            if(this.workingMeta.fields.watched || this.workingMeta.fields.plot)
-            {
-                html += '<div class="row"><div class="col-sm-12 row-padding">';
-                if(this.workingMeta.fields.plot)
-                {
-                    html += '<div class="searchbar-label-inline">'+this.translate('Search in plot descriptions')+'</div>'+this.renderRadioOrCheckButtons(plotSearchBool);
-                }
-                if(this.workingMeta.fields.watched === true)
-                {
-                    html += '<div class="searchbar-additional searchbar-label-inline">'+this.translate('Only display unwatched titles')+'</div>'+this.renderRadioOrCheckButtons(watchedSearchBool);
-                }
-                html += '</div></div>';
-            }
-            if(hasMore)
-            {
-                html += '</div>';
-            }
-            html += '</div>';
-            $('#searchForm').html(html);
-        }
-        /*
          * Sets the page title. Useful because it also tracks the original title
          * for us and just appends whatever we supply to this function to the
          * original title
@@ -1323,67 +1449,6 @@
             }
             $title.attr('orig-title',origTitle);
             $title.text(origTitle+' '+add);
-        }
-        /*
-         * Renders a single "select"
-         */
-        renderSelectElement(data)
-        {
-            let html = '<select class="form-control" id="'+data.id+'">';
-            for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
-            {
-                const button = data.buttons[buttonI];
-                html += '<option data-value="'+button.value+'"'+(button.active ? ' selected' : '' )+'>'+button.name+'</option>';
-            }
-            html += '</select>';
-            return html;
-        }
-        /*
-         * Renders a single set of radio or check-style buttons
-         */
-        renderRadioOrCheckButtons(data)
-        {
-            let html = '',
-                type = 'radio';
-            if(data.type == 'checkbox')
-            {
-                type = 'checkbox';
-            }
-            let htmlClass = 'btn-group';
-            let allText = '';
-            for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
-            {
-                const button = data.buttons[buttonI];
-                html += '<label class="btn btn-primary';
-                if(button.active)
-                {
-                    html += ' active';
-                }
-                html += '">';
-                html += '<input type="'+type+'" name="options" id="'+button.id+'" autocomplete="off" data-value="'+button.value+'"';
-                if(button.disneySort)
-                {
-                    html += ' data-disneysort="true"';
-                }
-                if(button.active)
-                {
-                    html += ' checked';
-                }
-                html += '> '+button.name;
-                html +='</label>';
-                allText += button.name;
-            }
-            const avgLength = allText.length/data.buttons.length;
-            if( ( allText.length > 115 && avgLength < 9.5) || allText.length > 140 || data.buttons.length > 25)
-            {
-                htmlClass += ' btn-group-xs';
-            }
-            else if(allText.length > 100 || data.buttons.length > 20)
-            {
-                htmlClass += ' btn-group-sm';
-            }
-            html = '<div class="'+htmlClass+'" data-toggle="buttons" id="'+data.id+'">'+html+'</div>';
-            return html;
         }
         /*
          * Translates a single string
