@@ -405,7 +405,7 @@
          */
         renderSubset ()
         {
-            this.mustHaveResult();
+            this.mustHaveResult('renderSubset');
 
             let entriesOnCurrentRow = 4;
             let $currentRow;
@@ -452,7 +452,7 @@
          */
         mustHaveResult (name)
         {
-            if (!this.result)
+            if (this.result === undefined)
             {
                 throw('Attempt to use rotcellocEntryRenderer.'+name+' without having called setResults');
             }
