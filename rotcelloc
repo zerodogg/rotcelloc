@@ -487,8 +487,8 @@ class collectionType
         for(let i = 0; i < CSV.length; i++)
         {
             const csvEntry = CSV[i];
-            helper.remapCSVFields(csvEntry);
-            helper.handleGenericFields(csvEntry);
+            this.remapCSVFields(csvEntry);
+            this.handleGenericFields(csvEntry);
             // Add 'added' dates if needed/available for this entry
             if (blameData != null && csvEntry.added === 0)
             {
@@ -844,7 +844,7 @@ class collectionType
      */
     downloadPoster(url,entry)
     {
-        if(!helper.isValidCoverURL(url))
+        if(!this.isValidCoverURL(url))
         {
             printv(1,'Failed to retrieve poster for '+entry.title+( entry.origTitle ? ' ('+entry.origTitle+')' : ''));
             return;
@@ -930,6 +930,256 @@ class collectionType
         const img = gm(file);
         return wait.forMethod(img,'size');
     }
+
+    /*
+     * Downloads a URL synchronously and returns the JSON data from it
+     */
+    GETJSON(url)
+    {
+        if(commander.lazy)
+        {
+            printv(4,'GETJSON: skipping download due to --lazy');
+            return;
+        }
+        printv(4,'Performing GET request for JSON to '+url);
+        let data;
+        try
+        {
+            data = wait.forMethod(httpreq,'get',url);
+        }
+        catch(e)
+        {
+            printv(5,'Exception while performing request: '+e.message);
+            return null;
+        }
+        if (data.body == 'null')
+        {
+            printv(5,'URL returned literal null');
+            return;
+        }
+        try
+        {
+            const req = JSON.parse(data.body);
+            printv(5,'Successfully parsed JSON');
+            return req;
+        }
+        catch(e)
+        {
+            printv(5, 'Error during JSON parsing: '+e.message);
+            return;
+        }
+    }
+
+    /*
+     * Remaps fields on an object (CSV-file) from various variations that we
+     * accept into the actual fields we use internally
+     */
+    remapCSVFields(content)
+    {
+        // FIXME: This should be translateable in other languages
+        const map = {
+            'Tittel':'title',
+            'Forfattar':'author',
+            'Forfatter':'author',
+            'Forlag':'publisher',
+            'Namn':'title',
+            'Plattform':'platform',
+            'Sesongar':'seasons',
+            'Sesonger':'seasons',
+            'Original Tittel':'origTitle',
+            'Original tittel':'origTitle',
+            'Årstall':'year',
+            'Sjanger':'genre',
+            'Format':'format',
+            'Klassikernummer':'disneyClassicNo',
+            'Lagt til':'added',
+            'Kover':'customCover',
+            'Sett':'watched',
+            'Cover':'customCover',
+            'Skuespillere':'actors',
+            'Omslag':'customCover',
+            'Alternativ tittel':'altTitle',
+            'Alternativ Tittel':'altTitle',
+            'IMDB ID':'imdbID',
+            'Rating':'rating',
+            'Terningkast':'rating',
+            'Notat':'note'
+        };
+        // Remap according to the mapping table
+        for(const key in map)
+        {
+            let sourceKey = key;
+            if(content[key] === undefined)
+            {
+                sourceKey += ':';
+            }
+            if(content[sourceKey] !== undefined)
+            {
+                if(content[sourceKey].length)
+                {
+                    content[ map[key] ] = content[sourceKey];
+                }
+                delete content[sourceKey];
+            }
+        }
+        // Lowercase unmapped keys
+        for(const key in content)
+        {
+            if(key === "")
+            {
+                printv(1,'Warning: '+content.title+' has an empty key ("")');
+                continue;
+            }
+            if (/^[A-Z]/.test(key))
+            {
+                content[key.toLowerCase()] = content[key];
+                delete content[key];
+            }
+        }
+    }
+
+    /*
+     * Parses and sets the "added" field
+     */
+    handleGenericFields(content)
+    {
+        if(content.added)
+        {
+            content.addedRaw = content.added;
+            content.added = Math.round(Date.parse(content.added)/1000);
+        }
+        else
+        {
+            content.added = 0;
+        }
+    }
+
+    /*
+     * Does some generic replacements on a title, converting roman numerals to
+     * the Arabic numerals (and the other way around), and converting & to and
+     * or and to &
+     */
+    attemptGenericReplacements(origTitle)
+    {
+        if(origTitle == null)
+        {
+            throw('attemptGenericReplacements got null origTitle');
+        }
+        const replacements = [
+            {
+                index: 'III',
+                replacement: '3',
+                regex: /III/
+            },
+            {
+                index: '3',
+                replacement: 'III',
+                regex: /3/
+            },
+            {
+                index: 'II',
+                replacement: '2',
+                regex: /II/
+            },
+            {
+                index: '2',
+                replacement: 'II',
+                regex: /2/
+            },
+            {
+                index: 'IV',
+                replacement: '4',
+                regex: /IV/
+            },
+            {
+                index: '4',
+                replacement: 'IV',
+                regex: /4/
+            },
+            {
+                index: ' and ',
+                replacement: ' & ',
+                regex: / and /
+            },
+            {
+                index: ' & ',
+                replacement: ' and ',
+                regex: / & /
+            },
+            {
+                index: ' 1:',
+                replacement: ' I:',
+                regex: / 1:/
+            },
+            {
+                index: 'two',
+                replacement: '2',
+            },
+            {
+                index: 'three',
+                replacement: '3',
+            },
+            {
+                index: 'four',
+                replacement: '4',
+            },
+            {
+                index: 'five',
+                replacement: '5',
+            },
+        ];
+        for (const attempt of replacements)
+        {
+            if(origTitle.indexOf(attempt.index) != -1)
+            {
+                return origTitle.replace(attempt.regex,attempt.replacement);
+            }
+        }
+        return null;
+    }
+
+    /*
+     * Performs some simple replacements to remove entities from a title
+     * that obviously isn't suppose to be there
+     */
+    normalizeTitle(origTitle)
+    {
+        return origTitle.replace(/\s*™/,'');
+    }
+
+    /*
+     * Checks if url is a valid url to a cover
+     */
+    isValidCoverURL(url)
+    {
+        if (url == null || !/^http/.test(url) || /originalnull/i.test(url))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /*
+     * Parse a boolean-ish string
+     */
+    parseBool(boolStr)
+    {
+        boolStr = boolStr.toLowerCase();
+        // Translators: Used in boolean values in files
+        if(boolStr === 1 || boolStr == 'true' || boolStr == 'yes' || boolStr == i18n.translate('Yes').toLowerCase())
+        {
+            return true;
+        }
+        // Translators: Used in boolean values in files
+        else if(boolStr === 0 || boolStr == 'false' || boolStr == 'no' || boolStr == i18n.translate('No').toLowerCase())
+        {
+            return false;
+        }
+        else
+        {
+            throw('Unrecognized boolean value: '+boolStr);
+        }
+    }
 }
 
 /*
@@ -1008,13 +1258,13 @@ class movieCollection extends collectionType
         else
         {
             // Use OMDB if we can
-            if(!helper.isValidCoverURL(url) && entry.imdbID && entry.poster)
+            if(!this.isValidCoverURL(url) && entry.imdbID && entry.poster)
             {
                 url = entry.poster;
                 source = 'OMDB';
             }
             // Fall back to movieArt if OMDB can't provide data
-            if (!helper.isValidCoverURL(url))
+            if (!this.isValidCoverURL(url))
             {
                 url = this.getPosterFromMovieArt(entry,mTitle);
                 source = 'movieArt';
@@ -1100,16 +1350,16 @@ class movieCollection extends collectionType
             type = 'tv';
         }
         // Try to fetch with a year value first
-        if(!helper.isValidCoverURL(url) && entry.year)
+        if(!this.isValidCoverURL(url) && entry.year)
         {
             url = this.submitMovieArtRequest(mTitle,entry.year,type);
         }
         // Fall back to only using the title
-        if(!helper.isValidCoverURL(url))
+        if(!this.isValidCoverURL(url))
         {
             url = this.submitMovieArtRequest(mTitle,null,type);
         }
-        if(!helper.isValidCoverURL(url))
+        if(!this.isValidCoverURL(url))
         {
             // Try to see if we can find something if we switch the types
             // around
@@ -1125,11 +1375,11 @@ class movieCollection extends collectionType
             {
                 url = this.submitMovieArtRequest(mTitle,entry.year,type);
             }
-            if(!helper.isValidCoverURL(url))
+            if(!this.isValidCoverURL(url))
             {
                 url = this.submitMovieArtRequest(mTitle,null,type);
             }
-            if(!helper.isValidCoverURL(url) && entry.poster)
+            if(!this.isValidCoverURL(url) && entry.poster)
             {
                 url = entry.poster;
             }
@@ -1172,7 +1422,7 @@ class movieCollection extends collectionType
         // Parse the "watched" field if needed
         if(collectionEntry.watched != null)
         {
-            collectionEntry.watched      = helper.parseBool(collectionEntry.watched);
+            collectionEntry.watched      = this.parseBool(collectionEntry.watched);
         }
 
         // Download the metadata
@@ -1287,7 +1537,7 @@ class movieCollection extends collectionType
         {
             collectionEntry.sortYear = parseInt(collectionEntry.year);
         }
-        collectionEntry.normalizedTitle = helper.normalizeTitle( collectionEntry.origTitle ? collectionEntry.origTitle : collectionEntry.title );
+        collectionEntry.normalizedTitle = this.normalizeTitle( collectionEntry.origTitle ? collectionEntry.origTitle : collectionEntry.title );
     }
 
     // Fetches metadata from a source for an entry
@@ -1390,7 +1640,7 @@ class movieCollection extends collectionType
             return this.fetchFromOMDB(entryWithoutType);
         }
 
-        const fixedTitle = helper.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
+        const fixedTitle = this.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
         if(fixedTitle)
         {
             data = wait.for(this.performOMDBRequest,{ title: fixedTitle, year: entry.year });
@@ -1654,7 +1904,7 @@ class gameCollection extends collectionType
         }
         collItem.poster   = this.getPosterURLFromData(collItem,meta);
         collItem.type     = 'game';
-        collItem.normalizedTitle = this.performNameReplacements(helper.normalizeTitle( collItem.origTitle ? collItem.origTitle : collItem.title ));
+        collItem.normalizedTitle = this.performNameReplacements(this.normalizeTitle( collItem.origTitle ? collItem.origTitle : collItem.title ));
     }
 
     // Adds a poster to a collection entry
@@ -1785,7 +2035,7 @@ class gameCollection extends collectionType
                     cache.flushIfNeeded();
                     helper.sleep(10);
                 }
-                const data = helper.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
+                const data = this.GETJSON('http://store.steampowered.com/api/appdetails?appids='+appid+'&filters=basic,developers,genres,metacritic,platforms,controller_support,release_date');
                 if(data)
                 {
                     downloaded++;
@@ -2042,7 +2292,7 @@ class gameCollection extends collectionType
             .replace(/\s+\/\s+.+/,'');
         if( (on == orig || doAll) && !excludeGeneric)
         {
-            const generic = helper.attemptGenericReplacements(on);
+            const generic = this.attemptGenericReplacements(on);
             if(generic)
             {
                 on = generic;
@@ -2084,7 +2334,7 @@ class gameCollection extends collectionType
             newName;
         if (!data)
         {
-            newName = helper.attemptGenericReplacements(game.title,false);
+            newName = this.attemptGenericReplacements(game.title,false);
             if(newName != game.title && newName !== null)
             {
                 data = this.fetchDataFromTGD({
@@ -2426,7 +2676,7 @@ class bookCollection extends collectionType
             {
                 data.author = this.mustBeString(remote.authors);
             }
-            if(remote.imageLinks && remote.imageLinks.thumbnail !== undefined && helper.isValidCoverURL(remote.imageLinks.thumbnail))
+            if(remote.imageLinks && remote.imageLinks.thumbnail !== undefined && this.isValidCoverURL(remote.imageLinks.thumbnail))
             {
                 data.metadataPoster = remote.imageLinks.thumbnail;
             }
@@ -2519,228 +2769,6 @@ class bookCollection extends collectionType
  * Various helper functions for the rest of the program
  */
 const helper = {
-    /*
-     * Downloads a URL synchronously and returns the JSON data from it
-     */
-    GETJSON(url)
-    {
-        if(commander.lazy)
-        {
-            printv(4,'GETJSON: skipping download due to --lazy');
-            return;
-        }
-        printv(4,'Performing GET request for JSON to '+url);
-        let data;
-        try
-        {
-            data = wait.forMethod(httpreq,'get',url);
-        }
-        catch(e)
-        {
-            printv(5,'Exception while performing request: '+e.message);
-            return null;
-        }
-        if (data.body == 'null')
-        {
-            printv(5,'URL returned literal null');
-            return;
-        }
-        try
-        {
-            const req = JSON.parse(data.body);
-            printv(5,'Successfully parsed JSON');
-            return req;
-        }
-        catch(e)
-        {
-            printv(5, 'Error during JSON parsing: '+e.message);
-            return;
-        }
-    },
-    /*
-     * Remaps fields on an object (CSV-file) from various variations that we
-     * accept into the actual fields we use internally
-     */
-    remapCSVFields(content)
-    {
-        // FIXME: This should be translateable in other languages
-        const map = {
-            'Tittel':'title',
-            'Forfattar':'author',
-            'Forfatter':'author',
-            'Forlag':'publisher',
-            'Namn':'title',
-            'Plattform':'platform',
-            'Sesongar':'seasons',
-            'Sesonger':'seasons',
-            'Original Tittel':'origTitle',
-            'Original tittel':'origTitle',
-            'Årstall':'year',
-            'Sjanger':'genre',
-            'Format':'format',
-            'Klassikernummer':'disneyClassicNo',
-            'Lagt til':'added',
-            'Kover':'customCover',
-            'Sett':'watched',
-            'Cover':'customCover',
-            'Skuespillere':'actors',
-            'Omslag':'customCover',
-            'Alternativ tittel':'altTitle',
-            'Alternativ Tittel':'altTitle',
-            'IMDB ID':'imdbID',
-            'Rating':'rating',
-            'Terningkast':'rating',
-            'Notat':'note'
-        };
-        // Remap according to the mapping table
-        for(const key in map)
-        {
-            let sourceKey = key;
-            if(content[key] === undefined)
-            {
-                sourceKey += ':';
-            }
-            if(content[sourceKey] !== undefined)
-            {
-                if(content[sourceKey].length)
-                {
-                    content[ map[key] ] = content[sourceKey];
-                }
-                delete content[sourceKey];
-            }
-        }
-        // Lowercase unmapped keys
-        for(const key in content)
-        {
-            if(key === "")
-            {
-                printv(1,'Warning: '+content.title+' has an empty key ("")');
-                continue;
-            }
-            if (/^[A-Z]/.test(key))
-            {
-                content[key.toLowerCase()] = content[key];
-                delete content[key];
-            }
-        }
-    },
-    /*
-     * Parses and sets the "added" field
-     */
-    handleGenericFields(content)
-    {
-        if(content.added)
-        {
-            content.addedRaw = content.added;
-            content.added = Math.round(Date.parse(content.added)/1000);
-        }
-        else
-        {
-            content.added = 0;
-        }
-    },
-    /*
-     * Does some generic replacements on a title, converting roman numerals to
-     * the Arabic numerals (and the other way around), and converting & to and
-     * or and to &
-     */
-    attemptGenericReplacements(origTitle)
-    {
-        if(origTitle == null)
-        {
-            throw('attemptGenericReplacements got null origTitle');
-        }
-        const replacements = [
-            {
-                index: 'III',
-                replacement: '3',
-                regex: /III/
-            },
-            {
-                index: '3',
-                replacement: 'III',
-                regex: /3/
-            },
-            {
-                index: 'II',
-                replacement: '2',
-                regex: /II/
-            },
-            {
-                index: '2',
-                replacement: 'II',
-                regex: /2/
-            },
-            {
-                index: 'IV',
-                replacement: '4',
-                regex: /IV/
-            },
-            {
-                index: '4',
-                replacement: 'IV',
-                regex: /4/
-            },
-            {
-                index: ' and ',
-                replacement: ' & ',
-                regex: / and /
-            },
-            {
-                index: ' & ',
-                replacement: ' and ',
-                regex: / & /
-            },
-            {
-                index: ' 1:',
-                replacement: ' I:',
-                regex: / 1:/
-            },
-            {
-                index: 'two',
-                replacement: '2',
-            },
-            {
-                index: 'three',
-                replacement: '3',
-            },
-            {
-                index: 'four',
-                replacement: '4',
-            },
-            {
-                index: 'five',
-                replacement: '5',
-            },
-        ];
-        for (const attempt of replacements)
-        {
-            if(origTitle.indexOf(attempt.index) != -1)
-            {
-                return origTitle.replace(attempt.regex,attempt.replacement);
-            }
-        }
-        return null;
-    },
-    /*
-     * Performs some simple replacements to remove entities from a title
-     * that obviously isn't suppose to be there
-     */
-    normalizeTitle(origTitle)
-    {
-        return origTitle.replace(/\s*™/,'');
-    },
-    /*
-     * Checks if url is a valid url to a cover
-     */
-    isValidCoverURL(url)
-    {
-        if (url == null || !/^http/.test(url) || /originalnull/i.test(url))
-        {
-            return false;
-        }
-        return true;
-    },
     /*
      * Resolve the path to a file relative to our source directory
      */
@@ -2835,27 +2863,6 @@ const helper = {
             }
         }
         return false;
-    },
-    /*
-     * Parse a boolean-ish string
-     */
-    parseBool(boolStr)
-    {
-        boolStr = boolStr.toLowerCase();
-        // Translators: Used in boolean values in files
-        if(boolStr === 1 || boolStr == 'true' || boolStr == 'yes' || boolStr == i18n.translate('Yes').toLowerCase())
-        {
-            return true;
-        }
-        // Translators: Used in boolean values in files
-        else if(boolStr === 0 || boolStr == 'false' || boolStr == 'no' || boolStr == i18n.translate('No').toLowerCase())
-        {
-            return false;
-        }
-        else
-        {
-            throw('Unrecognized boolean value: '+boolStr);
-        }
     },
     /*
      * A simple "sleep" function that takes a sleep time in seconds and then
