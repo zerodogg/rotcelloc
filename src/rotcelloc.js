@@ -556,7 +556,7 @@
                 const $additional = $('#moreFilters');
                 $moreFiltersButton.remove();
                 $additional.find('.well').removeClass('well');
-                $additiona.removeClass('collapse');
+                $additional.removeClass('collapse');
             }
             else
             {
