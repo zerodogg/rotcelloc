@@ -23,7 +23,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-// jshint esversion: 6, eqnull: true
+// jshint esversion: 6
 
 "use strict";
 
@@ -377,18 +377,18 @@ class rotcellocCache
             const result = this._persistCache[type];
             for (const entry in result)
             {
-                if(entry.toLowerCase().indexOf(byvalue) != -1 || byvalue === '')
+                if(entry.toLowerCase().indexOf(byvalue) !== -1 || byvalue === '')
                 {
                     console.log(type+': removed "'+entry+'"');
                     delete result[entry];
                 }
             }
-            if(type == 'steamMeta')
+            if(type === 'steamMeta')
             {
                 for(const entry in result)
                 {
                     const data = result[entry];
-                    if(data.name && data.name.toLowerCase().indexOf(byvalue) != -1)
+                    if(data.name && data.name.toLowerCase().indexOf(byvalue) !== -1)
                     {
                         console.log(type+': removed "'+entry+'"');
                         delete result[entry];
@@ -490,7 +490,7 @@ class collectionType
             this.remapCSVFields(csvEntry);
             this.handleGenericFields(csvEntry);
             // Add 'added' dates if needed/available for this entry
-            if (blameData != null && csvEntry.added === 0)
+            if ( (blameData !== null || blameData !== undefined) && csvEntry.added === 0)
             {
                 const blameLine = i-1;
                 const blamed = blameData[blameLine];
@@ -788,7 +788,7 @@ class collectionType
         {
             return thing.join(', ');
         }
-        if(typeof(thing) != "string")
+        if(typeof(thing) !== "string")
         {
             if(thing.toString)
             {
@@ -953,7 +953,7 @@ class collectionType
             printv(5,'Exception while performing request: '+e.message);
             return null;
         }
-        if (data.body == 'null')
+        if (data.body === 'null')
         {
             printv(5,'URL returned literal null');
             return;
@@ -1062,7 +1062,7 @@ class collectionType
      */
     attemptGenericReplacements(origTitle)
     {
-        if(origTitle == null)
+        if(origTitle === null || origTitle === undefined)
         {
             throw('attemptGenericReplacements got null origTitle');
         }
@@ -1131,7 +1131,7 @@ class collectionType
         ];
         for (const attempt of replacements)
         {
-            if(origTitle.indexOf(attempt.index) != -1)
+            if(origTitle.indexOf(attempt.index) !== -1)
             {
                 return origTitle.replace(attempt.regex,attempt.replacement);
             }
@@ -1153,7 +1153,7 @@ class collectionType
      */
     isValidCoverURL(url)
     {
-        if (url == null || !/^http/.test(url) || /originalnull/i.test(url))
+        if (url === null || url === undefined || !/^http/.test(url) || /originalnull/i.test(url))
         {
             return false;
         }
@@ -1167,12 +1167,12 @@ class collectionType
     {
         boolStr = boolStr.toLowerCase();
         // Translators: Used in boolean values in files
-        if(boolStr === 1 || boolStr == 'true' || boolStr == 'yes' || boolStr == i18n.translate('Yes').toLowerCase())
+        if(boolStr === 1 || boolStr === 'true' || boolStr === 'yes' || boolStr === i18n.translate('Yes').toLowerCase())
         {
             return true;
         }
         // Translators: Used in boolean values in files
-        else if(boolStr === 0 || boolStr == 'false' || boolStr == 'no' || boolStr == i18n.translate('No').toLowerCase())
+        else if(boolStr === 0 || boolStr === 'false' || boolStr === 'no' || boolStr === i18n.translate('No').toLowerCase())
         {
             return false;
         }
@@ -1342,11 +1342,11 @@ class movieCollection extends collectionType
         let url;
         let type = entry.type;
         // Remap type so that movieArt can handle it
-        if(type == 'movies')
+        if(type === 'movies')
         {
             type = 'movie';
         }
-        else if(type == 'series')
+        else if(type === 'series')
         {
             type = 'tv';
         }
@@ -1364,7 +1364,7 @@ class movieCollection extends collectionType
         {
             // Try to see if we can find something if we switch the types
             // around
-            if(type == 'tv')
+            if(type === 'tv')
             {
                 type = 'movie';
             }
@@ -1415,20 +1415,20 @@ class movieCollection extends collectionType
     addMetadataTo(collectionEntry)
     {
         // We rely upon the title to locate metadata
-        if(collectionEntry.title == null || !/\S/.test(collectionEntry.title))
+        if(collectionEntry.title === null || collectionEntry.title === undefined || !/\S/.test(collectionEntry.title))
         {
             this.warn('has no title entry - skipping it');
             return;
         }
         // Parse the "watched" field if needed
-        if(collectionEntry.watched != null)
+        if(collectionEntry.watched !== null && collectionEntry.watched !== undefined)
         {
             collectionEntry.watched      = this.parseBool(collectionEntry.watched);
         }
 
         // Download the metadata
         const meta = this.retrieveMetadataFor(collectionEntry);
-        if(meta != null)
+        if(meta !== null && meta !== undefined)
         {
             const genericRemapping = {
                 imdbID: 'imdbID',
@@ -1550,13 +1550,13 @@ class movieCollection extends collectionType
             return cache.get('meta',ckey);
         }
         const data = this.fetchFromOMDB(entry);
-        if(data && data.Response == "False")
+        if(data && data.Response === "False")
         {
             printv(3,'Could not retrieve data from OMDB on '+ (entry.origTitle ? entry.origTitle : entry.title) );
             cache.set(null,'meta',ckey);
             return;
         }
-        if ((entry.type == 'movies' && (!entry.year || parseInt(entry.year) == parseInt(data.Year)))|| (entry.type == 'series' || parseInt(entry.year) == parseInt(data.Year)) || (entry.imdbID && data.imdbID == entry.imdbID) )
+        if ((entry.type === 'movies' && (!entry.year || parseInt(entry.year) === parseInt(data.Year)))|| (entry.type === 'series' || parseInt(entry.year) === parseInt(data.Year)) || (entry.imdbID && data.imdbID === entry.imdbID) )
         {
             printv(1,'Fetched meta info for '+entry.title);
             cache.set(data,'meta',ckey);
@@ -1564,7 +1564,7 @@ class movieCollection extends collectionType
         }
         else
         {
-            if(entry.year && data.Year != entry.year)
+            if(entry.year && data.Year !== entry.year)
             {
                 const diff = entry.year - data.Year;
                 if (diff <= 2 && diff >= -2)
@@ -1596,7 +1596,7 @@ class movieCollection extends collectionType
         {
             data = null;
         }
-        if(data && data.Response != "False")
+        if(data && data.Response !== "False")
         {
             return data;
         }
@@ -1605,7 +1605,7 @@ class movieCollection extends collectionType
             // Try a request without imdbID
             data = wait.for(this.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, year: entry.year, type: entry.type });
         }
-        if(data && data.Response != "False")
+        if(data && data.Response !== "False")
         {
             return data;
         }
@@ -1614,7 +1614,7 @@ class movieCollection extends collectionType
             // Try a request without origTitle
             data = wait.for(this.performOMDBRequest,{ title: entry.title, year: entry.year, type: entry.type });
         }
-        if(data && data.Response != "False")
+        if(data && data.Response !== "False")
         {
             return data;
         }
@@ -1622,7 +1622,7 @@ class movieCollection extends collectionType
         {
             data = wait.for(this.performOMDBRequest,{ title: entry.altTitle, type: entry.type });
         }
-        if(data && data.Response != "False")
+        if(data && data.Response !== "False")
         {
             return data;
         }
@@ -1630,7 +1630,7 @@ class movieCollection extends collectionType
         {
             data = wait.for(this.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, type: entry.type });
         }
-        if(data && data.Response != "False")
+        if(data && data.Response !== "False")
         {
             return data;
         }
@@ -1672,12 +1672,12 @@ class movieCollection extends collectionType
             {
                 requestQuery.y = parseInt(titleData.year);
             }
-            if(titleData.type == 'series')
+            if(titleData.type === 'series')
             {
                 requestQuery.type = 'series';
             }
         }
-        if(requestQuery.t == null && requestQuery.i == null)
+        if( (requestQuery.t === null || requestQuery.t === undefined) && (requestQuery.i === null || requestQuery.i === undefined))
         {
             return cb('t+i are null');
         }
@@ -1746,7 +1746,7 @@ class gameCollection extends collectionType
     // Overrides the loadData() method, because games have a special "steam" source
     loadData(source)
     {
-        if(source.source && source.source == 'steam')
+        if(source.source && source.source === 'steam')
         {
             return this.loadSteamData(source);
         }
@@ -1825,7 +1825,7 @@ class gameCollection extends collectionType
                 break;
             }
         }
-        if(type == 'array')
+        if(type === 'array')
         {
             return this.mustBeArray(source);
         }
@@ -1892,7 +1892,7 @@ class gameCollection extends collectionType
                 collItem.developer    = this.mustBeString(meta.Developer);
             }
             collItem.tgdbID       = meta.id;
-            if(meta.metacritic != null && meta.metacritic.score != null)
+            if(meta.metacritic !== null && meta.metacritic !== undefined && meta.metacritic.score !== null && meta.metacritic.score !== undefined)
             {
                 collItem.metascore = meta.metacritic.score;
             }
@@ -1940,7 +1940,7 @@ class gameCollection extends collectionType
                 for (const img of iter)
                 {
                     image = img.$t;
-                    if(img.side == 'front')
+                    if(img.side === 'front')
                     {
                         break;
                     }
@@ -2159,7 +2159,7 @@ class gameCollection extends collectionType
                 'sega mega drive':'SMD',
             };
         }
-        if(platform != null)
+        if(platform !== null && platform !== undefined)
         {
             const platLower = platform.toLowerCase();
             if(platforms[platLower])
@@ -2178,7 +2178,7 @@ class gameCollection extends collectionType
         let baseMeta = this.getGameInfoFromTGD(game);
         if(game.steamID)
         {
-            if(baseMeta == null)
+            if(baseMeta === null || baseMeta === undefined)
             {
                 baseMeta = {};
             }
@@ -2213,7 +2213,7 @@ class gameCollection extends collectionType
                 {
                     baseMeta.steamPlatforms.push('Windows');
                 }
-                if(baseMeta.Platform != 'PC')
+                if(baseMeta.Platform !== 'PC')
                 {
                     baseMeta.Platform = 'PC';
                     // Disable use of images about games on other platforms
@@ -2291,7 +2291,7 @@ class gameCollection extends collectionType
             .replace(/free[\s-]*(2|to)[\s-]*play/ig,'')
             // This removes additional data from games with multiple names, ie. "Resident Evil 5 / Biohazard 5" -> " Resident Evil 5"
             .replace(/\s+\/\s+.+/,'');
-        if( (on == orig || doAll) && !excludeGeneric)
+        if( (on === orig || doAll) && !excludeGeneric)
         {
             const generic = this.attemptGenericReplacements(on);
             if(generic)
@@ -2300,11 +2300,11 @@ class gameCollection extends collectionType
             }
             on = on.replace(/^The\s*/,'');
         }
-        if(on == orig || doAll)
+        if(on === orig || doAll)
         {
             on = on.replace(/[,\.-\/]/g,' ');
         }
-        if(on == orig || doAll)
+        if(on === orig || doAll)
         {
             // Converts "CamelCaseName" to "Camel Case Name"
             on = on.replace(/([a-z])([A-Z])/g,'$1 $2');
@@ -2313,7 +2313,7 @@ class gameCollection extends collectionType
         {
             return orig;
         }
-        if(on != orig)
+        if(on !== orig)
         {
             printv(8,'performNameReplacements: Converted "'+orig+'" to "'+on+'"');
         }
@@ -2336,7 +2336,7 @@ class gameCollection extends collectionType
         if (!data)
         {
             newName = this.attemptGenericReplacements(game.title,false);
-            if(newName != game.title && newName !== null)
+            if(newName !== game.title && newName !== null)
             {
                 data = this.fetchDataFromTGD({
                         title: newName,
@@ -2348,7 +2348,7 @@ class gameCollection extends collectionType
         if (!data)
         {
             newName = this.performNameReplacements(game.title,true);
-            if(newName != game.title && newName !== null)
+            if(newName !== game.title && newName !== null)
             {
                 data = this.fetchDataFromTGD({
                         title: newName,
@@ -2360,7 +2360,7 @@ class gameCollection extends collectionType
         if (!data)
         {
             newName = this.performNameReplacements(game.title,true,true);
-            if(newName != game.title && newName !== null)
+            if(newName !== game.title && newName !== null)
             {
                 data = this.fetchDataFromTGD({
                         title: newName,
@@ -2372,7 +2372,7 @@ class gameCollection extends collectionType
         if (!data)
         {
             newName = this.performNameReplacements(game.title);
-            if(newName != game.title && newName !== null)
+            if(newName !== game.title && newName !== null)
             {
                 data = this.fetchDataFromTGD({
                         title: newName,
@@ -2423,12 +2423,12 @@ class gameCollection extends collectionType
         {
             platform = 'PC';
         }
-        if(platform != null)
+        if(platform !== null && platform !== undefined)
         {
             platform = platform.toLowerCase();
         }
         const name = game.title;
-        if(name == null)
+        if(name === null || name === undefined)
         {
             throw('fetchDataFromTGD got NULL title');
         }
@@ -2444,21 +2444,21 @@ class gameCollection extends collectionType
         {
             let points = 0;
 
-            if(platform && this.doPlatformRemap(response.Platform).toLowerCase() != platform)
+            if(platform && this.doPlatformRemap(response.Platform).toLowerCase() !== platform)
             {
                 response.score = 0;
                 continue;
             }
 
-            if(response.GameTitle == game.title)
+            if(response.GameTitle === game.title)
             {
                 points += 20;
             }
-            else if(response.GameTitle.toLowerCase() == game.title.toLowerCase())
+            else if(response.GameTitle.toLowerCase() === game.title.toLowerCase())
             {
                 points += 10;
             }
-            else if(response.GameTitle.toLowerCase().indexOf(filteredName.toLowerCase()) != -1)
+            else if(response.GameTitle.toLowerCase().indexOf(filteredName.toLowerCase()) !== -1)
             {
                 points += 6;
             }
@@ -2494,7 +2494,7 @@ class gameCollection extends collectionType
                 }
                 // We're being a bit picky here in that if we get the wrong platform (or no platform)
                 // and the title is much longer than ours, we probably want to skip it
-                if (prevLoc != -1 && !platform && response.GameTitle.length >= (name.length*1.6))
+                if (prevLoc !== -1 && !platform && response.GameTitle.length >= (name.length*1.6))
                 {
                     // We try a final test here. We perform all relevant replacements on both the
                     // requested name and the response name. Then we see if the response is within
@@ -2515,7 +2515,7 @@ class gameCollection extends collectionType
                         points = 0;
                     }
                 }
-                else if(prevLoc != -1)
+                else if(prevLoc !== -1)
                 {
                     // We grant 1.5 points for unreasonably long titles, and 3
                     // points for closer matches
@@ -2538,7 +2538,7 @@ class gameCollection extends collectionType
             if(response.ReleaseDate && response.ReleaseDate.length)
             {
                 const year = response.ReleaseDate.split('/')[2];
-                if (game.year && year == game.year)
+                if (game.year && year === game.year)
                 {
                     points += 3;
                 }
@@ -2693,7 +2693,7 @@ class bookCollection extends collectionType
             let sortableAuthor = '';
             for(const entry of possibleAuthors)
             {
-                if(entry.substr(0,1) == entry.substr(0,1).toLowerCase())
+                if(entry.substr(0,1) === entry.substr(0,1).toLowerCase())
                 {
                     sortableAuthor += prevAuthorValue;
                     continue;
@@ -2944,17 +2944,17 @@ const core = {
             printv(2,' Constructing group "'+name+'"');
             const groupConf = config.collections[name];
             let result;
-            if(groupConf.type == 'series' || groupConf.type == 'movies')
+            if(groupConf.type === 'series' || groupConf.type === 'movies')
             {
                 const handler = new movieCollection(groupConf,name,groupNo);
                 result = handler.generateDatastructure();
             }
-            else if(groupConf.type == 'games')
+            else if(groupConf.type === 'games')
             {
                 const handler = new gameCollection(groupConf,name,groupNo);
                 result = handler.generateDatastructure();
             }
-            else if(groupConf.type == 'books')
+            else if(groupConf.type === 'books')
             {
                 const handler = new bookCollection(groupConf,name,groupNo);
                 result = handler.generateDatastructure();
@@ -3009,7 +3009,7 @@ const core = {
         const config = helper.getConfig();
         printv(1,'rotcelloc version '+packageJSON.version+' running');
 
-        if (commander.deploy && config.deployTo == null)
+        if (commander.deploy && (config.deployTo === null || config.deployTo === undefined))
         {
             console.log('ERROR: deployTo is not set in the config. Can not deploy.');
             process.exit(1);
@@ -3177,7 +3177,7 @@ const core = {
                 file.qualified = helper.resolvePath(file.path);
             }
             let dirTree = path.dirname(file.path);
-            if(dirTree == file || dirTree == '.')
+            if(dirTree === file || dirTree === '.')
             {
                 dirTree = '';
             }
@@ -3224,7 +3224,7 @@ const webappGen = {
     createFilename(name,groupNo)
     {
         let filename;
-        if(groupNo == 1)
+        if(groupNo === 1)
         {
             filename = 'index.html';
         }
@@ -3247,7 +3247,7 @@ const webappGen = {
             const fname = webappGen.createFilename(entry.name,entry.groupNo);
             menu.push({
                     url: fname,
-                    state: entry.groupNo == groupNo ? 'current' : '',
+                    state: entry.groupNo === groupNo ? 'current' : '',
                     title: entry.name
             });
         }
@@ -3341,7 +3341,7 @@ const webappGen = {
 function getCacheID (entry,type,opts)
 {
     let ckey = '';
-    if(typeof(entry) == 'object')
+    if(typeof(entry) === 'object')
     {
         if(type === undefined)
         {
@@ -3373,11 +3373,11 @@ function getCacheID (entry,type,opts)
         }
         ckey = entry;
     }
-    if(type == 'series')
+    if(type === 'series')
     {
         ckey += 'tvserie';
     }
-    else if(type == 'game')
+    else if(type === 'game')
     {
         ckey += '//game';
         if(entry.platform)

@@ -37,3 +37,6 @@ rules:
   brace-style:
       - warn
       - allman
+  eqeqeq:
+      - error
+      - smart

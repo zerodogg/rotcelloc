@@ -88,7 +88,7 @@
 
             this.renderSingleMetadata($target,null,entry.author,'author');
             this.renderSingleMetadata($target,this.translate('Seasons'),entry.seasons,'seasons');
-            if(entry.origTitle && entry.origTitle != entry.title)
+            if(entry.origTitle && entry.origTitle !== entry.title)
             {
                 this.renderSingleMetadata($target,this.translate('Original title'),entry.origTitle,'original-title');
             }
@@ -209,7 +209,7 @@
         showMore($target,$showMoreLink)
         {
             const data = this.entry;
-            if(data.altTitle && data.altTitle != data.title)
+            if(data.altTitle && data.altTitle !== data.title)
             {
                 this.renderSingleMetadata($target,this.translate('Alternative title'),data.altTitle,'altTitle');
             }
@@ -299,7 +299,7 @@
             const data = this.entry;
             let links = '';
 
-            if(data.type == 'game')
+            if(data.type === 'game')
             {
                 links += '<a target="_blank" href="https://www.mobygames.com/search/quick?q='+encodeURIComponent(data.title)+'">MobyGames</a>, ';
                 if(data.tgdbID)
@@ -316,9 +316,9 @@
                     links += '<a target="_blank" href="http://store.steampowered.com/app/'+encodeURIComponent(data.steamID)+'/">Steam</a>';
                 }
             }
-            else if(data.type == 'series' || data.type == 'movies')
+            else if(data.type === 'series' || data.type === 'movies')
             {
-                if(data.contentType && data.contentType == 'anime')
+                if(data.contentType && data.contentType === 'anime')
                 {
                     links += '<a target="_blank" href="https://duckduckgo.com/?q='+encodeURIComponent( (data.origTitle ? data.origTitle : data.title) +' site:animenfo.com')+'">AnimeNFO</a>';
                     links += ', ';
@@ -330,13 +330,13 @@
                 }
                 else
                 {
-                    imdbURL = 'http://www.imdb.com/find?s=all&amp;s=tt&amp;q='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'&amp;ttype='+ ( data.type == 'series' ? 'tv' : 'ft' );
+                    imdbURL = 'http://www.imdb.com/find?s=all&amp;s=tt&amp;q='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'&amp;ttype='+ ( data.type === 'series' ? 'tv' : 'ft' );
                 }
                 links += '<a target="_blank" href="'+imdbURL+'">IMDB</a>';
                 links += ', ';
-                links += '<a target="_blank" href="https://www.themoviedb.org/search/'+( data.type == 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
+                links += '<a target="_blank" href="https://www.themoviedb.org/search/'+( data.type === 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
             }
-            else if(data.type == 'books')
+            else if(data.type === 'books')
             {
                 let openLibraryLink = data.openliblink;
                 if(data.openliblink === undefined)
@@ -353,22 +353,22 @@
             }
             // Add a trailer link (to YouTube) if the type is something where a
             // trailer makes sense
-            if (data.type == 'game' || data.type == 'series' || data.type == 'movies')
+            if (data.type === 'game' || data.type === 'series' || data.type === 'movies')
             {
                 let trailerSearch = data.normalizedTitle;
                 if(data.year)
                 {
                     trailerSearch += ' '+data.year.replace(/\D.*/g,'');
                 }
-                if(data.type == 'game')
+                if(data.type === 'game')
                 {
                     trailerSearch += ' game';
                 }
-                else if(data.type == 'series')
+                else if(data.type === 'series')
                 {
                     trailerSearch += ' (tv OR series)';
                 }
-                else if(data.type == 'movies')
+                else if(data.type === 'movies')
                 {
                     trailerSearch += ' (movie OR theatrical OR film)';
                 }
@@ -520,7 +520,7 @@
             {
                 query.platform = platform;
             }
-            if(groupDisneySort && groupDisneySort == 'true')
+            if(groupDisneySort && groupDisneySort === 'true')
             {
                 query.disneySort = true;
             }
@@ -532,11 +532,11 @@
             {
                 query.order = order;
             }
-            if($plotSearch && $plotSearch.attr('data-value') == 'true')
+            if($plotSearch && $plotSearch.attr('data-value') === 'true')
             {
                 query.plotSearch = true;
             }
-            if($watchedSearch && $watchedSearch.attr('data-value') == 'true')
+            if($watchedSearch && $watchedSearch.attr('data-value') === 'true')
             {
                 query.watchedSearch = true;
             }
@@ -564,7 +564,7 @@
         finalizeRendering ()
         {
             const $moreFiltersButton = $('#moreFiltersButton');
-            if(this.additionalFilters == 1)
+            if(this.additionalFilters === 1)
             {
                 const $additional = $('#moreFilters');
                 $moreFiltersButton.remove();
@@ -658,7 +658,7 @@
                         value: 'sortableAuthor',
                         name: this.translate('Author'),
                         active: this.workingConfig.defaultSort === 'sortableAuthor',
-                        renderWhen: this.workingMeta.type == 'books'
+                        renderWhen: this.workingMeta.type === 'books'
                     },
                     {
                         id: 'order_alpha',
@@ -684,13 +684,13 @@
                         id: 'order_rand',
                         value: 'random',
                         name: this.translate('Random'),
-                        renderWhen: (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
+                        renderWhen: (this.workingMeta.type === 'movies' || this.workingMeta.type === 'series')
                     },
                     {
                         id: 'runtime',
                         value: 'runtimeMin',
                         name: this.translate('Length'),
-                        renderWhen: (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
+                        renderWhen: (this.workingMeta.type === 'movies' || this.workingMeta.type === 'series')
                     },
                     {
                         id: 'order_normalRating',
@@ -714,7 +714,7 @@
                         id: 'order_imdb',
                         value: 'imdbRating',
                         name: this.translate('IMDB rating'),
-                        renderWhen: (this.workingMeta.type == 'movies' || this.workingMeta.type == 'series')
+                        renderWhen: (this.workingMeta.type === 'movies' || this.workingMeta.type === 'series')
                     }
                 ]
             };
@@ -930,7 +930,7 @@
         {
             let html = '',
             type = 'radio';
-            if(data.type == 'checkbox')
+            if(data.type === 'checkbox')
             {
                 type = 'checkbox';
             }
@@ -1041,27 +1041,27 @@
                 return true;
             }
             let result = { hit: false };
-            if(type == 'group')
+            if(type === 'group')
             {
                 result = this.queryGroup(collectionEntry,query,rawQuery);
             }
-            else if(type == 'watchedSearch')
+            else if(type === 'watchedSearch')
             {
                 result = this.queryWatched(collectionEntry,query,rawQuery);
             }
-            else if (type == 'formats')
+            else if (type === 'formats')
             {
                 result = this.queryFormats(collectionEntry,query,rawQuery);
             }
-            else if(type == 'format')
+            else if(type === 'format')
             {
                 result = this.queryFormat(collectionEntry,query,rawQuery);
             }
-            else if(type == 'genres')
+            else if(type === 'genres')
             {
                 result = this.queryGenres(collectionEntry,query,rawQuery);
             }
-            else if(type == 'text')
+            else if(type === 'text')
             {
                 result = this.queryText(collectionEntry,query,rawQuery);
             }
@@ -1092,9 +1092,9 @@
                 {
                     return function (a,b)
                     {
-                        if(a[optField] && b[optField] && a[optField] != b[optField])
+                        if(a[optField] && b[optField] && a[optField] !== b[optField])
                         {
-                            if(orderType == 'text')
+                            if(orderType === 'text')
                             {
                                 return a[optField].localeCompare(b[optField]);
                             }
@@ -1111,7 +1111,7 @@
                         return a.title.localeCompare(b.title);
                     };
                 };
-                if(order == 'alpha')
+                if(order === 'alpha')
                 {
                     sorted = true;
                     results.sort((a,b) =>
@@ -1119,17 +1119,17 @@
                             return a.title.localeCompare(b.title,'no-nn');
                     });
                 }
-                else if(order == 'random')
+                else if(order === 'random')
                 {
                     sorted  = true;
                     results = _.shuffle(results);
                 }
-                else if(order == 'rating' || order == 'imdbRating' || order == 'metascore' || order == 'runtimeMin' || order == 'sortYear' || order == 'normalizedRating' || order == 'added')
+                else if(order === 'rating' || order === 'imdbRating' || order === 'metascore' || order === 'runtimeMin' || order === 'sortYear' || order === 'normalizedRating' || order === 'added')
                 {
                     sorted = true;
                     results.sort( orderByOptionalField(order,'numeric') );
                 }
-                else if (order == 'sortableAuthor')
+                else if (order === 'sortableAuthor')
                 {
                     sorted = true;
                     results.sort( orderByOptionalField(order,'text') );
@@ -1143,7 +1143,7 @@
             {
                 results.sort((a,b) =>
                 {
-                        if(a.searchScore != b.searchScore)
+                        if(a.searchScore !== b.searchScore)
                         {
                             return b.searchScore - a.searchScore;
                         }
@@ -1175,21 +1175,21 @@
         queryCustom(collectionEntry,custom)
         {
             const ret = { hit: false };
-            if(custom.type == 'substr')
+            if(custom.type === 'substr')
             {
                 if (collectionEntry[custom.field].indexOf(custom.text) !== -1)
                 {
                     ret.hit = true;
                 }
             }
-            else if(custom.type == 'not-defined')
+            else if(custom.type === 'not-defined')
             {
                 if (collectionEntry[custom.field] === undefined)
                 {
                     ret.hit = true;
                 }
             }
-            else if(custom.type == 'defined')
+            else if(custom.type === 'defined')
             {
                 if (collectionEntry[custom.field] !== undefined)
                 {
@@ -1205,58 +1205,58 @@
         queryText(collectionEntry,text,rawQuery)
         {
             const ret = { hit: false, scoreMod: 0};
-            if(collectionEntry.title.toLowerCase().indexOf(text) != -1)
+            if(collectionEntry.title.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
             }
-            else if (collectionEntry.origTitle && collectionEntry.origTitle.toLowerCase().indexOf(text) != -1)
+            else if (collectionEntry.origTitle && collectionEntry.origTitle.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
             }
-            else if (collectionEntry.altTitle && collectionEntry.altTitle.toLowerCase().indexOf(text) != -1)
+            else if (collectionEntry.altTitle && collectionEntry.altTitle.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
             }
-            else if(collectionEntry.note && collectionEntry.note.toLowerCase().indexOf(text) != -1)
+            else if(collectionEntry.note && collectionEntry.note.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
             }
-            else if(collectionEntry.actors && collectionEntry.actors.toLowerCase().indexOf(text) != -1)
+            else if(collectionEntry.actors && collectionEntry.actors.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 8;
             }
-            else if(collectionEntry.writer && collectionEntry.writer.toLowerCase().indexOf(text) != -1)
+            else if(collectionEntry.writer && collectionEntry.writer.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 8;
             }
-            else if(collectionEntry.director && collectionEntry.director.toLowerCase().indexOf(text) != -1)
+            else if(collectionEntry.director && collectionEntry.director.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 8;
             }
-            else if(collectionEntry.developer && collectionEntry.developer.toLowerCase().indexOf(text) != -1)
+            else if(collectionEntry.developer && collectionEntry.developer.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 8;
             }
-            else if(collectionEntry.genre && collectionEntry.genre.toLowerCase().indexOf(text) != -1)
+            else if(collectionEntry.genre && collectionEntry.genre.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 7;
             }
-            else if(collectionEntry.year && collectionEntry.year == text)
+            else if(collectionEntry.year && collectionEntry.year === text)
             {
                 ret.hit         = true;
                 ret.scoreMod = 5;
             }
-            else if(collectionEntry.bSource.toLowerCase().indexOf(text) != -1)
+            else if(collectionEntry.bSource.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 3;
             }
-            else if (rawQuery.plotSearch && collectionEntry.plot && collectionEntry.plot.toLowerCase().indexOf(text) != -1)
+            else if (rawQuery.plotSearch && collectionEntry.plot && collectionEntry.plot.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 2;
@@ -1282,7 +1282,7 @@
                     let found = false;
                     for(let format = 0; format < collectionEntry.format.length; format++)
                     {
-                        if(collectionEntry.format[format] == queryFormat)
+                        if(collectionEntry.format[format] === queryFormat)
                         {
                             found = true;
                             break;
@@ -1303,19 +1303,19 @@
         queryGenres(collectionEntry,query,rawQuery)
         {
             const ret = { hit: true};
-            if(rawQuery.genreSearchType == 'all' || rawQuery.genreSearchType == 'any')
+            if(rawQuery.genreSearchType === 'all' || rawQuery.genreSearchType === 'any')
             {
                 if (!collectionEntry.genre)
                 {
                     ret.hit = false;
                     return ret;
                 }
-                if(rawQuery.genreSearchType == 'any')
+                if(rawQuery.genreSearchType === 'any')
                 {
                     ret.hit = false;
                     for (const genreAI in rawQuery.genres)
                     {
-                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreAI]) != -1)
+                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreAI]) !== -1)
                         {
                             ret.hit = true;
                             continue;
@@ -1326,7 +1326,7 @@
                 {
                     for (const genreI in rawQuery.genres)
                     {
-                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreI]) == -1)
+                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreI]) === -1)
                         {
                             ret.hit = false;
                             continue;
@@ -1334,14 +1334,14 @@
                     }
                 }
             }
-            else if(rawQuery.genreSearchType == 'notin')
+            else if(rawQuery.genreSearchType === 'notin')
             {
                 ret.hit = true;
                 if(collectionEntry.genre)
                 {
                     for (const genreNI in rawQuery.genres)
                     {
-                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreNI]) != -1)
+                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreNI]) !== -1)
                         {
                             ret.hit = false;
                             continue;
@@ -1359,11 +1359,11 @@
         {
             const ret = { hit: false};
             let platform;
-            if(queryPlatform != 'PC' && queryPlatform != 'Windows')
+            if(queryPlatform !== 'PC' && queryPlatform !== 'Windows')
             {
                 for(platform = 0; platform < collectionEntry.platform.length; platform++)
                 {
-                    if(collectionEntry.platform[platform] == queryPlatform)
+                    if(collectionEntry.platform[platform] === queryPlatform)
                     {
                         ret.hit = true;
                         break;
@@ -1375,11 +1375,11 @@
                 // We alias "PC" to be PC, Windows, Mac or Linux,
                 // and "Windows" to be PC or Windows
                 let regexAlias;
-                if(queryPlatform == 'PC')
+                if(queryPlatform === 'PC')
                 {
                     regexAlias = /^(PC|Windows|Mac|Linux)$/;
                 }
-                else if(queryPlatform == 'Windows')
+                else if(queryPlatform === 'Windows')
                 {
                     regexAlias = /^(PC|Windows)$/;
                 }
@@ -1402,7 +1402,7 @@
             {
                 for(let fmt = 0; fmt < collectionEntry.format.length; fmt++)
                 {
-                    if(collectionEntry.format[fmt] == format)
+                    if(collectionEntry.format[fmt] === format)
                     {
                         ret.hit = true;
                     }
@@ -1432,7 +1432,7 @@
             const ret = { hit: false };
             for(let keyN = 0; keyN < collectionEntry.bSourceList.length; keyN++)
             {
-                if(collectionEntry.bSourceList[keyN] == group)
+                if(collectionEntry.bSourceList[keyN] === group)
                 {
                     ret.hit = true;
                 }
