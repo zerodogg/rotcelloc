@@ -222,10 +222,9 @@
             if(this.dataSources > 1)
             {
                 let value;
-                const sources = data.bSource.split(", ");
-                for(let source = 0; source < sources.length; source++)
+                for(let source = 0; source < data.bSourceList.length; source++)
                 {
-                    const sourceN = sources[source];
+                    const sourceN = data.bSourceList[source];
                     if(source > 0)
                     {
                         value += ', ';
@@ -1431,13 +1430,9 @@
         queryGroup(collectionEntry,group)
         {
             const ret = { hit: false };
-            // FIXME: This split is useless if we only have one. Also we
-            // shouldn't have to perform this kind of parsing on the client
-            // side, it should be parsed ahead of time.
-            const sources = collectionEntry.bSource.split(/,\s+/);
-            for(let keyN = 0; keyN < sources.length; keyN++)
+            for(let keyN = 0; keyN < collectionEntry.bSourceList.length; keyN++)
             {
-                if(sources[keyN] == group)
+                if(collectionEntry.bSourceList[keyN] == group)
                 {
                     ret.hit = true;
                 }

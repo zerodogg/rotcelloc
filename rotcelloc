@@ -564,10 +564,10 @@ class collectionType
     finalizeCollection(data)
     {
         data = this.sortFinalCollection(data);
-        for (const collectionEntryI in data)
+        for (const collectionEntry of data)
         {
-            data[collectionEntryI].id = collectionEntryI;
-            this.filterUnusedDataFromEntry(data[collectionEntryI]);
+            collectionEntry.bSourceList = collectionEntry.bSource.split(/\s*,\s*/);
+            this.filterUnusedDataFromEntry(collectionEntry);
         }
         return { data, 'meta':this.getFinalizedMetadata()};
     }
@@ -580,6 +580,7 @@ class collectionType
             title: true,
             year: true,
             bSource: true,
+            bSourceList: true,
             altTitle: true,
             contentType:true,
             added: true,
