@@ -25,8 +25,8 @@
     <head>
         <meta charset="utf-8" />
         <title><%= document.title ? document.title : 'rotcelloc' %></title>
-        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/css/bootstrap.min.css">
-        <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" crossorigin="anonymous" integrity="<%= subresourceIntegrity.bootstrap %>"  href="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/css/bootstrap.min.css">
+        <link rel="stylesheet" crossorigin="anonymous" integrity="<%= subresourceIntegrity.bootstrapTheme %>" href="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="style.css">
         <meta name="generator" content="rotcelloc" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -71,9 +71,9 @@
         <footer class="container">
             <%- footer %>
         </footer>
-        <script src="https://code.jquery.com/jquery-<%= versions.jQueryVersion %>.min.js"></script>
-        <script src="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/js/bootstrap.min.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.min.js"></script>
+        <script crossorigin="anonymous" integrity="<%= subresourceIntegrity.jQuery %>" src="https://code.jquery.com/jquery-<%= versions.jQueryVersion %>.min.js"></script>
+        <script crossorigin="anonymous" integrity="<%= subresourceIntegrity.bootstrapJS %>"  src="https://netdna.bootstrapcdn.com/bootstrap/<%= versions.bootstrapVersion %>/js/bootstrap.min.js"></script>
+        <script crossorigin="anonymous" integrity="<%= subresourceIntegrity.lodashJS %>" src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/<%= versions.lodashVersion %>/lodash.min.js"></script>
         <script src="rotcelloc.js" async></script>
     </body>
 </html>

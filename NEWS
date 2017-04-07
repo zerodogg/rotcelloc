@@ -7,6 +7,7 @@ Version 0.2
 - Added support for automatic "added" dates
 - Added automatic distribution of the rotcelloc source code along with the
   webapp
+- Added subresource integrity for CDN-loaded libraries
 
 Version 0.1
 - Initial release
