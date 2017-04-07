@@ -965,6 +965,479 @@
     }
 
     /*
+     * Our actual search engine
+     */
+    class rotcellocSearcher
+    {
+        constructor (workingData)
+        {
+            this.prevQuery      = null;
+            this.workingData    = workingData;
+        }
+
+        /*
+         * Performs a search. Expects an object as returned from
+         * rotcellocFiltersListRenderer.getSearch().
+         *
+         * This returns an array of results, or undefined if this search query
+         * is identical to the previous search query.
+         */
+        search(query)
+        {
+            const results = [];
+            if(_.isEqual(query,this.prevQuery))
+            {
+                return;
+            }
+            else
+            {
+                this.prevQuery = query;
+            }
+            const types = [ 'group', 'watchedSearch','formats','format','genres','text' ];
+            for(let collectionN = 0; collectionN < this.workingData.length; collectionN++)
+            {
+                const collectionEntry = this.workingData[collectionN];
+                const resultMeta = { score: 0 };
+                let hit = true;
+                for(let typeN = 0; typeN < types.length; typeN++)
+                {
+                    const type = types[typeN];
+                    if(this.trySearch(collectionEntry,type,query,resultMeta) === false)
+                    {
+                        hit = false;
+                        break;
+                    }
+                }
+                if (!hit)
+                {
+                    continue;
+                }
+                // FIXME
+                collectionEntry.searchScore = resultMeta.score;
+                results.push(collectionEntry);
+            }
+            this.sortResults(results,query.order,query);
+            return results;
+        }
+
+        /*
+         * This is a wrapper function that handles calling all of the
+         * individual query* methods and handles checking if we need to perform
+         * said query, bumps the score if needed etc.
+         */
+        trySearch(collectionEntry,type,rawQuery,resultMeta)
+        {
+            const query = rawQuery[type];
+            if(query === undefined)
+            {
+                return true;
+            }
+            let result = { hit: false };
+            if(type == 'group')
+            {
+                result = this.queryGroup(collectionEntry,query,rawQuery);
+            }
+            else if(type == 'watchedSearch')
+            {
+                result = this.queryWatched(collectionEntry,query,rawQuery);
+            }
+            else if (type == 'formats')
+            {
+                result = this.queryFormats(collectionEntry,query,rawQuery);
+            }
+            else if(type == 'format')
+            {
+                result = this.queryFormat(collectionEntry,query,rawQuery);
+            }
+            else if(type == 'genres')
+            {
+                result = this.queryGenres(collectionEntry,query,rawQuery);
+            }
+            else if(type == 'text')
+            {
+                result = this.queryText(collectionEntry,query,rawQuery);
+            }
+            else
+            {
+                warn('Unhandled search type: '+type);
+            }
+            if(result.hit === true)
+            {
+                if(result.scoreMod !== undefined)
+                {
+                    resultMeta.score += result.scoreMod;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        /*
+         * Performs sorting of the search results
+         */
+        sortResults(results,order,rawQuery)
+        {
+            let sorted = false;
+            if(order)
+            {
+                const orderByOptionalField = function (optField,orderType)
+                {
+                    return function (a,b)
+                    {
+                        if(a[optField] && b[optField] && a[optField] != b[optField])
+                        {
+                            if(orderType == 'text')
+                            {
+                                return a[optField].localeCompare(b[optField]);
+                            }
+                            return b[optField] - a[optField];
+                        }
+                        if(a[optField] && !b[optField])
+                        {
+                            return -1;
+                        }
+                        else if(!a[optField] && b[optField])
+                        {
+                            return 1;
+                        }
+                        return a.title.localeCompare(b.title);
+                    };
+                };
+                if(order == 'alpha')
+                {
+                    sorted = true;
+                    results.sort((a,b) =>
+                    {
+                            return a.title.localeCompare(b.title,'no-nn');
+                    });
+                }
+                else if(order == 'random')
+                {
+                    sorted  = true;
+                    results = _.shuffle(results);
+                }
+                else if(order == 'rating' || order == 'imdbRating' || order == 'metascore' || order == 'runtimeMin' || order == 'sortYear' || order == 'normalizedRating' || order == 'added')
+                {
+                    sorted = true;
+                    results.sort( orderByOptionalField(order,'numeric') );
+                }
+                else if (order == 'sortableAuthor')
+                {
+                    sorted = true;
+                    results.sort( orderByOptionalField(order,'text') );
+                }
+                else
+                {
+                    warn('Skipping sorting by unknown method: '+order);
+                }
+            }
+            if(sorted === false)
+            {
+                results.sort((a,b) =>
+                {
+                        if(a.searchScore != b.searchScore)
+                        {
+                            return b.searchScore - a.searchScore;
+                        }
+                        if(rawQuery.disneySort)
+                        {
+                            if(a.disneyClassicNo && b.disneyClassicNo)
+                            {
+                                return a.disneyClassicNo - b.disneyClassicNo;
+                            }
+                            if(a.disneyClassicNo && !b.disneyClassicNo)
+                            {
+                                return -1;
+                            }
+                            if(!a.disneyClassicNo && b.disneyClassicNo)
+                            {
+                                return 1;
+                            }
+                        }
+                        return a.title.localeCompare(b.title);
+                });
+            }
+        }
+
+        /*
+         * Custom queries. These are not available in the interface itself, but
+         * can be used to debug issues with a collection from the developer
+         * console in the browser
+         */
+        queryCustom(collectionEntry,custom)
+        {
+            const ret = { hit: false };
+            if(custom.type == 'substr')
+            {
+                if (collectionEntry[custom.field].indexOf(custom.text) !== -1)
+                {
+                    ret.hit = true;
+                }
+            }
+            else if(custom.type == 'not-defined')
+            {
+                if (collectionEntry[custom.field] === undefined)
+                {
+                    ret.hit = true;
+                }
+            }
+            else if(custom.type == 'defined')
+            {
+                if (collectionEntry[custom.field] !== undefined)
+                {
+                    ret.hit = true;
+                }
+            }
+            return ret;
+        }
+
+        /*
+         * Performs free-text searches
+         */
+        queryText(collectionEntry,text,rawQuery)
+        {
+            const ret = { hit: false, scoreMod: 0};
+            if(collectionEntry.title.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit = true;
+            }
+            else if (collectionEntry.origTitle && collectionEntry.origTitle.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit = true;
+            }
+            else if (collectionEntry.altTitle && collectionEntry.altTitle.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit = true;
+            }
+            else if(collectionEntry.note && collectionEntry.note.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit = true;
+            }
+            else if(collectionEntry.actors && collectionEntry.actors.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 8;
+            }
+            else if(collectionEntry.writer && collectionEntry.writer.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 8;
+            }
+            else if(collectionEntry.director && collectionEntry.director.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 8;
+            }
+            else if(collectionEntry.developer && collectionEntry.developer.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 8;
+            }
+            else if(collectionEntry.genre && collectionEntry.genre.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 7;
+            }
+            else if(collectionEntry.year && collectionEntry.year == text)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 5;
+            }
+            else if(collectionEntry.bSource.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 3;
+            }
+            else if (rawQuery.plotSearch && collectionEntry.plot && collectionEntry.plot.toLowerCase().indexOf(text) != -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 2;
+            }
+            return ret;
+        }
+
+        /*
+         * Queries for matches in the format list
+         */
+        queryFormats(collectionEntry,formats)
+        {
+            const ret = { hit: true};
+            if (!collectionEntry.format)
+            {
+                ret.hit = false;
+            }
+            else
+            {
+                for (const formatI in formats)
+                {
+                    const queryFormat = formats[formatI];
+                    let found = false;
+                    for(let format = 0; format < collectionEntry.format.length; format++)
+                    {
+                        if(collectionEntry.format[format] == queryFormat)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        ret.hit = false;
+                    }
+                }
+            }
+            return ret;
+        }
+
+        /*
+         * Queries for matches in genres
+         */
+        queryGenres(collectionEntry,query,rawQuery)
+        {
+            const ret = { hit: true};
+            if(rawQuery.genreSearchType == 'all' || rawQuery.genreSearchType == 'any')
+            {
+                if (!collectionEntry.genre)
+                {
+                    ret.hit = false;
+                    return ret;
+                }
+                if(rawQuery.genreSearchType == 'any')
+                {
+                    ret.hit = false;
+                    for (const genreAI in rawQuery.genres)
+                    {
+                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreAI]) != -1)
+                        {
+                            ret.hit = true;
+                            continue;
+                        }
+                    }
+                }
+                else
+                {
+                    for (const genreI in rawQuery.genres)
+                    {
+                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreI]) == -1)
+                        {
+                            ret.hit = false;
+                            continue;
+                        }
+                    }
+                }
+            }
+            else if(rawQuery.genreSearchType == 'notin')
+            {
+                ret.hit = true;
+                if(collectionEntry.genre)
+                {
+                    for (const genreNI in rawQuery.genres)
+                    {
+                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreNI]) != -1)
+                        {
+                            ret.hit = false;
+                            continue;
+                        }
+                    }
+                }
+            }
+            return ret;
+        }
+
+        /*
+         * Queries for matches in platfrom
+         */
+        queryPlatform(collectionEntry,queryPlatform)
+        {
+            const ret = { hit: false};
+            let platform;
+            if(queryPlatform != 'PC' && queryPlatform != 'Windows')
+            {
+                for(platform = 0; platform < collectionEntry.platform.length; platform++)
+                {
+                    if(collectionEntry.platform[platform] == queryPlatform)
+                    {
+                        ret.hit = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // We alias "PC" to be PC, Windows, Mac or Linux,
+                // and "Windows" to be PC or Windows
+                let regexAlias;
+                if(queryPlatform == 'PC')
+                {
+                    regexAlias = /^(PC|Windows|Mac|Linux)$/;
+                }
+                else if(queryPlatform == 'Windows')
+                {
+                    regexAlias = /^(PC|Windows)$/;
+                }
+                for(platform = 0; platform < collectionEntry.platform.length; platform++)
+                {
+                    if (regexAlias.test(collectionEntry.platform[platform]))
+                    {
+                        ret.hit = true;
+                        break;
+                    }
+                }
+            }
+            return ret;
+        }
+
+        queryFormat(collectionEntry,format)
+        {
+            const ret = { hit: false};
+            if(collectionEntry.format)
+            {
+                for(let fmt = 0; fmt < collectionEntry.format.length; fmt++)
+                {
+                    if(collectionEntry.format[fmt] == format)
+                    {
+                        ret.hit = true;
+                    }
+                }
+            }
+            return ret;
+        }
+
+        /*
+         * Checks for "watched" status
+         */
+        queryWatched(collectionEntry)
+        {
+            const ret = { hit: true};
+            if (collectionEntry.watched === undefined || collectionEntry.watched === true)
+            {
+                ret.hit = false;
+            }
+            return ret;
+        }
+
+        /*
+         * Queries for matches in "groups"
+         */
+        queryGroup(collectionEntry,group)
+        {
+            const ret = { hit: false };
+            // FIXME: This split is useless if we only have one. Also we
+            // shouldn't have to perform this kind of parsing on the client
+            // side, it should be parsed ahead of time.
+            const sources = collectionEntry.bSource.split(/,\s+/);
+            for(let keyN = 0; keyN < sources.length; keyN++)
+            {
+                if(sources[keyN] == group)
+                {
+                    ret.hit = true;
+                }
+            }
+            return ret;
+        }
+    }
+
+    /*
      * This is our base class, it handles data retrieval, search, rendering
      * etc., calling *Renderer classes as needed
      */
@@ -979,8 +1452,6 @@
          */
         constructor ()
         {
-            this.currentResults = [];
-            this.prevQuery      = null;
             this.getDataSet(data =>
                 {
                     $('#menuToggle').text(this.translate('Show/hide menu'));
@@ -994,6 +1465,7 @@
                         this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPage;
                         this.mobile = false;
                     }
+                    this.searcher = new rotcellocSearcher(this.workingData);
                     this.renderer = new rotcellocResultRenderer(
                         $('#collResultTarget'),
                         this.maxEntriesPerRenderedPage,
@@ -1070,369 +1542,15 @@
          */
         performSearch(query)
         {
-            let results = [];
-            if(_.isEqual(query,this.prevQuery))
+            const result = this.searcher.search(query);
+            // search() returns undefined if the query is unchanged from the
+            // last query. In which case we don't bother re-rendering the
+            // results as they are identical to the currently displayed
+            // results.
+            if(result !== undefined)
             {
-                return;
+                this.renderResults(result);
             }
-            else
-            {
-                this.prevQuery = query;
-            }
-            for(let collectionN = 0; collectionN < this.workingData.length; collectionN++)
-            {
-                let searchScore = 10,
-                    hit;
-                const collectionEntry = this.workingData[collectionN];
-                if (query.watchedSearch)
-                {
-                    if (collectionEntry.watched === undefined || collectionEntry.watched === true)
-                    {
-                        continue;
-                    }
-                }
-                if(query.group)
-                {
-                    if (/,/.test(collectionEntry.bSource))
-                    {
-                        hit = false;
-                        const sources = collectionEntry.bSource.split(/,\s+/);
-                        for(let keyN = 0; keyN < sources.length; keyN++)
-                        {
-                            if(sources[keyN] == query.group)
-                            {
-                                hit = true;
-                            }
-                        }
-                        if (!hit)
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        if(collectionEntry.bSource != query.group)
-                        {
-                            continue;
-                        }
-                    }
-                }
-                if(query.formats)
-                {
-                    hit = true;
-                    if (!collectionEntry.format)
-                    {
-                        continue;
-                    }
-                    for (const formatI in query.formats)
-                    {
-                        const queryFormat = query.formats[formatI];
-                        let found = false;
-                        for(let format = 0; format < collectionEntry.format.length; format++)
-                        {
-                            if(collectionEntry.format[format] == queryFormat)
-                            {
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found)
-                        {
-                            hit = false;
-                        }
-                    }
-                    if (!hit)
-                    {
-                        continue;
-                    }
-                }
-                if(query.format)
-                {
-                    hit = false;
-                    let fmt;
-                    if(collectionEntry.format)
-                    {
-                        for(fmt = 0; fmt < collectionEntry.format.length; fmt++)
-                        {
-                            if(collectionEntry.format[fmt] == query.format)
-                            {
-                                hit = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!hit)
-                    {
-                        continue;
-                    }
-                }
-                if(query.platform)
-                {
-                    hit = false;
-                    let platform;
-                    if(query.platform != 'PC' && query.platform != 'Windows')
-                    {
-                        for(platform = 0; platform < collectionEntry.platform.length; platform++)
-                        {
-                            if(collectionEntry.platform[platform] == query.platform)
-                            {
-                                hit = true;
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // We alias "PC" to be PC, Windows, Mac or Linux,
-                        // and "Windows" to be PC or Windows
-                        let regexAlias;
-                        if(query.platform == 'PC')
-                        {
-                            regexAlias = /^(PC|Windows|Mac|Linux)$/;
-                        }
-                        else if(query.platform == 'Windows')
-                        {
-                            regexAlias = /^(PC|Windows)$/;
-                        }
-                        for(platform = 0; platform < collectionEntry.platform.length; platform++)
-                        {
-                            if (regexAlias.test(collectionEntry.platform[platform]))
-                            {
-                                hit = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!hit)
-                    {
-                        continue;
-                    }
-                }
-                if(query.genres)
-                {
-                    hit = true;
-                    if(query.genreSearchType == 'all' || query.genreSearchType == 'any')
-                    {
-                        if (!collectionEntry.genre)
-                        {
-                            continue;
-                        }
-                        if(query.genreSearchType == 'any')
-                        {
-                            hit = false;
-                            for (const genreAI in query.genres)
-                            {
-                                if(collectionEntry.genre.indexOf(query.genres[genreAI]) != -1)
-                                {
-                                    hit = true;
-                                    continue;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            for (const genreI in query.genres)
-                            {
-                                if(collectionEntry.genre.indexOf(query.genres[genreI]) == -1)
-                                {
-                                    hit = false;
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-                    else if(query.genreSearchType == 'notin')
-                    {
-                        hit = true;
-                        if(collectionEntry.genre)
-                        {
-                            for (const genreNI in query.genres)
-                            {
-                                if(collectionEntry.genre.indexOf(query.genres[genreNI]) != -1)
-                                {
-                                    hit = false;
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-                    if (!hit)
-                    {
-                        continue;
-                    }
-                }
-                if(query.text)
-                {
-                    hit = false;
-                    if(collectionEntry.title.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit = true;
-                    }
-                    else if (collectionEntry.origTitle && collectionEntry.origTitle.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit = true;
-                    }
-                    else if (collectionEntry.altTitle && collectionEntry.altTitle.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit = true;
-                    }
-                    else if(collectionEntry.note && collectionEntry.note.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit = true;
-                    }
-                    else if(collectionEntry.actors && collectionEntry.actors.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit         = true;
-                        searchScore = 8;
-                    }
-                    else if(collectionEntry.writer && collectionEntry.writer.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit         = true;
-                        searchScore = 8;
-                    }
-                    else if(collectionEntry.director && collectionEntry.director.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit         = true;
-                        searchScore = 8;
-                    }
-                    else if(collectionEntry.developer && collectionEntry.developer.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit         = true;
-                        searchScore = 8;
-                    }
-                    else if(collectionEntry.genre && collectionEntry.genre.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit         = true;
-                        searchScore = 7;
-                    }
-                    else if(collectionEntry.year && collectionEntry.year == query.text)
-                    {
-                        hit         = true;
-                        searchScore = 5;
-                    }
-                    else if(collectionEntry.bSource.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit         = true;
-                        searchScore = 3;
-                    }
-                    else if (query.plotSearch && collectionEntry.plot && collectionEntry.plot.toLowerCase().indexOf(query.text) != -1)
-                    {
-                        hit         = true;
-                        searchScore = 2;
-                    }
-                    if (!hit)
-                    {
-                        continue;
-                    }
-                }
-                if(query.custom)
-                {
-                    if(query.custom.type == 'substr')
-                    {
-                        if (collectionEntry[query.custom.field].indexOf(query.custom.text) === -1)
-                        {
-                            continue;
-                        }
-                    }
-                    else if(query.custom.type == 'not-defined')
-                    {
-                        if (collectionEntry[query.custom.field] !== undefined)
-                        {
-                            continue;
-                        }
-                    }
-                    else if(query.custom.type == 'defined')
-                    {
-                        if (collectionEntry[query.custom.field] === undefined)
-                        {
-                            continue;
-                        }
-                    }
-                }
-                collectionEntry.searchScore = searchScore;
-                results.push(collectionEntry);
-            }
-            let sorted = false;
-            if(query.order)
-            {
-                const orderByOptionalField = function (optField,orderType)
-                {
-                    return function (a,b)
-                    {
-                        if(a[optField] && b[optField] && a[optField] != b[optField])
-                        {
-                            if(orderType == 'text')
-                            {
-                                return a[optField].localeCompare(b[optField]);
-                            }
-                            return b[optField] - a[optField];
-                        }
-                        if(a[optField] && !b[optField])
-                        {
-                            return -1;
-                        }
-                        else if(!a[optField] && b[optField])
-                        {
-                            return 1;
-                        }
-                        return a.title.localeCompare(b.title);
-                    };
-                };
-                if(query.order == 'alpha')
-                {
-                    sorted = true;
-                    results.sort((a,b) =>
-                    {
-                            return a.title.localeCompare(b.title,'no-nn');
-                    });
-                }
-                else if(query.order == 'random')
-                {
-                    sorted  = true;
-                    results = _.shuffle(results);
-                }
-                else if(query.order == 'rating' || query.order == 'imdbRating' || query.order == 'metascore' || query.order == 'runtimeMin' || query.order == 'sortYear' || query.order == 'normalizedRating' || query.order == 'added')
-                {
-                    sorted = true;
-                    results.sort( orderByOptionalField(query.order,'numeric') );
-                }
-                else if (query.order == 'sortableAuthor')
-                {
-                    sorted = true;
-                    results.sort( orderByOptionalField(query.order,'text') );
-                }
-                else
-                {
-                    warn('Skipping sorting by unknown method: '+query.order);
-                }
-            }
-            if(sorted === false)
-            {
-                results.sort((a,b) =>
-                {
-                        if(a.searchScore != b.searchScore)
-                        {
-                            return b.searchScore - a.searchScore;
-                        }
-                        if(query.disneySort)
-                        {
-                            if(a.disneyClassicNo && b.disneyClassicNo)
-                            {
-                                return a.disneyClassicNo - b.disneyClassicNo;
-                            }
-                            if(a.disneyClassicNo && !b.disneyClassicNo)
-                            {
-                                return -1;
-                            }
-                            if(!a.disneyClassicNo && b.disneyClassicNo)
-                            {
-                                return 1;
-                            }
-                        }
-                        return a.title.localeCompare(b.title);
-                });
-            }
-            this.renderResults(results);
         }
         /*
          * Sets the page title. Useful because it also tracks the original title
