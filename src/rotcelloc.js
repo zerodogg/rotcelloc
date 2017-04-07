@@ -74,14 +74,14 @@
             this.renderSingleMetadata($target,this.translate('Disney classics no.'),entry.disneyClassicNo,'original-title');
             this.renderSingleMetadata($target,this.translate('Genre'),entry.genre,'genre');
 
-            let $showMoreTarget = $('<div />');
+            const $showMoreTarget = $('<div />');
             $showMoreTarget.addClass('showMore').addClass('collapse');
 
-            let $showMore = $('<div />');
+            const $showMore = $('<div />');
             $showMore.addClass('showMoreLink').appendTo($target);
             $showMoreTarget.appendTo($target);
 
-            let $showMoreLink = $('<a />');
+            const $showMoreLink = $('<a />');
             $showMoreLink.appendTo($showMore);
             $showMoreLink.attr('href','#').text(this.translate('Show more information'));
             $showMoreLink.click((ev) =>
@@ -417,7 +417,7 @@
                     $currentRow.appendTo(this.$target);
                     entriesOnCurrentRow = 1;
                 }
-                let $entryTarget = $('<div />');
+                const $entryTarget = $('<div />');
                 $entryTarget.addClass('col-sm-3');
                 $entryTarget.appendTo($currentRow);
 
