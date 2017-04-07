@@ -388,6 +388,10 @@
          */
         setResults (result)
         {
+            if(result === undefined)
+            {
+                result = [];
+            }
             this.result = result;
             this.renderedUpTo = -1;
             this.resetField();
