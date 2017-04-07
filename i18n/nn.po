@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: samlingar\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-26 15:43+0100\n"
-"PO-Revision-Date: 2016-03-26 15:44+0100\n"
+"POT-Creation-Date: 2017-04-07 13:15+0200\n"
+"PO-Revision-Date: 2017-04-07 13:18+0200\n"
 "Last-Translator: Eskild Hustvedt <i18n@zerodogg.org>\n"
 "Language-Team: nn\n"
 "Language: Norwegian Nynorsk\n"
@@ -17,222 +17,234 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/rotcelloc.js:40
-msgid "Show/hide menu"
-msgstr "Vis/skjul meny"
-
-#: src/rotcelloc.js:148
+#: src/rotcelloc.js:90
 msgid "Seasons"
 msgstr "Sesongar"
 
-#: src/rotcelloc.js:152
+#: src/rotcelloc.js:93
 msgid "Original title"
 msgstr "Originaltittel"
 
-#: src/rotcelloc.js:156
+#: src/rotcelloc.js:95
 msgid "Disney classics no."
 msgstr "Klassikernummer"
 
-#: src/rotcelloc.js:160
+#: src/rotcelloc.js:96
 msgid "Genre"
 msgstr "Sjanger"
 
-#: src/rotcelloc.js:162
+#: src/rotcelloc.js:107
 msgid "Show more information"
 msgstr "Vis meir informasjon"
 
-#: src/rotcelloc.js:220
-msgid "Alternativ title"
+#: src/rotcelloc.js:214
+msgid "Alternative title"
 msgstr "Alternativ tittel"
 
-#: src/rotcelloc.js:224
+#: src/rotcelloc.js:216
 msgid "Runtime"
 msgstr "Lengde"
 
-#: src/rotcelloc.js:228 src/rotcelloc.js:992
+#: src/rotcelloc.js:217 src/rotcelloc.js:831
 msgid "Platform"
 msgstr "Plattform"
 
-#: src/rotcelloc.js:232
+#: src/rotcelloc.js:218
 msgid "Developer"
 msgstr "Utviklar"
 
-#: src/rotcelloc.js:236
+#: src/rotcelloc.js:219
 msgid "Actors"
 msgstr "Skodespelarar"
 
-#: src/rotcelloc.js:240
+#: src/rotcelloc.js:220
 msgid "Director"
 msgstr "Regissør"
 
-#: src/rotcelloc.js:244
+#: src/rotcelloc.js:221
 msgid "Writer"
 msgstr "Manus"
 
-#: src/rotcelloc.js:248 src/rotcelloc.js:988
+#: src/rotcelloc.js:235 src/rotcelloc.js:752
 msgid "Group"
 msgstr "Gruppe"
 
-#: src/rotcelloc.js:263 src/rotcelloc.js:871
+#: src/rotcelloc.js:240 src/rotcelloc.js:704
 msgid "Custom rating"
 msgstr "Sjølvvald rangering"
 
-#: src/rotcelloc.js:267 src/rotcelloc.js:881
+#: src/rotcelloc.js:247 src/rotcelloc.js:710
 msgid "Metascore"
 msgstr "Metascore"
 
-#: src/rotcelloc.js:271 src/rotcelloc.js:890
+#: src/rotcelloc.js:254 src/rotcelloc.js:716
 msgid "IMDB rating"
 msgstr "IMDB rangering"
 
-#: src/rotcelloc.js:271
+#: src/rotcelloc.js:257
 msgid "votes"
 msgstr "stemmer"
 
-#: src/rotcelloc.js:275 src/rotcelloc.js:996
+#: src/rotcelloc.js:261
+msgid "Publisher"
+msgstr "Utgivar"
+
+#: src/rotcelloc.js:264
+msgid "ISBN"
+msgstr "ISBN"
+
+#: src/rotcelloc.js:267 src/rotcelloc.js:905
 msgid "Format"
 msgstr "Format"
 
-#: src/rotcelloc.js:277
+#: src/rotcelloc.js:286
 msgid "Links"
 msgstr "Lenkjer"
 
-#: src/rotcelloc.js:318
+#: src/rotcelloc.js:287
 msgid "Note"
 msgstr "Notat"
 
-#: src/rotcelloc.js:322 src/rotcelloc.js:834
+#: src/rotcelloc.js:288 src/rotcelloc.js:679
 msgid "Date added"
 msgstr "Dato lagt til"
 
+#: src/rotcelloc.js:611
+msgid "Show filter"
+msgstr "Vis filter"
+
+#: src/rotcelloc.js:653
+msgid "Automatic"
+msgstr "Automatisk"
+
+#: src/rotcelloc.js:659
+msgid "Author"
+msgstr "Forfattar"
+
+#: src/rotcelloc.js:666 src/rotcelloc.js:725
+msgid "Alphabetic"
+msgstr "Alfabetisk"
+
+#: src/rotcelloc.js:672
+msgid "Year"
+msgstr "Årstall"
+
+#: src/rotcelloc.js:686
+msgid "Random"
+msgstr "Tilfeldig"
+
+#: src/rotcelloc.js:692
+msgid "Length"
+msgstr "Lengde"
+
+#: src/rotcelloc.js:698
+msgid "Rating (smart)"
+msgstr "Rangering (smart)"
+
+#: src/rotcelloc.js:727
+msgid "Order"
+msgstr "Sortering"
+
+#: src/rotcelloc.js:727
+msgid "Search"
+msgstr "Søk"
+
+#: src/rotcelloc.js:739 src/rotcelloc.js:814
+msgid "All"
+msgstr "Alle"
+
 #. Translators: Used in boolean values in files
-#: src/rotcelloc.js:765 src/rotcelloc.js:782 rotcelloc:2141
+#: src/rotcelloc.js:764 src/rotcelloc.js:781 rotcelloc:1170
 msgid "Yes"
 msgstr "Ja"
 
 #. Translators: Used in boolean values in files
-#: src/rotcelloc.js:771 src/rotcelloc.js:788 rotcelloc:2146
+#: src/rotcelloc.js:770 src/rotcelloc.js:787 rotcelloc:1175
 msgid "No"
 msgstr "Nei"
 
-#: src/rotcelloc.js:799
-msgid "Automatic"
-msgstr "Automatisk"
-
-#: src/rotcelloc.js:809 src/rotcelloc.js:815
-msgid "Alphabetic"
-msgstr "Alfabetisk"
-
-#: src/rotcelloc.js:823
-msgid "Year"
-msgstr "Årstall"
-
-#: src/rotcelloc.js:843
-msgid "Random"
-msgstr "Tilfeldig"
-
-#: src/rotcelloc.js:852
-msgid "Length"
-msgstr "Lengde"
-
-#: src/rotcelloc.js:861
-msgid "Rating (smart)"
-msgstr "Rangering (smart)"
-
-#: src/rotcelloc.js:900 src/rotcelloc.js:921
-msgid "All"
-msgstr "Alle"
-
-#: src/rotcelloc.js:978
-msgid "Show filter"
-msgstr "Vis filter"
-
-#: src/rotcelloc.js:981
-msgid "Order"
-msgstr "Sortering"
-
-#: src/rotcelloc.js:981
-msgid "Search"
-msgstr "Søk"
-
-#: src/rotcelloc.js:1007
-msgid "In genre (all selected)"
-msgstr "I sjanger (alle valde)"
-
-#: src/rotcelloc.js:1013
-msgid "In genre (any selected)"
-msgstr "I sjanger (minst ein vald)"
-
-#: src/rotcelloc.js:1019
-msgid "Not in genre"
-msgstr "Ikkje i sjanger"
-
-#: src/rotcelloc.js:1031
+#: src/rotcelloc.js:796
 msgid "Search in plot descriptions"
 msgstr "Søk i handlingsskildringar"
 
-#: src/rotcelloc.js:1035
+#: src/rotcelloc.js:800
 msgid "Only display unwatched titles"
 msgstr "Berre vis usette titlar"
 
+#: src/rotcelloc.js:863
+msgid "In genre (all selected)"
+msgstr "I sjanger (alle valde)"
+
+#: src/rotcelloc.js:869
+msgid "In genre (any selected)"
+msgstr "I sjanger (minst ein vald)"
+
+#: src/rotcelloc.js:875
+msgid "Not in genre"
+msgstr "Ikkje i sjanger"
+
+#: src/rotcelloc.js:1467
+msgid "Show/hide menu"
+msgstr "Vis/skjul meny"
+
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:183
+#: rotcelloc:1457
 msgid "screenplay"
 msgstr "manus"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:185
+#: rotcelloc:1459
 msgid "motion picture"
 msgstr "film"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:187
+#: rotcelloc:1461
 msgid "comic book"
 msgstr "teikneserie"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:189
+#: rotcelloc:1463
 msgid "story"
 msgstr "historie"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:191
+#: rotcelloc:1465
 msgid "novel"
 msgstr "novelle"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:193
+#: rotcelloc:1467
 msgid "characters"
 msgstr "karakterer"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:195
+#: rotcelloc:1469
 msgid "book"
 msgstr "bok"
 
 #. Translators: Results in [number]h [number]min (ie. X hours and X minutes)
-#: rotcelloc:220
+#: rotcelloc:1490
 #, javascript-format
 msgid "%dh %dmin"
 msgstr "%dt %dmin"
 
 #. Translators: Results in [number]min (ie. X minutes)
-#: rotcelloc:225
+#: rotcelloc:1495
 #, javascript-format
 msgid "%dmin"
 msgstr "%dmin"
 
-#: rotcelloc:2537
+#: rotcelloc:3243
 #, javascript-format
 msgid ""
-"Generated by <a href=\"%s\">%s</a> version %s. Software licensed under the "
-"<a target=\"_blank\" href=\"%s\">%s</a>. Content is copyrighted by their "
-"respective owners."
+"Generated by <a href=\"%s\">%s</a> version %s. <a href=\"%s\">Download "
+"source code.</a> Software licensed under the <a target=\"_blank\" href=\"%s"
+"\">%s</a>. Content is copyrighted by their respective owners."
 msgstr ""
-"Generert av <a href=\"%s\">%s</a> versjon %s. Programvaren er lisensert "
-"under <a target=\"_blank\" href=\"%s\">%s</a>. Innholdet er opphavsrettslig "
-"beskyttet av deres respektive opphavspersoner."
+"Generert av <a href=\"%s\">%s</a> versjon %s. <a href=\"%s\">Last ned "
+"kjeldekoden.</a> Programvaren er lisensert under <a target=\"_blank\" href=\"%s"
+"\">%s</a>. Innholdet er opphavsrettslig beskyttet av deres respektive opphavspersoner."
 
-#: rotcelloc:2556
+#: rotcelloc:3262
 msgid "Loading collection..."
 msgstr "Lastar samling ..."
