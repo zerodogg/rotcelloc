@@ -35,12 +35,33 @@
     }
 
     /*
+     * Base class that provides translation functionality
+     */
+    class rotcellocBase
+    {
+        constructor(i18n)
+        {
+            this.i18n = i18n;
+        }
+
+        translate (str)
+        {
+            if(this.i18n[str])
+            {
+                return this.i18n[str];
+            }
+            return str;
+        }
+    }
+
+    /*
      * Renders a single collection entry into the DOM
      */
-    class rotcellocEntryRenderer
+    class rotcellocEntryRenderer extends rotcellocBase
     {
-        constructor (entry,dataSources)
+        constructor (i18n,entry,dataSources)
         {
+            super(i18n);
             this.entry = entry;
             this.dataSources = dataSources;
         }
@@ -357,25 +378,17 @@
             }
             return links;
         }
-
-        /*
-         * Hack that proxies translations through window.rotcelloc.translate
-         * FIXME: This is ugly, we need a better solution
-         */
-        translate(str)
-        {
-            return window.rotcelloc.translate(str);
-        }
     }
 
     /*
      * Result renderer class. This handles generating a page with the
      * results of a search.
      */
-    class rotcellocResultRenderer
+    class rotcellocResultRenderer extends rotcellocBase
     {
-        constructor ($target, maxEntries, dataSources)
+        constructor (i18n,$target, maxEntries, dataSources)
         {
+            super(i18n);
             this.renderedUpTo = -1;
             this.result = null;
             this.maxEntries = maxEntries;
@@ -427,7 +440,7 @@
 
                 this.renderedUpTo = entryNo;
 
-                const renderer = new rotcellocEntryRenderer(entry);
+                const renderer = new rotcellocEntryRenderer(this.i18n,entry);
                 renderer.renderToDOM($entryTarget);
 
                 if (++totalRendered >= this.maxEntries)
@@ -462,11 +475,12 @@
     /*
      * Search filters renderer
      */
-    class rotcellocFiltersListRenderer
+    class rotcellocFiltersListRenderer extends rotcellocBase
     {
 
-        constructor(workingMeta, workingConfig, onSearch)
+        constructor(i18n, workingMeta, workingConfig, onSearch)
         {
+            super(i18n);
             this.workingMeta = workingMeta;
             this.workingConfig = workingConfig;
             this.onSearch = onSearch;
@@ -957,15 +971,6 @@
             html = '<div class="'+htmlClass+'" data-toggle="buttons" id="'+data.id+'">'+html+'</div>';
             return html;
         }
-
-        /*
-         * Hack that proxies translations through window.rotcelloc.translate
-         * FIXME: This is ugly, we need a better solution
-         */
-        translate(str)
-        {
-            return window.rotcelloc.translate(str);
-        }
     }
 
     /*
@@ -1445,7 +1450,7 @@
      * This is our base class, it handles data retrieval, search, rendering
      * etc., calling *Renderer classes as needed
      */
-    class rotcelloc
+    class rotcelloc extends rotcellocBase
     {
         /*
          * Initializes the page:
@@ -1456,8 +1461,14 @@
          */
         constructor ()
         {
+            // We call super with an empty object because we don't yet have the i18n data.
+            // We set it ourselves once we have it.
+            super({});
+
             this.getDataSet(data =>
                 {
+                    this.i18n = data.i18n;
+
                     $('#menuToggle').text(this.translate('Show/hide menu'));
                     if (/(Android|Mobile|iOS|iPhone)/.test(navigator.userAgent))
                     {
@@ -1471,11 +1482,12 @@
                     }
                     this.searcher = new rotcellocSearcher(this.workingData);
                     this.renderer = new rotcellocResultRenderer(
+                        this.i18n,
                         $('#collResultTarget'),
                         this.maxEntriesPerRenderedPage,
                         this.data.config.collections[this.pagetype].sources.length
                     );
-                    const search = new rotcellocFiltersListRenderer(this.workingMeta,this.workingConfig, () =>
+                    const search = new rotcellocFiltersListRenderer(this.i18n,this.workingMeta,this.workingConfig, () =>
                     {
                         const query = search.getSearch();
                         this.performSearch(query);
@@ -1571,17 +1583,6 @@
             }
             $title.attr('orig-title',origTitle);
             $title.text(origTitle+' '+add);
-        }
-        /*
-         * Translates a single string
-         */
-        translate(s)
-        {
-            if(this.data.i18n[s])
-            {
-                return this.data.i18n[s];
-            }
-            return s;
         }
     }
     /*
