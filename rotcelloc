@@ -1262,6 +1262,12 @@ class movieCollection extends collectionType
                 url = this.getPosterFromMovieArt(entry,mTitle);
                 source = 'movieArt';
             }
+            // Give up
+            if (!this.isValidCoverURL(url))
+            {
+                printv(5,'Failed to find a cover for '+entry.title);
+                return;
+            }
         }
         // Download poster
         let fname = this.downloadPoster(url,entry);
