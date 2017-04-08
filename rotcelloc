@@ -3329,6 +3329,7 @@ const webappGen = {
         }
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js'),uglified.code);
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js.map'),uglified.map);
+        process.env.RUBYOPT = '-W0';
         child_process.execFileSync('sass',[ '--scss','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolveOutPath('out/style.css') ]);
 
         try
