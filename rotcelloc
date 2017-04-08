@@ -755,14 +755,6 @@ class collectionType
         }
     }
 
-    // Output a warning
-    warn(message)
-    {
-        // FIXME: This should provide information about the entry that's being processed
-        // so that the user can find it
-        printv(0,'Warning: (unknown location): '+message);
-    }
-
     /*
      * Convers thing into an array if it isn't already
      */
@@ -1417,7 +1409,7 @@ class movieCollection extends collectionType
         // We rely upon the title to locate metadata
         if(collectionEntry.title === null || collectionEntry.title === undefined || !/\S/.test(collectionEntry.title))
         {
-            this.warn('has no title entry - skipping it');
+            printv('Entry "'+JSON.stringify(collectionEntry)+'": has no "title" - skipping it');
             return;
         }
         // Parse the "watched" field if needed
