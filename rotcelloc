@@ -2765,7 +2765,7 @@ class bookCollection extends collectionType
 }
 
 /*
- * Various helper functions for the rest of the program
+ * Shared helper functions used by the rest of rotcelloc
  */
 const helper = {
     /*
@@ -2889,8 +2889,8 @@ const helper = {
 };
 
 /*
- * Core bits of software not directly related to games, movies or tv, and not
- * quite helpers for other things
+ * The core application, prepares the build environment, calls build functions,
+ * prepares images and writhes the CCS
  */
 const core = {
     /*
@@ -3212,7 +3212,7 @@ const core = {
 };
 
 /*
- * Web application generator components
+ * Web application generator component
  */
 const webappGen = {
     versions: {
