@@ -2737,7 +2737,6 @@ class bookCollection extends collectionType
 
     addPosterToItem (data)
     {
-        // FIXME: Try to find an image in 'data' first
         const posterID = data.isbn;
         posterID.replace(/-/g,'');
         let file;
