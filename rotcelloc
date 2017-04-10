@@ -2642,7 +2642,7 @@ class bookCollection extends collectionType
     {
         if (!data.isbn)
         {
-            console.log('Skipping entry due to missing ISBN: '+JSON.stringify(data));
+            printv(3,'Skipping downloading metadata for entry due to missing ISBN: '+JSON.stringify(data));
             return;
         }
         const remote = this.getMetadataFor(data);
