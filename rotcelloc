@@ -559,14 +559,22 @@ class collectionType
 
     /*
      * Finalize the collection.
-     * This will add id-numbers and filter unused data
+     * This prepares some of the generic fields and calls
+     * filterUnusedDataFromEntry to remove unused data from entries.
      */
     finalizeCollection(data)
     {
         data = this.sortFinalCollection(data);
         for (const collectionEntry of data)
         {
+            // If we have a year but no sortYear we copy the year value to sortYear
+            if(collectionEntry.year !== undefined && collectionEntry.sortYear === undefined)
+            {
+                collectionEntry.sortYear = collectionEntry.year;
+            }
+            // Add a list of bSource's if we have more than one
             collectionEntry.bSourceList = collectionEntry.bSource.split(/\s*,\s*/);
+            // Remove data we don't use
             this.filterUnusedDataFromEntry(collectionEntry);
         }
         return { data, 'meta':this.getFinalizedMetadata()};
