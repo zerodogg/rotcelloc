@@ -204,6 +204,8 @@ haven't. Can be omitted. Having at least one watched=no entry allows filtering f
 
 **publisher** - the book publisher
 
+**language**** - the language your copy of the book is in
+
 ## Standing on the shoulders of giants
 
 rotcelloc uses a huge amount of libraries and metadata soures, and wouldn't be

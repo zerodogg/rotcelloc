@@ -234,7 +234,7 @@
                 }
                 this.renderSingleMetadata($target,this.translate('Group'),value,'group');
             }
-            const genericEntriesOrder = [ 'rating', 'metascore','imdbRating','isbn','format','publisher' ],
+            const genericEntriesOrder = [ 'language','rating', 'metascore','imdbRating','isbn','format','publisher' ],
                 genericEntries = {
                 'rating':{
                     'label':this.translate('Custom rating'),
@@ -256,6 +256,9 @@
                     {
                         return entryData.imdbRating+'/10 ('+entryData.imdbVotes+' '+this.translate('votes'  )+')';
                     }
+                },
+                'language':{
+                    'label':this.translate('Language'),
                 },
                 'publisher':{
                     'label':this.translate('Publisher'),

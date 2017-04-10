@@ -997,6 +997,7 @@ class collectionType
             'IMDB ID':'imdbID',
             'Rating':'rating',
             'Terningkast':'rating',
+            'Språk':'language',
             'Notat':'note'
         };
         // Remap according to the mapping table
@@ -2628,6 +2629,7 @@ class bookCollection extends collectionType
             'isbn':true,
             'author':true,
             'sortableAuthor':true,
+            'language':true,
             'publisher':true
         };
         if(this._entry.defaultSort === undefined)
