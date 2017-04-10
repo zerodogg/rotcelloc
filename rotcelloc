@@ -592,6 +592,7 @@ class collectionType
             plot: true,
             id: true,
             genre: true,
+            note: true,
             type: true
         };
         if(this._includedEntryData && !commander.includeDebug)
@@ -1204,7 +1205,6 @@ class movieCollection extends collectionType
             seasons: true,
             format: true,
             rating: true,
-            note: true,
             disneyClassicNo: true,
             imdbID: true,
             watched: true,
