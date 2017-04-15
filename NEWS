@@ -8,6 +8,9 @@ Version 0.2
 - Added automatic distribution of the rotcelloc source code along with the
   webapp
 - Added subresource integrity for CDN-loaded libraries
+- It is possible to search by clicking on values associated with entries
+  (ie. click on a genre and rotcelloc will search by that genre, click
+  on an actor and rotcelloc will search for the actor)
 
 Version 0.1
 - Initial release

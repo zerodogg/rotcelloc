@@ -59,11 +59,12 @@
      */
     class rotcellocEntryRenderer extends rotcellocBase
     {
-        constructor (i18n,entry,dataSources)
+        constructor (i18n,entry,dataSources,filters)
         {
             super(i18n);
             this.entry = entry;
             this.dataSources = dataSources;
+            this.filters = filters;
         }
 
         /*
@@ -86,14 +87,14 @@
             }
             $('<h3 />').text(header).appendTo($target);
 
-            this.renderSingleMetadata($target,null,entry.author,'author');
+            this.renderSingleMetadata($target,null,entry.author,'author',true);
             this.renderSingleMetadata($target,this.translate('Seasons'),entry.seasons,'seasons');
             if(entry.origTitle && entry.origTitle !== entry.title)
             {
                 this.renderSingleMetadata($target,this.translate('Original title'),entry.origTitle,'original-title');
             }
             this.renderSingleMetadata($target,this.translate('Disney classics no.'),entry.disneyClassicNo,'original-title');
-            this.renderSingleMetadata($target,this.translate('Genre'),entry.genre,'genre');
+            this.renderSingleMetadata($target,this.translate('Genre'),entry.genres,'genre',true);
 
             const $showMoreTarget = $('<div />');
             $showMoreTarget.addClass('showMore').addClass('collapse');
@@ -115,7 +116,7 @@
         /*
          * Render a single metadata entry
          */
-        renderSingleMetadata($target,label,value,cssClass, permitHTML = false)
+        renderSingleMetadata($target,label,value,cssClass, isSearchable = false, permitHTML = false)
         {
             if(value === undefined)
             {
@@ -142,21 +143,50 @@
                 $labelEntry.text(label+': ');
                 $labelEntry.appendTo($entry);
             }
-            const $valueEntry = $('<span />');
-            let renderValue = value;
-            if(Array.isArray(value))
+            if (!Array.isArray(value))
             {
-                renderValue = value.join(', ');
+                if(isSearchable)
+                {
+                    value = value.split(/,\s+/);
+                }
+                else
+                {
+                    value = [ value ];
+                }
             }
-            if(permitHTML)
+            const toggler = (value) => {
+                return () => {
+                    value = value.replace(/\([^\)]+\)/,'');
+                    this.filters.toggleFilter(cssClass,value);
+                };
+            };
+            for(const entryI in value)
             {
-                $valueEntry.html(renderValue);
+                let entry = value[entryI];
+                if(entry === undefined)
+                {
+                    continue;
+                }
+                const $element = $('<span />');
+                if(isSearchable)
+                {
+                    $element.addClass('special-searchable');
+                    $element.click( toggler(entry) );
+                }
+                if (permitHTML)
+                {
+                    $element.html(entry);
+                }
+                else
+                {
+                    $element.text(entry);
+                }
+                if(entryI > 0)
+                {
+                    $entry.append(', ');
+                }
+                $element.appendTo($entry);
             }
-            else
-            {
-                $valueEntry.text(renderValue);
-            }
-            $valueEntry.appendTo($entry);
         }
 
         /*
@@ -211,18 +241,18 @@
             const data = this.entry;
             if(data.altTitle && data.altTitle !== data.title)
             {
-                this.renderSingleMetadata($target,this.translate('Alternative title'),data.altTitle,'altTitle');
+                this.renderSingleMetadata($target,this.translate('Alternative title'),data.altTitle,'altTitle',false);
             }
-            this.renderSingleMetadata($target,this.translate('Runtime'),data.runtime,'runtime');
-            this.renderSingleMetadata($target,this.translate('Platform'),data.platform,'platform');
-            this.renderSingleMetadata($target,this.translate('Developer'),data.developer,'developer');
-            this.renderSingleMetadata($target,this.translate('Actors'),data.actors,'actors');
-            this.renderSingleMetadata($target,this.translate('Director'),data.director,'director');
-            this.renderSingleMetadata($target,this.translate('Writer'),data.writer,'writer');
+            this.renderSingleMetadata($target,this.translate('Runtime'),data.runtime,'runtime',false);
+            this.renderSingleMetadata($target,this.translate('Platform'),data.platform,'platform',true);
+            this.renderSingleMetadata($target,this.translate('Developer'),data.developer,'developer',true);
+            this.renderSingleMetadata($target,this.translate('Actors'),data.actors,'actors',true);
+            this.renderSingleMetadata($target,this.translate('Director'),data.director,'director',true);
+            this.renderSingleMetadata($target,this.translate('Writer'),data.writer,'writer',true);
             if(this.dataSources > 1)
             {
-                let value;
-                for(let source = 0; source < data.bSourceList.length; source++)
+                let value = '';
+                for(let source in data.bSourceList)
                 {
                     const sourceN = data.bSourceList[source];
                     if(source > 0)
@@ -237,6 +267,7 @@
             const genericEntriesOrder = [ 'language','rating', 'metascore','imdbRating','isbn','format','publisher' ],
                 genericEntries = {
                 'rating':{
+                    searchable: false,
                     'label':this.translate('Custom rating'),
                     'renderer':(val) =>
                     {
@@ -244,6 +275,7 @@
                     }
                 },
                 'metascore':{
+                    searchable: false,
                     'label':this.translate('Metascore'),
                     'renderer':(val) =>
                     {
@@ -251,6 +283,7 @@
                     }
                 },
                 'imdbRating':{
+                    searchable: false,
                     'label':this.translate('IMDB rating'),
                     'renderer': (val,entryData) =>
                     {
@@ -258,15 +291,19 @@
                     }
                 },
                 'language':{
+                    searchable: true,
                     'label':this.translate('Language'),
                 },
                 'publisher':{
+                    searchable: true,
                     'label':this.translate('Publisher'),
                 },
                 'isbn':{
+                    searchable: false,
                     'label':this.translate('ISBN'),
                 },
                 'format':{
+                    searchable: true,
                     'label':this.translate('Format'),
                 }
             };
@@ -282,13 +319,13 @@
                     {
                         value = renderRules.renderer(value,data);
                     }
-                    this.renderSingleMetadata($target,renderRules.label,value,genericEntryCurr);
+                    this.renderSingleMetadata($target,renderRules.label,value,genericEntryCurr,renderRules.searchable);
                 }
             }
 
-            this.renderSingleMetadata($target,this.translate('Links'),this.getLinks(),'links',true);
-            this.renderSingleMetadata($target,this.translate('Note'),data.note,'note');
-            this.renderSingleMetadata($target,this.translate('Date added'),data.addedRaw,'addedRaw');
+            this.renderSingleMetadata($target,this.translate('Links'),this.getLinks(),'links',false,true);
+            this.renderSingleMetadata($target,this.translate('Note'),data.note,'note',false);
+            this.renderSingleMetadata($target,this.translate('Date added'),data.addedRaw,'addedRaw',false);
             this.renderSingleMetadata($target,null,data.plot,'plot');
             $showMoreLink.slideUp();
             $target.slideDown();
@@ -388,13 +425,14 @@
      */
     class rotcellocResultRenderer extends rotcellocBase
     {
-        constructor (i18n,$target, maxEntries, dataSources)
+        constructor (i18n,$target, maxEntries, dataSources, filters)
         {
             super(i18n);
             this.renderedUpTo = -1;
             this.result = null;
             this.maxEntries = maxEntries;
             this.dataSources = dataSources;
+            this.filters = filters;
             this.$target = $target;
         }
 
@@ -442,7 +480,7 @@
 
                 this.renderedUpTo = entryNo;
 
-                const renderer = new rotcellocEntryRenderer(this.i18n,entry);
+                const renderer = new rotcellocEntryRenderer(this.i18n,entry,this.dataSources,this.filters);
                 renderer.renderToDOM($entryTarget);
 
                 if (++totalRendered >= this.maxEntries)
@@ -605,6 +643,37 @@
                     self.onSearch();
                 }
             });
+        }
+
+        toggleFilter(filterName,value)
+        {
+            const $filter = $('#searchForm').find('#'+filterName);
+            if (!$filter || !$filter.length)
+            {
+                $('#searchBox').val(value).trigger('keyup');
+            }
+            else
+            {
+                let found = false;
+                $filter.find('input').each(function ()
+                {
+                    const $this = $(this);
+                    if ($this.attr('data-value') === value)
+                    {
+                        $this.click();
+                        found = true;
+                        return false;
+                    }
+                });
+                if($('#moreFilters').length && !$('#moreFilters').is(':visible'))
+                {
+                    $('#moreFiltersButton').click();
+                }
+                if (!found)
+                {
+                    warn('toggleFilter('+filterName+','+value+'): did not find "'+value+'" of type "'+filterName+'"');
+                }
+            }
         }
 
         addAdditionalFilter ($content)
@@ -1238,12 +1307,25 @@
             {
                 ret.hit = true;
             }
+            else if(collectionEntry.language && collectionEntry.language.toLowerCase().indexOf(text) !== -1)
+            {
+                ret.hit = true;
+            }
+            else if(collectionEntry.publisher && collectionEntry.publisher.toLowerCase().indexOf(text) !== -1)
+            {
+                ret.hit = true;
+            }
             else if(collectionEntry.actors && collectionEntry.actors.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 8;
             }
             else if(collectionEntry.writer && collectionEntry.writer.toLowerCase().indexOf(text) !== -1)
+            {
+                ret.hit         = true;
+                ret.scoreMod = 8;
+            }
+            else if(collectionEntry.author && collectionEntry.author.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
                 ret.scoreMod = 8;
@@ -1471,18 +1553,19 @@
                         this.mobile = false;
                     }
                     this.searcher = new rotcellocSearcher(this.workingData);
+                    const filtersList = new rotcellocFiltersListRenderer(this.i18n,this.workingMeta,this.workingConfig, () =>
+                    {
+                        const query = filtersList.getSearch();
+                        this.performSearch(query);
+                    });
                     this.renderer = new rotcellocResultRenderer(
                         this.i18n,
                         $('#collResultTarget'),
                         this.maxEntriesPerRenderedPage,
-                        this.data.config.collections[this.pagetype].sources.length
+                        this.data.config.collections[this.pagetype].sources.length,
+                        filtersList
                     );
-                    const search = new rotcellocFiltersListRenderer(this.i18n,this.workingMeta,this.workingConfig, () =>
-                    {
-                        const query = search.getSearch();
-                        this.performSearch(query);
-                    });
-                    search.render();
+                    filtersList.render();
                     this.renderResults(this.workingData);
                     if (!this.mobile)
                     {

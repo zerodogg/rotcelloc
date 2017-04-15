@@ -74,6 +74,12 @@ body
         min-width:93px;
     }
 }
+.special-searchable:hover
+{
+    cursor:pointer;
+    color: $link-color;
+    text-decoration: underline;
+}
 .searchbar-label-inline
 {
     display:inline-block;
