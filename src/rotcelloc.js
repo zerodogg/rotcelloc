@@ -88,8 +88,7 @@
 
             $target.addClass('col-entry');
 
-            // FIXME: This should modify the DOM
-            $target.html( this.renderCover(entry) );
+            this.renderCover(entry).appendTo($target);
 
             const $header = $('<h3 />');
             $header.text(entry.title).appendTo($target);
@@ -215,15 +214,17 @@
             {
                 return this.generateCover(entry);
             }
-            return '<div class="poster"><img src="images/'+entry.poster+'" alt="" class="img-responsive img-rounded" /></div>';
+            const $cover = $('<div />').addClass('poster');
+            $('<img />').attr('src','images/'+entry.poster).addClass('img-responsive img-rounded').appendTo($cover);
+            return $cover;
         }
         /*
          * Generate a cover
          */
         generateCover (entry)
         {
-            let coverHTML = '<div class="poster img-rounded poster-generated text-center">';
-            coverHTML += '<h1>'+entry.title+'</h1>';
+            const $cover = $('<div />').addClass('poster img-rounded poster-generated text-center');
+            $('<h1 />').text(entry.title).appendTo($cover);
             let secondaryText,tietaryText;
             if(entry.author)
             {
@@ -239,14 +240,13 @@
             }
             if(secondaryText !== undefined)
             {
-                coverHTML += '<h4>'+secondaryText+'</h4>';
+                $('<h4 />').text(secondaryText).appendTo($cover);
             }
             if(tietaryText !== undefined)
             {
-                coverHTML += '<i>'+tietaryText+'</i>';
+                $('<i />').text(tietaryText).appendTo($cover);
             }
-            coverHTML += '</div>';
-            return coverHTML;
+            return $cover;
         }
 
         /*
@@ -723,7 +723,13 @@
             if(this.$additionalRoot === undefined)
             {
                 // FIXME
-                const moreF = $('<div class="btn-group col-sm-2" data-toggle="buttons-checkbox"><a class="btn btn-primary collapse-data-btn hidden" id="moreFiltersButton" data-toggle="collapse" href="#moreFilters">'+this.translate('Show filter')+'</a></div>');
+                const moreF = $('<div />').addClass('btn-group col-sm-2').attr('data-toggle','buttons-checkbox');
+                $('<a />').addClass('btn btn-primary collapse-data-btn hidden')
+                    .attr('id','moreFiltersButton')
+                    .attr('data-toggle','collapse')
+                    .attr('href','#moreFilters')
+                    .text(this.translate('Show filter'))
+                    .appendTo(moreF);
                 this.addAlwaysVisible(moreF, true);
 
                 const $collapse = $('<div />');
