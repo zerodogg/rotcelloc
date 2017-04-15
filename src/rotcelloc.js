@@ -80,12 +80,16 @@
             // FIXME: This should modify the DOM
             $target.html( this.renderCover(entry) );
 
-            let header = entry.title;
+            const $header = $('<h3 />');
+            $header.text(entry.title).appendTo($target);
             if(entry.year)
             {
-                header += ' ('+entry.year+')';
+                $header.append(' (');
+                $('<span />').addClass('special-searchable').click(() => {
+                    this.filters.toggleFilter('year',entry.year);
+                }).text(entry.year).appendTo($header);
+                $header.append(')');
             }
-            $('<h3 />').text(header).appendTo($target);
 
             this.renderSingleMetadata($target,null,entry.author,'author',true);
             this.renderSingleMetadata($target,this.translate('Seasons'),entry.seasons,'seasons');
