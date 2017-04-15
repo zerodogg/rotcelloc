@@ -1004,7 +1004,7 @@
             {
                 this.prevQuery = query;
             }
-            const types = [ 'group', 'watchedSearch','formats','format','genres','text' ];
+            const types = [ 'group', 'watchedSearch','formats','format','genres','text','platform' ];
             for(let collectionN = 0; collectionN < this.workingData.length; collectionN++)
             {
                 const collectionEntry = this.workingData[collectionN];
@@ -1055,6 +1055,10 @@
             else if (type === 'formats')
             {
                 result = this.queryFormats(collectionEntry,query,rawQuery);
+            }
+            else if(type === 'platform')
+            {
+                result = this.queryPlatform(collectionEntry,query,rawQuery);
             }
             else if(type === 'format')
             {
