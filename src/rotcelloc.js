@@ -160,7 +160,6 @@
             }
             const toggler = (value) => {
                 return () => {
-                    value = value.replace(/\([^\)]+\)/,'');
                     this.filters.toggleFilter(cssClass,value);
                 };
             };
@@ -654,6 +653,7 @@
             const $filter = $('#searchForm').find('#'+filterName);
             if (!$filter || !$filter.length)
             {
+                value = value.replace(/\([^\)]+\)/,'');
                 $('#searchBox').val(value).trigger('keyup');
             }
             else
