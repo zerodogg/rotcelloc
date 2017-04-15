@@ -85,7 +85,8 @@
             if(entry.year)
             {
                 $header.append(' (');
-                $('<span />').addClass('special-searchable').click(() => {
+                $('<span />').addClass('special-searchable').click(() =>
+                {
                     this.filters.toggleFilter('year',entry.year);
                 }).text(entry.year).appendTo($header);
                 $header.append(')');
@@ -158,14 +159,16 @@
                     value = [ value ];
                 }
             }
-            const toggler = (value) => {
-                return () => {
-                    this.filters.toggleFilter(cssClass,value);
+            const toggler = (toggleValue) =>
+            {
+                return () =>
+                {
+                    this.filters.toggleFilter(cssClass,toggleValue);
                 };
             };
             for(const entryI in value)
             {
-                let entry = value[entryI];
+                const entry = value[entryI];
                 if(entry === undefined)
                 {
                     continue;
@@ -255,7 +258,7 @@
             if(this.dataSources > 1)
             {
                 let value = '';
-                for(let source in data.bSourceList)
+                for(const source in data.bSourceList)
                 {
                     const sourceN = data.bSourceList[source];
                     if(source > 0)
@@ -562,16 +565,16 @@
             }
             if($platform && $platform.length)
             {
-                let platforms = new Set();
+                const platforms = new Set();
                 $platform.each(function ()
                 {
                     const platform = $(this).attr('data-value');
                     platforms.add(platform);
-                    if(platform == 'PC')
+                    if(platform === 'PC')
                     {
                         platforms.add('Windows').add('Mac').add('Linux');
                     }
-                    else if(platform == 'Windows')
+                    else if(platform === 'Windows')
                     {
                         platforms.add('PC');
                     }
