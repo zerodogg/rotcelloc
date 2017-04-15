@@ -1382,23 +1382,7 @@
             }
             else
             {
-                for (const formatI in formats)
-                {
-                    const queryFormat = formats[formatI];
-                    let found = false;
-                    for(let format = 0; format < collectionEntry.format.length; format++)
-                    {
-                        if(collectionEntry.format[format] === queryFormat)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found)
-                    {
-                        ret.hit = false;
-                    }
-                }
+                ret.hit = this.inArrays(formats,collectionEntry.format);
             }
             return ret;
         }
@@ -1418,21 +1402,13 @@
                 }
                 if(rawQuery.genreSearchType === 'any')
                 {
-                    ret.hit = false;
-                    for (const genreAI in rawQuery.genres)
-                    {
-                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreAI]) !== -1)
-                        {
-                            ret.hit = true;
-                            continue;
-                        }
-                    }
+                    ret.hit = this.inArrays(rawQuery.genres,collectionEntry.genres);
                 }
                 else
                 {
                     for (const genreI in rawQuery.genres)
                     {
-                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreI]) === -1)
+                        if(!this.inArray(collectionEntry.genres, rawQuery.genres[genreI]))
                         {
                             ret.hit = false;
                             continue;
@@ -1445,14 +1421,7 @@
                 ret.hit = true;
                 if(collectionEntry.genre)
                 {
-                    for (const genreNI in rawQuery.genres)
-                    {
-                        if(collectionEntry.genre.indexOf(rawQuery.genres[genreNI]) !== -1)
-                        {
-                            ret.hit = false;
-                            continue;
-                        }
-                    }
+                    ret.hit = !(this.inArrays(rawQuery.genres,collectionEntry.genres));
                 }
             }
             return ret;
@@ -1463,36 +1432,19 @@
          */
         queryPlatform(collectionEntry,query,rawQuery)
         {
-            const ret = { hit: false};
-            for (const queryPlatformI in rawQuery.platform)
-            {
-                const queryPlatform = rawQuery.platform[queryPlatformI];
-                for(const platformI in collectionEntry.platform)
-                {
-                    if(collectionEntry.platform.indexOf(queryPlatform) !== -1)
-                    {
-                        ret.hit = true;
-                        break;
-                    }
-                }
-            }
-            return ret;
+            return {
+                hit: this.arrayInString(rawQuery.platform,collectionEntry.platform)
+            };
         }
 
+        /*
+         * Queries for matches in the format list
+         */
         queryFormat(collectionEntry,format)
         {
-            const ret = { hit: false};
-            if(collectionEntry.format)
-            {
-                for(let fmt = 0; fmt < collectionEntry.format.length; fmt++)
-                {
-                    if(collectionEntry.format[fmt] === format)
-                    {
-                        ret.hit = true;
-                    }
-                }
-            }
-            return ret;
+            return {
+                hit: this.inArray(collectionEntry.format,format)
+            };
         }
 
         /*
@@ -1513,15 +1465,45 @@
          */
         queryGroup(collectionEntry,group)
         {
-            const ret = { hit: false };
-            for(let keyN = 0; keyN < collectionEntry.bSourceList.length; keyN++)
+            return {
+                hit: this.inArray(collectionEntry.bSourceList,group)
+            };
+        }
+
+        inArray(arr,value)
+        {
+            for(const entryI in arr)
             {
-                if(collectionEntry.bSourceList[keyN] === group)
+                if(arr[entryI] === value)
                 {
-                    ret.hit = true;
+                    return true;
                 }
             }
-            return ret;
+            return false;
+        }
+
+        inArrays(arr1, arr2)
+        {
+            for(const entryI in arr1)
+            {
+                if(this.inArray(arr2,arr1[entryI]))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        arrayInString(arr,str)
+        {
+            for(const entryI in arr)
+            {
+                if(str.indexOf(arr[entryI]) !== -1)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
