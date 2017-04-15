@@ -1553,6 +1553,16 @@
                     {
                         this.maxEntriesPerRenderedPage = data.config.maxEntriesPerRenderedPageMobile;
                         this.mobile = true;
+
+                         $('<span />').addClass('scroll-to-top').append(
+                             $('<a />').addClass('well well-sm').append(
+                                 $('<i />').addClass('glyphicon glyphicon-chevron-up')
+                             ).click( (ev) =>
+                             {
+                                 ev.preventDefault();
+                                 $('html,body').animate({scrollTop:0},'fast');
+                             })
+                         ).appendTo('body').affix({offset: {top: 200} });
                     }
                     else
                     {
