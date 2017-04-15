@@ -1779,6 +1779,7 @@ class gameCollection extends collectionType
             ckey = 'steam//games//'+user,
             now  = Math.floor(Date.now() / 1000);
         this._curBsource = 'steam/'+user;
+        this._meta.sourceToNameMap[ this._curBsource ] = source.name;
         printv(3,'Interpreting steam collection for "'+user+'"');
         if(cache.get('arbitrary',ckey))
         {
