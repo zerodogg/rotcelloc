@@ -265,7 +265,7 @@
                     // FIXME: We should be provided with the sourceToNameMap
                     value += window.rotcelloc.workingMeta.sourceToNameMap[sourceN];
                 }
-                this.renderSingleMetadata($target,this.translate('Group'),value,'group');
+                this.renderSingleMetadata($target,this.translate('Group'),value,'group',true);
             }
             const genericEntriesOrder = [ 'language','rating', 'metascore','imdbRating','isbn','format','publisher' ],
                 genericEntries = {
@@ -662,7 +662,7 @@
                 $filter.find('input').each(function ()
                 {
                     const $this = $(this);
-                    if ($this.attr('data-value') === value)
+                    if ($this.attr('data-value') === value || $this.attr('data-name') === value)
                     {
                         $this.click();
                         found = true;
@@ -1031,7 +1031,7 @@
                     html += ' active';
                 }
                 html += '">';
-                html += '<input type="'+type+'" name="options" id="'+button.id+'" autocomplete="off" data-value="'+button.value+'"';
+                html += '<input type="'+type+'" name="options" id="'+button.id+'" autocomplete="off" data-name="'+button.name+'" data-value="'+button.value+'"';
                 if(button.disneySort)
                 {
                     html += ' data-disneysort="true"';
