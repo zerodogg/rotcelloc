@@ -607,6 +607,7 @@ class collectionType
             plot: true,
             id: true,
             genre: true,
+            genres: true,
             note: true,
             type: true
         };
@@ -1515,7 +1516,8 @@ class movieCollection extends collectionType
         }
         if(collectionEntry.genre)
         {
-            this._meta.genres = this._meta.genres.concat(collectionEntry.genre.split(/,\s*/));
+            collectionEntry.genres = collectionEntry.genre.split(/,\s*/);
+            this._meta.genres = this._meta.genres.concat(collectionEntry.genres);
         }
         if(collectionEntry.format)
         {
@@ -1885,6 +1887,7 @@ class gameCollection extends collectionType
                 collItem.sortYear = collItem.year;
             }
             collItem.genre        = genres.join(', ');
+            collItem.genres       = genres;
             if(meta.steamOverview)
             {
                 collItem.plot         = this.plotCleanAndLimit(collItem.steamOverview);
@@ -2699,7 +2702,8 @@ class bookCollection extends collectionType
         }
         if(data.genre)
         {
-            this._meta.genres = this._meta.genres.concat(data.genre.split(/,\s*/));
+            data.genres = data.genre.split(/,\s*/);
+            this._meta.genres = this._meta.genres.concat(data.genres);
         }
         if(data.author)
         {
