@@ -823,6 +823,10 @@
 
         renderGroupButtons ()
         {
+            if(this.workingConfig.sources <= 1)
+            {
+                return;
+            }
             const groupButtons = {
                 id: 'group',
                 buttons: [{
