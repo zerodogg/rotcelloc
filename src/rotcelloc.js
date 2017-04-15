@@ -823,7 +823,7 @@
 
         renderGroupButtons ()
         {
-            if(this.workingConfig.sources <= 1)
+            if(this.workingConfig.sources.length <= 1)
             {
                 return;
             }
