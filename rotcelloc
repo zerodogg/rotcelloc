@@ -413,7 +413,7 @@ class rotcellocCache
     autoExpireOutdatedEntries ()
     {
         const now = Math.floor(Date.now() / 1000);
-        for (const type of [ 'meta', 'gameMeta','arbitrary','steamMeta' ])
+        for (const type of [ 'meta', 'gameMeta','bookMeta','arbitrary','steamMeta' ])
         {
             const result = this._persistCache[type];
             for (const entry in result)
