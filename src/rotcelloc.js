@@ -1090,7 +1090,7 @@
             {
                 this.prevQuery = query;
             }
-            const types = [ 'group', 'watchedSearch','formats','format','genres','text','platform' ];
+            const types = [ 'group', 'watchedSearch','formats','genres','text','platform' ];
             for(let collectionN = 0; collectionN < this.workingData.length; collectionN++)
             {
                 const collectionEntry = this.workingData[collectionN];
@@ -1145,10 +1145,6 @@
             else if(type === 'platform')
             {
                 result = this.queryPlatform(collectionEntry,query,rawQuery);
-            }
-            else if(type === 'format')
-            {
-                result = this.queryFormat(collectionEntry,query,rawQuery);
             }
             else if(type === 'genres')
             {
@@ -1434,16 +1430,6 @@
         {
             return {
                 hit: this.arrayInString(rawQuery.platform,collectionEntry.platform)
-            };
-        }
-
-        /*
-         * Queries for matches in the format list
-         */
-        queryFormat(collectionEntry,format)
-        {
-            return {
-                hit: this.inArray(collectionEntry.format,format)
             };
         }
 
