@@ -572,6 +572,7 @@ class collectionType
     finalizeCollection(data)
     {
         data = this.sortFinalCollection(data);
+        let ID = 0;
         for (const collectionEntry of data)
         {
             // If we have a year but no sortYear we copy the year value to sortYear
@@ -581,6 +582,9 @@ class collectionType
             }
             // Add a list of bSource's if we have more than one
             collectionEntry.bSourceList = collectionEntry.bSource.split(/\s*,\s*/);
+            // Add an ID number that uniquely identifies this entry
+            collectionEntry.id = ID;
+            ID++;
             // Remove data we don't use
             this.filterUnusedDataFromEntry(collectionEntry);
         }
