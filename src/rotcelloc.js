@@ -65,14 +65,25 @@
             this.entry = entry;
             this.dataSources = dataSources;
             this.filters = filters;
+            this.$domItem = null;
         }
 
         /*
          * Renders the collection entry, appending it to the DOM target
          * specified
          */
-        renderToDOM ($target)
+        renderToDOM ($parent)
         {
+            if(this.$domItem)
+            {
+                this.$domItem.appendTo($parent);
+                return;
+            }
+            const $target = $('<div />');
+            $target.addClass('col-sm-3');
+            $target.appendTo($parent);
+            this.$domItem = $target;
+
             const entry = this.entry;
 
             $target.addClass('col-entry');
@@ -440,6 +451,7 @@
             this.dataSources = dataSources;
             this.filters = filters;
             this.$target = $target;
+            this.renderedEntries = {};
         }
 
         /*
@@ -480,14 +492,16 @@
                     $currentRow.appendTo(this.$target);
                     entriesOnCurrentRow = 1;
                 }
-                const $entryTarget = $('<div />');
-                $entryTarget.addClass('col-sm-3');
-                $entryTarget.appendTo($currentRow);
 
                 this.renderedUpTo = entryNo;
 
-                const renderer = new rotcellocEntryRenderer(this.i18n,entry,this.dataSources,this.filters);
-                renderer.renderToDOM($entryTarget);
+                let renderer = this.renderedEntries[ entry.id ];
+                if (renderer === undefined)
+                {
+                    renderer = new rotcellocEntryRenderer(this.i18n,entry,this.dataSources,this.filters);
+                    this.renderedEntries[ entry.id ] = renderer;
+                }
+                renderer.renderToDOM($currentRow);
 
                 if (++totalRendered >= this.maxEntries)
                 {
@@ -501,7 +515,15 @@
          */
         resetField ()
         {
-            this.$target.html('');
+            if (!this.$cache)
+            {
+                this.$cache = $('<div />').hide().appendTo('body');
+            }
+            else
+            {
+                this.$target.children().appendTo(this.$cache);
+            }
+            this.$target.empty();
         }
 
         /*
