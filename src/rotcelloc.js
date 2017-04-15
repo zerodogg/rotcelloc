@@ -505,7 +505,7 @@
         {
             const query           = {},
                 $group          = $('#group .active input'),
-                platform        = $('#platform .active input').attr('data-value'),
+                $platform        = $('#platform .active input'),
                 order           = $('#order option:selected()').attr('data-value'),
                 $format         = $('#format .active input'),
                 $genre          = $('#genre .active input'),
@@ -519,9 +519,23 @@
             {
                 query.group = group;
             }
-            if(platform)
+            if($platform && $platform.length)
             {
-                query.platform = platform;
+                let platforms = new Set();
+                $platform.each(function ()
+                {
+                    const platform = $(this).attr('data-value');
+                    platforms.add(platform);
+                    if(platform == 'PC')
+                    {
+                        platforms.add('Windows').add('Mac').add('Linux');
+                    }
+                    else if(platform == 'Windows')
+                    {
+                        platforms.add('PC');
+                    }
+                });
+                query.platform = [...platforms];
             }
             if(groupDisneySort && groupDisneySort === 'true')
             {
@@ -810,12 +824,8 @@
         {
             const platformButtons = {
                 id: 'platform',
-                buttons: [{
-                        id: 'platforms_none',
-                        value: '',
-                        active: true,
-                        name: this.translate('All')
-                }]
+                type: 'checkbox',
+                buttons: []
             };
             if(this.workingMeta.platforms && this.workingMeta.platforms.length > 1)
             {
@@ -1362,37 +1372,15 @@
         /*
          * Queries for matches in platfrom
          */
-        queryPlatform(collectionEntry,queryPlatform)
+        queryPlatform(collectionEntry,query,rawQuery)
         {
             const ret = { hit: false};
-            let platform;
-            if(queryPlatform !== 'PC' && queryPlatform !== 'Windows')
+            for (const queryPlatformI in rawQuery.platform)
             {
-                for(platform = 0; platform < collectionEntry.platform.length; platform++)
+                const queryPlatform = rawQuery.platform[queryPlatformI];
+                for(const platformI in collectionEntry.platform)
                 {
-                    if(collectionEntry.platform[platform] === queryPlatform)
-                    {
-                        ret.hit = true;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // We alias "PC" to be PC, Windows, Mac or Linux,
-                // and "Windows" to be PC or Windows
-                let regexAlias;
-                if(queryPlatform === 'PC')
-                {
-                    regexAlias = /^(PC|Windows|Mac|Linux)$/;
-                }
-                else if(queryPlatform === 'Windows')
-                {
-                    regexAlias = /^(PC|Windows)$/;
-                }
-                for(platform = 0; platform < collectionEntry.platform.length; platform++)
-                {
-                    if (regexAlias.test(collectionEntry.platform[platform]))
+                    if(collectionEntry.platform.indexOf(queryPlatform) !== -1)
                     {
                         ret.hit = true;
                         break;
