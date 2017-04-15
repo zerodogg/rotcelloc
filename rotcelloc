@@ -182,6 +182,7 @@ class rotcellocCache
         {
             this._persistCache.externalAPI = {};
         }
+        // This differs from .meta, it contains metadata about our cache
         if (!this._persistCache._meta)
         {
             this._persistCache._meta = {};
@@ -197,7 +198,9 @@ class rotcellocCache
         {
             throw('Attempt to get() from unknown cache type: '+cacheType);
         }
+        // Bump our stored access time for this entry
         this.bumpAccessTime(cacheType,ckey);
+        // Return the value
         return this._persistCache[cacheType][ckey];
     }
 
@@ -221,8 +224,12 @@ class rotcellocCache
         // We make deep clones for data in the cache so that any modifications made
         // by the caller after setting the cache won't also modify the cached value
         this._persistCache[cacheType][ckey] = _.cloneDeep(content);
+        // Bump our stored access time for this entry
         this.bumpAccessTime(cacheType,ckey);
+        // Increase the number of changes that has been made to the database
+        // since last write()
         this._writesSinceFlush++;
+        // Write if needed
         this.autoWrite();
     }
 
