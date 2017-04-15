@@ -330,7 +330,7 @@
             }
 
             this.renderSingleMetadata($target,this.translate('Links'),this.getLinks(),'links',false,true);
-            this.renderSingleMetadata($target,this.translate('Note'),data.note,'note',false);
+            this.renderSingleMetadata($target,this.translate('Note'),data.note,'note',true);
             this.renderSingleMetadata($target,this.translate('Date added'),data.addedRaw,'addedRaw',false);
             this.renderSingleMetadata($target,null,data.plot,'plot');
             $showMoreLink.slideUp();
