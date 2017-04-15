@@ -555,6 +555,10 @@
             this.additionalFilters = 0;
         }
 
+
+        /*
+         * Renders the filter list and calls all required event initializers
+         */
         render ()
         {
             this.renderOrderButtons();
@@ -567,6 +571,10 @@
             this.eventsSetup();
         }
 
+        /*
+         * Retrieves the state of the current filters (aka. the user's current
+         * search parameters)
+         */
         getSearch ()
         {
             const query           = {},
@@ -644,6 +652,10 @@
             return query;
         }
 
+        /*
+         * Finalizes the filtering UI. This removes the 'Show filters' button if we only have a
+         * single filter
+         */
         finalizeRendering ()
         {
             const $moreFiltersButton = $('#moreFiltersButton');
@@ -660,6 +672,9 @@
             }
         }
 
+        /*
+         * This sets up our event handlers
+         */
         eventsSetup()
         {
             const self = this;
@@ -673,6 +688,12 @@
             });
         }
 
+        /*
+         * A helper method that can be called by other classes. It will toggle
+         * the parameter 'value' for the filter 'filterName' if it exists. If
+         * filterName is not a known filter it will add a fulltext search for
+         * 'value'
+         */
         toggleFilter(filterName,value)
         {
             const $filter = $('#searchForm').find('#'+filterName);
@@ -705,6 +726,9 @@
             }
         }
 
+        /*
+         * Adds a single filter to the DOM
+         */
         addAdditionalFilter ($content)
         {
             this.initializeAdditionalFilter();
@@ -718,11 +742,13 @@
             $content.appendTo($colWrapper);
         }
 
+        /*
+         * Initializes the "additional filters" area
+         */
         initializeAdditionalFilter ()
         {
             if(this.$additionalRoot === undefined)
             {
-                // FIXME
                 const moreF = $('<div />').addClass('btn-group col-sm-2').attr('data-toggle','buttons-checkbox');
                 $('<a />').addClass('btn btn-primary collapse-data-btn hidden')
                     .attr('id','moreFiltersButton')
@@ -739,6 +765,9 @@
             }
         }
 
+        /*
+         * Adds a filter that is always visible
+         */
         addAlwaysVisible ($content, prepend = false)
         {
             this.initializeAlwaysVisible();
@@ -753,6 +782,9 @@
             }
         }
 
+        /*
+         * Initializes the filters area that is always visible
+         */
         initializeAlwaysVisible ()
         {
             if(this.$rootVisible === undefined)
@@ -762,6 +794,9 @@
             }
         }
 
+        /*
+         * Renders the order dropdown
+         */
         renderOrderButtons ()
         {
             const orderButtons = {
@@ -845,10 +880,14 @@
             {
                 orderButtons.buttons[0].name = this.translate('Alphabetic');
             }
+            // FIXME: Should modify the DOM
             this.addAlwaysVisible($('<div class="col-sm-10 form-inline row-padding text-right"><div class="input-group"><div class="input-group-addon">'+this.translate('Order')+'</div>'+this.renderSelectElement(orderButtons,true)+'</div><input type="text" class="form-control pull-right" placeholder="'+this.translate('Search')+'" id="searchBox" /></div>'));
             return orderButtons;
         }
 
+        /*
+         * Renders filters for "group"
+         */
         renderGroupButtons ()
         {
             if(this.workingConfig.sources.length <= 1)
@@ -877,6 +916,9 @@
             this.addAdditionalFilter($('<div class="searchbar-label">'+this.translate('Group')+':</div>'+this.renderRadioOrCheckButtons(groupButtons)));
         }
 
+        /*
+         * Renders various boolean options (ie. "Search in plot descriptions")
+         */
         renderBoolButtons ()
         {
             const plotSearchBool = {
@@ -924,10 +966,14 @@
                 {
                     html += '<div class="searchbar-additional searchbar-label-inline">'+this.translate('Only display unwatched titles')+'</div>'+this.renderRadioOrCheckButtons(watchedSearchBool);
                 }
+                // FIXME: Should modify the DOM instead of rendering a string
                 this.addAdditionalFilter($(html));
             }
         }
 
+        /*
+         * Renders platform filter buttons
+         */
         renderPlatformButtons ()
         {
             const platformButtons = {
@@ -949,10 +995,14 @@
             }
             if(platformButtons.buttons.length > 2)
             {
+                // FIXME: Should modify the DOM instead of rendering a string
                 this.addAdditionalFilter($('<div class="searchbar-label">'+this.translate('Platform')+':</div>'+this.renderRadioOrCheckButtons(platformButtons)));
             }
         }
 
+        /*
+         * Renders genre filter buttons
+         */
         renderGenreButtons ()
         {
             const genreButtons = {
@@ -1002,6 +1052,9 @@
             }
         }
 
+        /*
+         * Renders format filter buttons
+         */
         renderFormatButtons ()
         {
             const formatButtons = {
@@ -1032,6 +1085,7 @@
          */
         renderSelectElement(data, requireEnabled = false)
         {
+            // FIXME: Should generate DOM elements instead of a HTML string
             let html = '<select class="form-control" id="'+data.id+'">';
             for(let buttonI = 0; buttonI < data.buttons.length; buttonI++)
             {
@@ -1049,6 +1103,7 @@
          */
         renderRadioOrCheckButtons(data)
         {
+            // FIXME: Should generate DOM elements instead of a HTML string
             let html = '',
             type = 'radio';
             if(data.type === 'checkbox')
@@ -1488,6 +1543,9 @@
             };
         }
 
+        /*
+         * Checks if value exists in the array arr
+         */
         inArray(arr,value)
         {
             for(const entryI in arr)
@@ -1500,6 +1558,9 @@
             return false;
         }
 
+        /*
+         * Checks if any of the values in arr1 exists in arr2
+         */
         inArrays(arr1, arr2)
         {
             for(const entryI in arr1)
@@ -1512,6 +1573,9 @@
             return false;
         }
 
+        /*
+         * Checks if any of the elements in arr exists as a substring of str
+         */
         arrayInString(arr,str)
         {
             for(const entryI in arr)
