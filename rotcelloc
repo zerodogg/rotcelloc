@@ -3309,7 +3309,9 @@ const webappGen = {
             {
                 rmWhitespace: true
             }
-        );
+        )
+        // Removes additional whitespace missed my rmWhitespace
+        .replace(/ +/g,' ');
         fs.writeFileSync(helper.resolveOutPath('out/'+filename),content);
     },
     finalize()
