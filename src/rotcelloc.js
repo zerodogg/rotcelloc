@@ -1599,7 +1599,8 @@
                     $('body').removeClass('loading');
             });
 
-            $('#collResultTarget').text(this.translate('Loading collection...'));
+            $('#rotcelloc-starting').hide();
+            $('#rotcelloc-loading').show();
         }
         /*
          * Downloads and prepares the dataset for the collection on the current page

@@ -3300,7 +3300,11 @@ const webappGen = {
                 config: helper.getConfig(),
                 footer,
                 menu,
-                content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-checksum="'+checksum+'" data-pagetype="'+name+'">'+i18n.translate('Starting...')+'</div>',
+                content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-checksum="'+checksum+'" data-pagetype="'+name+'"><div id="rotcelloc-starting">'+
+                i18n.translate('Starting...')+
+                '</div><div id="rotcelloc-loading">'+
+                i18n.translate('Loading collection...')+
+                '</div></div>',
             },
             {
                 rmWhitespace: true
