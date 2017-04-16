@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: samlingar\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-07 13:15+0200\n"
-"PO-Revision-Date: 2017-04-07 13:18+0200\n"
+"POT-Creation-Date: 2017-04-16 13:54+0200\n"
+"PO-Revision-Date: 2017-04-16 13:44+0200\n"
 "Last-Translator: Eskild Hustvedt <i18n@zerodogg.org>\n"
 "Language-Team: nn\n"
 "Language: Norwegian Nynorsk\n"
@@ -17,224 +17,228 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/rotcelloc.js:90
+#: src/rotcelloc.js:106
 msgid "Seasons"
 msgstr "Sesongar"
 
-#: src/rotcelloc.js:93
+#: src/rotcelloc.js:109
 msgid "Original title"
 msgstr "Originaltittel"
 
-#: src/rotcelloc.js:95
+#: src/rotcelloc.js:111
 msgid "Disney classics no."
 msgstr "Klassikernummer"
 
-#: src/rotcelloc.js:96
+#: src/rotcelloc.js:112
 msgid "Genre"
 msgstr "Sjanger"
 
-#: src/rotcelloc.js:107
+#: src/rotcelloc.js:123
 msgid "Show more information"
 msgstr "Vis meir informasjon"
 
-#: src/rotcelloc.js:214
+#: src/rotcelloc.js:261
 msgid "Alternative title"
 msgstr "Alternativ tittel"
 
-#: src/rotcelloc.js:216
+#: src/rotcelloc.js:263
 msgid "Runtime"
 msgstr "Lengde"
 
-#: src/rotcelloc.js:217 src/rotcelloc.js:831
+#: src/rotcelloc.js:264 src/rotcelloc.js:952
 msgid "Platform"
 msgstr "Plattform"
 
-#: src/rotcelloc.js:218
+#: src/rotcelloc.js:265
 msgid "Developer"
 msgstr "Utviklar"
 
-#: src/rotcelloc.js:219
+#: src/rotcelloc.js:266
 msgid "Actors"
 msgstr "Skodespelarar"
 
-#: src/rotcelloc.js:220
+#: src/rotcelloc.js:267
 msgid "Director"
 msgstr "Regissør"
 
-#: src/rotcelloc.js:221
+#: src/rotcelloc.js:268
 msgid "Writer"
 msgstr "Manus"
 
-#: src/rotcelloc.js:235 src/rotcelloc.js:752
+#: src/rotcelloc.js:282 src/rotcelloc.js:877
 msgid "Group"
 msgstr "Gruppe"
 
-#: src/rotcelloc.js:240 src/rotcelloc.js:704
+#: src/rotcelloc.js:288 src/rotcelloc.js:825
 msgid "Custom rating"
 msgstr "Sjølvvald rangering"
 
-#: src/rotcelloc.js:247 src/rotcelloc.js:710
+#: src/rotcelloc.js:296 src/rotcelloc.js:831
 msgid "Metascore"
 msgstr "Metascore"
 
-#: src/rotcelloc.js:254 src/rotcelloc.js:716
+#: src/rotcelloc.js:304 src/rotcelloc.js:837
 msgid "IMDB rating"
 msgstr "IMDB rangering"
 
-#: src/rotcelloc.js:257
+#: src/rotcelloc.js:307
 msgid "votes"
 msgstr "stemmer"
 
-#: src/rotcelloc.js:261
+#: src/rotcelloc.js:312
+msgid "Language"
+msgstr "Språk"
+
+#: src/rotcelloc.js:316
 msgid "Publisher"
 msgstr "Utgivar"
 
-#: src/rotcelloc.js:264
+#: src/rotcelloc.js:320
 msgid "ISBN"
 msgstr "ISBN"
 
-#: src/rotcelloc.js:267 src/rotcelloc.js:905
+#: src/rotcelloc.js:324 src/rotcelloc.js:1026
 msgid "Format"
 msgstr "Format"
 
-#: src/rotcelloc.js:286
+#: src/rotcelloc.js:343
 msgid "Links"
 msgstr "Lenkjer"
 
-#: src/rotcelloc.js:287
+#: src/rotcelloc.js:344
 msgid "Note"
 msgstr "Notat"
 
-#: src/rotcelloc.js:288 src/rotcelloc.js:679
+#: src/rotcelloc.js:345 src/rotcelloc.js:800
 msgid "Date added"
 msgstr "Dato lagt til"
 
-#: src/rotcelloc.js:611
+#: src/rotcelloc.js:731
 msgid "Show filter"
 msgstr "Vis filter"
 
-#: src/rotcelloc.js:653
+#: src/rotcelloc.js:774
 msgid "Automatic"
 msgstr "Automatisk"
 
-#: src/rotcelloc.js:659
+#: src/rotcelloc.js:780
 msgid "Author"
 msgstr "Forfattar"
 
-#: src/rotcelloc.js:666 src/rotcelloc.js:725
+#: src/rotcelloc.js:787 src/rotcelloc.js:846
 msgid "Alphabetic"
 msgstr "Alfabetisk"
 
-#: src/rotcelloc.js:672
+#: src/rotcelloc.js:793
 msgid "Year"
 msgstr "Årstall"
 
-#: src/rotcelloc.js:686
+#: src/rotcelloc.js:807
 msgid "Random"
 msgstr "Tilfeldig"
 
-#: src/rotcelloc.js:692
+#: src/rotcelloc.js:813
 msgid "Length"
 msgstr "Lengde"
 
-#: src/rotcelloc.js:698
+#: src/rotcelloc.js:819
 msgid "Rating (smart)"
 msgstr "Rangering (smart)"
 
-#: src/rotcelloc.js:727
+#: src/rotcelloc.js:848
 msgid "Order"
 msgstr "Sortering"
 
-#: src/rotcelloc.js:727
+#: src/rotcelloc.js:848
 msgid "Search"
 msgstr "Søk"
 
-#: src/rotcelloc.js:739 src/rotcelloc.js:814
+#: src/rotcelloc.js:864
 msgid "All"
 msgstr "Alle"
 
 #. Translators: Used in boolean values in files
-#: src/rotcelloc.js:764 src/rotcelloc.js:781 rotcelloc:1170
+#: src/rotcelloc.js:889 src/rotcelloc.js:906 rotcelloc:1184
 msgid "Yes"
 msgstr "Ja"
 
 #. Translators: Used in boolean values in files
-#: src/rotcelloc.js:770 src/rotcelloc.js:787 rotcelloc:1175
+#: src/rotcelloc.js:895 src/rotcelloc.js:912 rotcelloc:1189
 msgid "No"
 msgstr "Nei"
 
-#: src/rotcelloc.js:796
+#: src/rotcelloc.js:921
 msgid "Search in plot descriptions"
 msgstr "Søk i handlingsskildringar"
 
-#: src/rotcelloc.js:800
+#: src/rotcelloc.js:925
 msgid "Only display unwatched titles"
 msgstr "Berre vis usette titlar"
 
-#: src/rotcelloc.js:863
+#: src/rotcelloc.js:984
 msgid "In genre (all selected)"
 msgstr "I sjanger (alle valde)"
 
-#: src/rotcelloc.js:869
+#: src/rotcelloc.js:990
 msgid "In genre (any selected)"
 msgstr "I sjanger (minst ein vald)"
 
-#: src/rotcelloc.js:875
+#: src/rotcelloc.js:996
 msgid "Not in genre"
 msgstr "Ikkje i sjanger"
 
-#: src/rotcelloc.js:1467
+#: src/rotcelloc.js:1551
 msgid "Show/hide menu"
 msgstr "Vis/skjul meny"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:1457
+#: rotcelloc:1476
 msgid "screenplay"
 msgstr "manus"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:1459
+#: rotcelloc:1478
 msgid "motion picture"
 msgstr "film"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:1461
+#: rotcelloc:1480
 msgid "comic book"
 msgstr "teikneserie"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:1463
+#: rotcelloc:1482
 msgid "story"
 msgstr "historie"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:1465
+#: rotcelloc:1484
 msgid "novel"
 msgstr "novelle"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:1467
+#: rotcelloc:1486
 msgid "characters"
 msgstr "karakterer"
 
 #. Translators: used to translate substrings in the «writer» metadata
-#: rotcelloc:1469
+#: rotcelloc:1488
 msgid "book"
 msgstr "bok"
 
 #. Translators: Results in [number]h [number]min (ie. X hours and X minutes)
-#: rotcelloc:1490
+#: rotcelloc:1509
 #, javascript-format
 msgid "%dh %dmin"
 msgstr "%dt %dmin"
 
 #. Translators: Results in [number]min (ie. X minutes)
-#: rotcelloc:1495
+#: rotcelloc:1514
 #, javascript-format
 msgid "%dmin"
 msgstr "%dmin"
 
-#: rotcelloc:3243
+#: rotcelloc:3283
 #, javascript-format
 msgid ""
 "Generated by <a href=\"%s\">%s</a> version %s. <a href=\"%s\">Download "
@@ -242,9 +246,14 @@ msgid ""
 "\">%s</a>. Content is copyrighted by their respective owners."
 msgstr ""
 "Generert av <a href=\"%s\">%s</a> versjon %s. <a href=\"%s\">Last ned "
-"kjeldekoden.</a> Programvaren er lisensert under <a target=\"_blank\" href=\"%s"
-"\">%s</a>. Innholdet er opphavsrettslig beskyttet av deres respektive opphavspersoner."
+"kjeldekoden.</a> Programvaren er lisensert under <a target=\"_blank\" href="
+"\"%s\">%s</a>. Innholdet er opphavsrettslig beskyttet av deres respektive "
+"opphavspersoner."
 
-#: rotcelloc:3262
+#: rotcelloc:3304
+msgid "Starting..."
+msgstr "Starter ..."
+
+#: rotcelloc:3306
 msgid "Loading collection..."
 msgstr "Lastar samling ..."
