@@ -3293,7 +3293,7 @@ const webappGen = {
                 config: helper.getConfig(),
                 footer,
                 menu,
-                content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-checksum="'+checksum+'" data-pagetype="'+name+'">'+i18n.translate('Loading collection...')+'</div>',
+                content: '<div class="searchForm" id="searchForm"></div><div id="collResultTarget" data-checksum="'+checksum+'" data-pagetype="'+name+'">'+i18n.translate('Starting...')+'</div>',
             },
             {
                 rmWhitespace: true

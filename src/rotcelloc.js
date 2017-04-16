@@ -1598,6 +1598,8 @@
                     });
                     $('body').removeClass('loading');
             });
+
+            $('#collResultTarget').text(this.translate('Loading collection...'));
         }
         /*
          * Downloads and prepares the dataset for the collection on the current page
