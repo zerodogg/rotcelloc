@@ -1864,7 +1864,14 @@ class gameCollection extends collectionType
             let genres = [];
             if(collItem.genres)
             {
-                genres = collItem.genres.split(/,s\*/);
+                if(Array.isArray(collItem.genres))
+                {
+                    genres = collItem.genres;
+                }
+                else
+                {
+                    genres = collItem.genres.split(/,s\*/);
+                }
             }
             else if(meta.steamGenres)
             {
