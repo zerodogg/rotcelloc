@@ -1396,18 +1396,6 @@
                 ret.hit = true;
                 ret.scoreMod = 9;
             }
-            else if(collectionEntry.note && collectionEntry.note.toLowerCase().indexOf(text) !== -1)
-            {
-                ret.hit = true;
-            }
-            else if(collectionEntry.language && collectionEntry.language.toLowerCase().indexOf(text) !== -1)
-            {
-                ret.hit = true;
-            }
-            else if(collectionEntry.publisher && collectionEntry.publisher.toLowerCase().indexOf(text) !== -1)
-            {
-                ret.hit = true;
-            }
             else if(collectionEntry.actors && collectionEntry.actors.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
@@ -1452,6 +1440,18 @@
             {
                 ret.hit         = true;
                 ret.scoreMod = 2;
+            }
+            else if(collectionEntry.note && collectionEntry.note.toLowerCase().indexOf(text) !== -1)
+            {
+                ret.hit = true;
+            }
+            else if(collectionEntry.language && collectionEntry.language.toLowerCase().indexOf(text) !== -1)
+            {
+                ret.hit = true;
+            }
+            else if(collectionEntry.publisher && collectionEntry.publisher.toLowerCase().indexOf(text) !== -1)
+            {
+                ret.hit = true;
             }
             return ret;
         }
