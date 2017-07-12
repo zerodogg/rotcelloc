@@ -1384,14 +1384,17 @@
             if(collectionEntry.title.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
+                ret.scoreMod = 9;
             }
             else if (collectionEntry.origTitle && collectionEntry.origTitle.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
+                ret.scoreMod = 9;
             }
             else if (collectionEntry.altTitle && collectionEntry.altTitle.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
+                ret.scoreMod = 9;
             }
             else if(collectionEntry.note && collectionEntry.note.toLowerCase().indexOf(text) !== -1)
             {
