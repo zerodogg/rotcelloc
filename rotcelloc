@@ -3342,6 +3342,7 @@ const webappGen = {
         let babelified, uglified;
         try
         {
+            printv(5,'Transforming with babel...');
             babelified = babel.transform(fs.readFileSync(helper.resolvePath('src/rotcelloc.js')),
                 {
                     'babelrc':false,
@@ -3358,6 +3359,7 @@ const webappGen = {
         }
         try
         {
+            printv(5,'Minifying with UglifyJS...');
             uglified = UglifyJS.minify({ 'rotcelloc.js':babelified.code},{
                     warnings: true,
                     inSourceMap: babelified.map,
@@ -3372,10 +3374,12 @@ const webappGen = {
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js'),uglified.code);
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js.map'),uglified.map);
         process.env.RUBYOPT = '-W0';
+        printv(5,'Compiling CSS with sass...');
         child_process.execFileSync('sass',[ '--scss','--sourcemap=inline','--style','compressed','--quiet',helper.resolvePath('src/style.css.scss'),helper.resolveOutPath('out/style.css') ]);
 
         try
         {
+            printv(5,'Writing CCS archive...');
             core.writeCCS();
         }
         catch(e)
