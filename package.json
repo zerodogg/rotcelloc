@@ -20,7 +20,7 @@
     "movie-art": "https://github.com/lacymorrow/movie-art#8a9904ef80a0b1fee4ad47bd08df7f0961296917",
     "node-isbn": "^1.2.0",
     "po2json": "^0.4.5",
-    "uglify-js": "^2.8.16",
+    "uglify-js": "^3.0.24",
     "wait.for": "^0.6.6",
     "xml2json": "^0.11.0"
   },
