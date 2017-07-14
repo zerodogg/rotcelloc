@@ -395,7 +395,11 @@ class rotcellocCache
                 for(const entry in result)
                 {
                     const data = result[entry];
-                    if(data.name && data.name.toLowerCase().indexOf(byvalue) !== -1)
+                    if(data == null)
+                    {
+                        delete result[entry];
+                    }
+                    else if(data.name && data.name.toLowerCase().indexOf(byvalue) !== -1)
                     {
                         console.log(type+': removed "'+entry+'"');
                         delete result[entry];
