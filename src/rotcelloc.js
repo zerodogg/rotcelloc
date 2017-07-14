@@ -617,6 +617,7 @@
             }
             if(text)
             {
+                query.rawText = text;
                 query.text = text.toLowerCase();
             }
             if(order)
@@ -1376,6 +1377,48 @@
             return ret;
         }
 
+        scoreTextMatch(inString, searchTextLower, searchText, baseMod)
+        {
+            let debug = false;
+            if(inString == 'Super' || inString == 'Surf\'s up')
+            {
+                debug = true;
+            }
+            let scoreMod = baseMod;
+            // First, see if casing matches, if it does, grant 2 bonus points
+            if (inString.indexOf(searchText) !== -1)
+            {
+                scoreMod += 2;
+            }
+            /*
+             * Next, split both strings by non-words, and then check to see if
+             * there are full string matches, or "start of string" matches
+             * in each of the arrays, and grant points accordingly.
+             * This is done case insensitively.
+             */
+            let splitInString = inString.toLowerCase().split(/\W+/);
+            let splitSearchText = searchTextLower.split(/\W+/);
+            for(const textEntry of splitSearchText)
+            {
+                for(const stringEntry of splitInString)
+                {
+                    if(stringEntry == textEntry)
+                    {
+                        scoreMod += 3;
+                    }
+                    else if (stringEntry.indexOf(textEntry) === 0)
+                    {
+                        scoreMod += 2;
+                    }
+                }
+            }
+            // Finally, apply a tiny penalty depending on the length of
+            // the inString
+            scoreMod -= inString.length/100;
+
+            return scoreMod;
+        }
+
         /*
          * Performs free-text searches
          */
@@ -1385,47 +1428,47 @@
             if(collectionEntry.title.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
-                ret.scoreMod = 9;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.title,text,rawQuery.rawText,9);
             }
             else if (collectionEntry.origTitle && collectionEntry.origTitle.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
-                ret.scoreMod = 9;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.origTitle,text,rawQuery.rawText,9);
             }
             else if (collectionEntry.altTitle && collectionEntry.altTitle.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit = true;
-                ret.scoreMod = 9;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.altTitle,text,rawQuery.rawText,9);
             }
             else if(collectionEntry.actors && collectionEntry.actors.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
-                ret.scoreMod = 8;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.actors,text,rawQuery.rawText,8);
             }
             else if(collectionEntry.writer && collectionEntry.writer.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
-                ret.scoreMod = 8;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.writer,text,rawQuery.rawText,8);
             }
             else if(collectionEntry.author && collectionEntry.author.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
-                ret.scoreMod = 8;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.author,text,rawQuery.rawText,8);
             }
             else if(collectionEntry.director && collectionEntry.director.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
-                ret.scoreMod = 8;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.director,text,rawQuery.rawText,8);
             }
             else if(collectionEntry.developer && collectionEntry.developer.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
-                ret.scoreMod = 8;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.developer,text,rawQuery.rawText,8);
             }
             else if(collectionEntry.genre && collectionEntry.genre.toLowerCase().indexOf(text) !== -1)
             {
                 ret.hit         = true;
-                ret.scoreMod = 7;
+                ret.scoreMod = this.scoreTextMatch(collectionEntry.genre,text,rawQuery.rawText,7);
             }
             else if(collectionEntry.year && collectionEntry.year === text)
             {
