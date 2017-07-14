@@ -3362,9 +3362,10 @@ const webappGen = {
             printv(5,'Minifying with UglifyJS...');
             uglified = UglifyJS.minify({ 'rotcelloc.js':babelified.code},{
                     warnings: true,
-                    inSourceMap: babelified.map,
-                    fromString: true,
-                    outSourceMap: 'rotcelloc.js.map',
+                    sourceMap: {
+                        content: babelified.map,
+                        url: 'rotcelloc.js.map',
+                    },
                 });
         }
         catch(e)
