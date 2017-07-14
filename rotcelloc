@@ -3367,7 +3367,7 @@ const webappGen = {
                         url: 'rotcelloc.js.map',
                     },
                 });
-            if (result.error) throw result.error;
+            if (uglified.error) throw uglified.error;
         }
         catch(e)
         {
