@@ -1168,7 +1168,7 @@
          */
         search(query)
         {
-            const results = [];
+            let results = [];
             if(_.isEqual(query,this.prevQuery))
             {
                 return;
@@ -1200,7 +1200,7 @@
                 collectionEntry.searchScore = resultMeta.score;
                 results.push(collectionEntry);
             }
-            this.sortResults(results,query.order,query);
+            results = this.sortResults(results,query.order,query);
             return results;
         }
 
@@ -1341,6 +1341,7 @@
                         return a.title.localeCompare(b.title);
                 });
             }
+            return results;
         }
 
         /*
