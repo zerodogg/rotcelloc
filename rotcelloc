@@ -3367,10 +3367,15 @@ const webappGen = {
                         url: 'rotcelloc.js.map',
                     },
                 });
+            if (result.error) throw result.error;
         }
         catch(e)
         {
             throw('Failed to uglify rotcelloc.js: '+e.message);
+        }
+        if(uglified.code == null || uglified.map == null)
+        {
+            throw('Failed to uglify rotcelloc.js: uglifyjs returned no code and/or map');
         }
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js'),uglified.code);
         fs.writeFileSync(helper.resolveOutPath('out/rotcelloc.js.map'),uglified.map);
