@@ -36,8 +36,6 @@ try
         parse         = require('csv').parse,
         // Needed to perform filesystem operations
         fs            = require('fs'),
-        // Used to retrieve movie art
-        movieArt      = require('movie-art'),
         // Used to make async stuff be synchronous for command-line use
         wait          = require('wait.for'),
         // Perform HTTP requests
@@ -1126,6 +1124,11 @@ class collectionType
                 regex: / & /
             },
             {
+                index: ' and ',
+                replacement: ' & ',
+                regex: / and /
+            },
+            {
                 index: ' 1:',
                 replacement: ' I:',
                 regex: / 1:/
@@ -1232,8 +1235,12 @@ class movieCollection extends collectionType
             rating: true,
             disneyClassicNo: true,
             imdbID: true,
+            tmdbID: true,
+            tmdbVotes: true,
+            tmdbRating: true,
             watched: true,
         };
+        this.metadataFetcher = new movieTVMetadata(this);
     }
 
     // Adds a poster to a collection entry
@@ -1252,19 +1259,12 @@ class movieCollection extends collectionType
     getPoster (entry)
     {
         let url;
-        let mTitle = entry.title;
         let source;
         let posterMeta = {};
         const posterCkey = 'poster:'+getCacheID(entry);
         if(cache.exists('meta',posterCkey))
         {
             posterMeta = cache.get('meta',posterCkey);
-        }
-        // origTitle is usually much more consistent for fetching posters, so use
-        // that if available
-        if(entry.origTitle)
-        {
-            mTitle = entry.origTitle;
         }
         // Support custom covers
         if(entry.customCover)
@@ -1275,17 +1275,9 @@ class movieCollection extends collectionType
         }
         else
         {
-            // Use OMDB if we can
-            if(!this.isValidCoverURL(url) && entry.imdbID && entry.poster)
+            if(!this.isValidCoverURL(url))
             {
                 url = entry.poster;
-                source = 'OMDB';
-            }
-            // Fall back to movieArt if OMDB can't provide data
-            if (!this.isValidCoverURL(url))
-            {
-                url = this.getPosterFromMovieArt(entry,mTitle);
-                source = 'movieArt';
             }
             // Give up
             if (!this.isValidCoverURL(url))
@@ -1296,142 +1288,7 @@ class movieCollection extends collectionType
         }
         // Download poster
         let fname = this.downloadPoster(url,entry);
-        // Now, if the poster was from OMDB we want to make sure that it is a good one.
-        // Sometimes OMDB has low-res posters, and in these cases movieArt will often
-        // return a nicer poster. Thus we try to fetch one from movieArt and see if that
-        // is better. We only do this once.
-        if(fname !== undefined && source === 'OMDB' && !posterMeta.triedMovieArt)
-        {
-            // This is the path the current poster is saved to
-            const fullPath = helper.resolveOutPath('.rotcellocdata/images/orig/'+fname);
-            // The dimensions of the current poster
-            const omdbFsize = this.imageSize(fullPath);
-            // Only try movieArt if the current poster is bad
-            if(omdbFsize.width < 270 || omdbFsize.height < 380)
-            {
-                printv(1,'Poster for "'+mTitle+'" was of poor quality, trying to find better poster with movieArt...');
-                // Try to get a poster from movieArt
-                const movieArtUrl = this.getPosterFromMovieArt(entry,mTitle);
-                // If movieArt had a poster, try to process that
-                if (movieArtUrl !== undefined)
-                {
-                    const origFname = fname;
-                    let useMovieArt = false;
-                    let movieArtFullPath;
-                    // Rename the old poster so that if it turns out that movieArt isn't better
-                    // we don't bother re-downloading the original
-                    fs.renameSync(fullPath,fullPath+'~');
-                    // Download the movieArt poster
-                    fname = this.downloadPoster(movieArtUrl,entry);
-                    // If we got a movieArt poster
-                    if(fname !== undefined)
-                    {
-                        movieArtFullPath = helper.resolveOutPath('.rotcellocdata/images/orig/'+fname);
-                        const movieArtSize = this.imageSize(movieArtFullPath);
-                        // Check if it is better than the OMDB one, if it is, we use it
-                        if( (movieArtSize.width > omdbFsize.width) || (movieArtSize.height > omdbFsize.height) )
-                        {
-                            useMovieArt = true;
-                        }
-                    }
-                    // If we were told to use movieArt, output a message about it and
-                    // delete the old OMDB poster
-                    if(useMovieArt)
-                    {
-                        printv(2,'Found a better poster using movieArt, using that');
-                        fs.unlinkSync(fullPath+'~');
-                    }
-                    // If we're not using movieArt, move the previous poster back into
-                    // place and remove the one from movieArt
-                    else
-                    {
-                        printv(2,'movieArt did not return a better poster, using the previous one');
-                        fs.unlinkSync(movieArtFullPath);
-                        fs.renameSync(fullPath+'~',fullPath);
-                        fname = origFname;
-                    }
-                }
-            }
-            // Store that we've tried movieArt in the cache so we don't try it
-            // again later
-            posterMeta.triedMovieArt = true;
-            cache.set(posterMeta,'meta',posterCkey);
-        }
         return fname;
-    }
-
-    getPosterFromMovieArt(entry,mTitle)
-    {
-        let url;
-        let type = entry.type;
-        // Remap type so that movieArt can handle it
-        if(type === 'movies')
-        {
-            type = 'movie';
-        }
-        else if(type === 'series')
-        {
-            type = 'tv';
-        }
-        // Try to fetch with a year value first
-        if(!this.isValidCoverURL(url) && entry.year)
-        {
-            url = this.submitMovieArtRequest(mTitle,entry.year,type);
-        }
-        // Fall back to only using the title
-        if(!this.isValidCoverURL(url))
-        {
-            url = this.submitMovieArtRequest(mTitle,null,type);
-        }
-        if(!this.isValidCoverURL(url))
-        {
-            // Try to see if we can find something if we switch the types
-            // around
-            if(type === 'tv')
-            {
-                type = 'movie';
-            }
-            else
-            {
-                type = 'tv';
-            }
-            if(entry.year && !url)
-            {
-                url = this.submitMovieArtRequest(mTitle,entry.year,type);
-            }
-            if(!this.isValidCoverURL(url))
-            {
-                url = this.submitMovieArtRequest(mTitle,null,type);
-            }
-            if(!this.isValidCoverURL(url) && entry.poster)
-            {
-                url = entry.poster;
-            }
-        }
-        return url;
-    }
-
-    // Submits a movieArt request
-    submitMovieArtRequest (mTitle,year,type)
-    {
-        let url;
-        const identifier = 'movieArt::'+mTitle+','+year+','+type;
-        const cached = cache.get('externalAPI',identifier);
-        if(cached !== undefined)
-        {
-            return cached;
-        }
-        printv(5,'Submitting request to movieArt: '+mTitle+','+year+','+type);
-        try
-        {
-            url = wait.for(movieArt,mTitle,year,null,type);
-        }
-        catch(e)
-        {
-            // Ignore errors, url will be undefined which is fine
-        }
-        cache.set(url,'externalAPI',identifier);
-        return url;
     }
 
     // Adds metadata to an entry
@@ -1453,73 +1310,17 @@ class movieCollection extends collectionType
         const meta = this.retrieveMetadataFor(collectionEntry);
         if(meta !== null && meta !== undefined)
         {
-            const genericRemapping = {
-                imdbID: 'imdbID',
-                Actors: 'actors',
-                Metascore: 'metascore',
-                imdbRating: 'imdbRating',
-                imdbVotes: 'imdbVotes',
-                Plot: 'plot',
-                Director:'director',
-                Year: 'year',
-                // This *will* get overridden by addPosterToItem(). It is used
-                // so that we can provide a poster URL hint to getPoster().
-                Poster: 'poster',
-            };
-            for(const fromField in genericRemapping)
+            const copyFields = [ 'imdbID','plot', 'actors','director','producer','writer','year', 'poster', 'tmdbVotes', 'tmdbRating', 'tmdbID' ];
+            for(const field of copyFields)
             {
-                const toField = genericRemapping[fromField];
-                if(collectionEntry[fromField] === undefined && this.isValidOMDBField(meta[fromField]))
+                if(collectionEntry[field] === undefined && meta[field] !== undefined)
                 {
-                    collectionEntry[toField] = meta[fromField];
+                    collectionEntry[field] = meta[field];
                 }
             }
-            if(this.isValidOMDBField(meta.Writer))
+            if(!collectionEntry.genre && meta.genre && this._curSource.autoGenre)
             {
-                // Translators: used to translate substrings in the «writer» metadata
-                collectionEntry.writer = meta.Writer.replace(/screenplay/g,i18n.translate('screenplay'))
-                // Translators: used to translate substrings in the «writer» metadata
-                .replace(/(motion picture|movie)/g,i18n.translate('motion picture'))
-                // Translators: used to translate substrings in the «writer» metadata
-                .replace(/comic( book)?/g,i18n.translate('comic book'))
-                // Translators: used to translate substrings in the «writer» metadata
-                .replace(/story/g,i18n.translate('story'))
-                // Translators: used to translate substrings in the «writer» metadata
-                .replace(/novel/g,i18n.translate('novel'))
-                // Translators: used to translate substrings in the «writer» metadata
-                .replace(/characters/g,i18n.translate('characters'))
-                // Translators: used to translate substrings in the «writer» metadata
-                .replace(/book/g,i18n.translate('book'));
-            }
-            if (this._curSource.autoGenre &&!collectionEntry.genre && this.isValidOMDBField(meta.Genre))
-            {
-                collectionEntry.genre = meta.Genre;
-            }
-            if(this.isValidOMDBField(meta.Runtime))
-            {
-                let runtime = meta.Runtime;
-                if (/ min/.test(runtime))
-                {
-                    runtime                    = runtime.replace(/\s+min/,'');
-                    collectionEntry.runtimeMin = runtime;
-                    const floating               = parseInt(runtime)/60;
-                    if(floating > 0)
-                    {
-                        const hours   = parseInt(floating);
-                        const minutes = parseInt((floating-hours)*60);
-                        if(hours > 0)
-                        {
-                            // Translators: Results in [number]h [number]min (ie. X hours and X minutes)
-                            runtime = util.format(i18n.translate('%dh %dmin'),hours,minutes);
-                        }
-                        else
-                        {
-                            // Translators: Results in [number]min (ie. X minutes)
-                            runtime = util.format(i18n.translate('%dmin'),minutes);
-                        }
-                    }
-                }
-                collectionEntry.runtime = runtime;
+                collectionEntry.genre = meta.genre;
             }
         }
         if(collectionEntry.genre)
@@ -1549,6 +1350,10 @@ class movieCollection extends collectionType
                 }
             }
         }
+        else if(collectionEntry.tmdbRating)
+        {
+            collectionEntry.normalizedRating = parseInt(collectionEntry.tmdbRating*10);
+        }
         else if(collectionEntry.imdbRating)
         {
             collectionEntry.normalizedRating = parseInt(collectionEntry.imdbRating*10);
@@ -1571,16 +1376,21 @@ class movieCollection extends collectionType
         const ckey = getCacheID(entry);
         if(cache.existsNotMiss('meta',ckey))
         {
-            return cache.get('meta',ckey);
+            const cached = cache.get('meta',ckey);
+            if(cached && cached.Response == 'True')
+            {
+                return this.parseLegacyOMDBData(cached);
+            }
+            return cached;
         }
-        const data = this.fetchFromOMDB(entry);
-        if(data && data.Response === "False")
+        const data = this.metadataFetcher.getMetadataFor(entry);
+        if(data == null)
         {
-            printv(3,'Could not retrieve data from OMDB on '+ (entry.origTitle ? entry.origTitle : entry.title) );
+            printv(3,'Could not retrieve metadatadata for '+ (entry.origTitle ? entry.origTitle : entry.title) );
             cache.set(null,'meta',ckey);
             return;
         }
-        if ((entry.type === 'movies' && (!entry.year || parseInt(entry.year) === parseInt(data.Year)))|| (entry.type === 'series' || parseInt(entry.year) === parseInt(data.Year)) || (entry.imdbID && data.imdbID === entry.imdbID) )
+        if ((entry.type === 'movies' && (!entry.year || parseInt(entry.year) === parseInt(data.year)))|| (entry.type === 'series' || parseInt(entry.year) === parseInt(data.year)) || (entry.imdbID && data.imdbID === entry.imdbID) )
         {
             printv(1,'Fetched meta info for '+entry.title);
             cache.set(data,'meta',ckey);
@@ -1588,16 +1398,17 @@ class movieCollection extends collectionType
         }
         else
         {
-            if(entry.year && data.Year !== entry.year)
+            if(entry.year && data.year !== entry.year)
             {
-                const diff = entry.year - data.Year;
+                const diff = entry.year - data.year;
                 if (diff <= 2 && diff >= -2)
                 {
-                    printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the OMDB entry claims '+data.Year+' (very similar): ignoring data from server');
+                    printv(1,'Warning: '+entry.title+' is marked as released in '+entry.year+' but the metadata entry claims '+data.year);
+                    return data;
                 }
                 else
                 {
-                    printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the OMDB entry claims '+data.Year+': ignoring data from server');
+                    printv(1,'Discrepancy: '+entry.title+' is marked as released in '+entry.year+' but the metadata entry claims '+data.year+': ignoring data from server');
                 }
             }
             cache.set(null,'meta',ckey);
@@ -1606,116 +1417,380 @@ class movieCollection extends collectionType
     }
 
     /*
-     * Downloads data from OMDB and attempts fuzzier searches if no data is
-     * found
+     * Backwards-compatibility support for OMDB data. Converts OMDB metadata
+     * to the format returned by movieTVMetadata
      */
-    fetchFromOMDB(entry)
+    parseLegacyOMDBData(meta)
     {
-        let data;
-        try
+        const result = {}
+        const genericRemapping = {
+            imdbID: 'imdbID',
+            Actors: 'actors',
+            Metascore: 'metascore',
+            imdbRating: 'imdbRating',
+            imdbVotes: 'imdbVotes',
+            Plot: 'plot',
+            Director:'director',
+            Year: 'year',
+            Poster: 'poster',
+            'Genre':'genre'
+        };
+        for(const fromField in genericRemapping)
         {
-            data = wait.for(this.performOMDBRequest,entry);
+            const toField = genericRemapping[fromField];
+            if(this.isValidOMDBField(meta[fromField]))
+            {
+                result[toField] = meta[fromField];
+            }
         }
-        catch(e)
+        if(this.isValidOMDBField(meta.Writer))
         {
-            data = null;
+            // Translators: used to translate substrings in the «writer» metadata
+            result.writer = meta.Writer.replace(/screenplay/g,i18n.translate('screenplay'))
+            // Translators: used to translate substrings in the «writer» metadata
+            .replace(/(motion picture|movie)/g,i18n.translate('motion picture'))
+            // Translators: used to translate substrings in the «writer» metadata
+            .replace(/comic( book)?/g,i18n.translate('comic book'))
+            // Translators: used to translate substrings in the «writer» metadata
+            .replace(/story/g,i18n.translate('story'))
+            // Translators: used to translate substrings in the «writer» metadata
+            .replace(/novel/g,i18n.translate('novel'))
+            // Translators: used to translate substrings in the «writer» metadata
+            .replace(/characters/g,i18n.translate('characters'))
+            // Translators: used to translate substrings in the «writer» metadata
+            .replace(/book/g,i18n.translate('book'));
         }
-        if(data && data.Response !== "False")
+        if(this.isValidOMDBField(meta.Runtime))
         {
-            return data;
+            let runtime = meta.Runtime;
+            if (/ min/.test(runtime))
+            {
+                runtime                    = runtime.replace(/\s+min/,'');
+                result.runtime = runtime;
+            }
         }
-        if(entry.imdbID)
-        {
-            // Try a request without imdbID
-            data = wait.for(this.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, year: entry.year, type: entry.type });
-        }
-        if(data && data.Response !== "False")
-        {
-            return data;
-        }
-        if(entry.origTitle)
-        {
-            // Try a request without origTitle
-            data = wait.for(this.performOMDBRequest,{ title: entry.title, year: entry.year, type: entry.type });
-        }
-        if(data && data.Response !== "False")
-        {
-            return data;
-        }
-        if(entry.altTitle)
-        {
-            data = wait.for(this.performOMDBRequest,{ title: entry.altTitle, type: entry.type });
-        }
-        if(data && data.Response !== "False")
-        {
-            return data;
-        }
-        if(entry.year)
-        {
-            data = wait.for(this.performOMDBRequest,{ title: entry.origTitle ? entry.origTitle : entry.title, type: entry.type });
-        }
-        if(data && data.Response !== "False")
-        {
-            return data;
-        }
-        if(entry.type)
-        {
-            const entryWithoutType = _.cloneDeep(entry);
-            delete entryWithoutType.type;
-            return this.fetchFromOMDB(entryWithoutType);
-        }
-
-        const fixedTitle = this.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
-        if(fixedTitle)
-        {
-            data = wait.for(this.performOMDBRequest,{ title: fixedTitle, year: entry.year });
-        }
-
-        return data;
+        return result;
     }
 
     /*
-     * Constructs and submits a single OMDB request
+     * Checks if a field from OMDB is valid (they can be undefined or the
+     * string 'N/A' if invalid)
      */
-    performOMDBRequest(titleData,cb)
+    isValidOMDBField (content)
     {
-        const url          = 'http://www.omdbapi.com',
-            requestQuery = {t: titleData.title, plot: 'short', r: 'json'};
-        if(titleData.imdbID)
+        if(content !== undefined && content !== 'N/A')
         {
-            delete requestQuery.t;
-            requestQuery.i = titleData.imdbID;
+            return true;
         }
-        else
+        return false;
+    }
+}
+
+/*
+ * This class implements movie and TV APIs
+ */
+class movieTVMetadata
+{
+    constructor(collObj)
+    {
+        this.collObj = collObj;
+    }
+
+    getMetadataFor(entry)
+    {
+        return this._fetchTMDBMetaFor(entry);
+    }
+
+    _fetchTMDBMetaFor(entry)
+    {
+        const tmdbEntry = this._findEntryOnTMDB(entry);
+        if (!tmdbEntry)
         {
-            if(titleData.origTitle)
-            {
-                requestQuery.t = titleData.origTitle;
-            }
-            if(titleData.year)
-            {
-                requestQuery.y = parseInt(titleData.year);
-            }
-            if(titleData.type === 'series')
-            {
-                requestQuery.type = 'series';
-            }
-        }
-        if( (requestQuery.t === null || requestQuery.t === undefined) && (requestQuery.i === null || requestQuery.i === undefined))
-        {
-            return cb('t+i are null');
-        }
-        const serialish = url+JSON.stringify(requestQuery);
-        const cached = cache.get('externalAPI',serialish);
-        if(cached !== undefined)
-        {
-            cb(null,_.clone(cached,true));
             return;
         }
-        printv(4,'Performing OMDB request: '+ (requestQuery.t ? requestQuery.t : requestQuery.i ));
-        printv(8,'Request key: '+serialish);
-        httpreq.get(url, {
-                parameters: requestQuery
+
+        const meta = this._fetchTMDBEntryMeta(tmdbEntry.id,entry);
+        const actors = this._fetchTMDBEntryActors(tmdbEntry.id,entry);
+        return this._finalizeTMDBEntry(meta,actors,tmdbEntry);
+    }
+
+    _findEntryOnTMDB(entry)
+    {
+        let data;
+        if(entry.imdbID)
+        {
+            data = this._findTMDBbyIMDBid(entry.imdbID);
+            if(data != null)
+            {
+                return data;
+            }
+        }
+        if(entry.origTitle)
+        {
+            data = this._trySingleTMDBSearch({query: entry.origTitle, primary_release_year: entry.year },entry);
+            if(data != null)
+            {
+                return data;
+            }
+        }
+        if(entry.title)
+        {
+            data = this._trySingleTMDBSearch({query: entry.title, primary_release_year: entry.year },entry);
+            if(data != null)
+            {
+                return data;
+            }
+        }
+        if(entry.altTitle)
+        {
+            data = this._trySingleTMDBSearch({query: entry.altTitle, primary_release_year: entry.year },entry);
+            if(data != null)
+            {
+                return data;
+            }
+        }
+
+        if(entry.year)
+        {
+            data = this._trySingleTMDBSearch({query: entry.origTitle ? entry.origTitle : entry.title},entry);
+            if(data != null)
+            {
+                return data;
+            }
+        }
+
+        const fixedTitle = this.collObj.attemptGenericReplacements(entry.origTitle ? entry.origTitle : entry.title);
+        if(fixedTitle)
+        {
+            data = this._trySingleTMDBSearch({query: fixedTitle, primary_release_year: entry.year},entry);
+            if(data != null)
+            {
+                return data;
+            }
+        }
+
+       return;
+    }
+
+    _findTMDBbyIMDBid(imdbID)
+    {
+        const response = this._performTMDBRequestSync('/find/'+imdbID,{external_source:'imdb_id'});
+        if(response.movie_results && response.movie_results[0])
+        {
+            return response.movie_results[0];
+        }
+    }
+
+    _trySingleTMDBSearch(search,entry,page,returnMaybe)
+    {
+        if(page === undefined)
+        {
+            page = 1;
+        }
+        search.page = page;
+        const type = this._getTMDBtype(entry);
+        const result = this._performTMDBRequestSync('/search/'+type,search);
+        let maybeCorrect;
+        const searchMatch = search.query.toLowerCase();
+        const filteredSearchMatch = searchMatch.replace(/\W/,'');
+        const titleFields = ['title','original_title'];
+        if(result.results && result.total_results > 0)
+        {
+            for(const entry of result.results)
+            {
+                let matched = false;
+                for(const tryTitle of titleFields)
+                {
+                    if(entry[tryTitle] !== undefined && entry[tryTitle].toLowerCase() == searchMatch)
+                    {
+                        matched = true;
+                    }
+                }
+                if(matched)
+                {
+                    if(maybeCorrect === undefined)
+                    {
+                        maybeCorrect = entry;
+                    }
+                    if(search.year)
+                    {
+                        if(entry.release_date.replace(/^(\d+)-.*/,'$1') == search.year)
+                        {
+                            return entry;
+                        }
+                    }
+                }
+                else if(maybeCorrect === undefined)
+                {
+                    for(const tryTitle of titleFields)
+                    {
+                        if(entry[tryTitle] !== undefined && entry[tryTitle].toLowerCase().indexOf(searchMatch) != -1)
+                        {
+                            maybeCorrect = entry;
+                        }
+                        else if(entry[tryTitle] !== undefined && entry[tryTitle].toLowerCase() == filteredSearchMatch)
+                        {
+                            maybeCorrect = entry;
+                        }
+                    }
+                }
+            }
+        }
+        if(result.total_pages > page && page < 3)
+        {
+            const pageResult = this._trySingleTMDBSearch(search,entry, page+1,false);
+            if(pageResult !== undefined)
+            {
+                return pageResult;
+            }
+        }
+        if(returnMaybe !== false)
+        {
+            if(maybeCorrect !== undefined)
+            {
+                return maybeCorrect;
+            }
+            else
+            {
+                return result.results[0];
+            }
+        }
+    }
+
+    _fetchTMDBEntryMeta(tmdbID,entry)
+    {
+        const type = this._getTMDBtype(entry);
+        return this._performTMDBRequestSync('/'+type+'/'+tmdbID);
+    }
+
+    _getTMDBtype(entry)
+    {
+        return entry.type === 'series' ? 'tv' : 'movie';
+    }
+
+    _fetchTMDBEntryActors(tmdbID,entry)
+    {
+        const type = this._getTMDBtype(entry);
+        return this._performTMDBRequestSync('/'+type+'/'+tmdbID+'/credits');
+    }
+
+    _finalizeTMDBEntry(meta,actors,searchEntry)
+    {
+        const merged = _.extend({},meta,actors,searchEntry);
+        const results = {};
+
+        // Basic field copying or remapping
+        const basicRemap = {
+            'overview':'plot',
+            'imdb_id':'imdbID',
+            'id':'tmdbID',
+            'runtime':'runtime',
+            'vote_average':'tmdbRating',
+            'vote_count':'tmdbVotes'
+        };
+
+        for(const fromField in basicRemap)
+        {
+            const toField = basicRemap[fromField];
+            results[toField] = merged[fromField];
+        }
+
+        if(merged.poster_path)
+        {
+            // FIXME: Should fetch from /configuration to get something to
+            // construct the path from
+            results.poster = 'http://image.tmdb.org/t/p/original'+merged.poster_path;
+        }
+
+        if(merged.release_date)
+        {
+            results.year = merged.release_date.replace(/^(\d+)-.*/,'$1');
+        }
+
+        if(merged.cast)
+        {
+            let people = [];
+            for(const person of merged.cast)
+            {
+                people.push(person.name+' (as '+person.character+')');
+                if(people.length > 9)
+                {
+                    break;
+                }
+            }
+
+            results.actors = people.join(', ');
+        }
+
+        if(merged.crew)
+        {
+            let directors = [];
+            let producers = [];
+            let writers = [];
+            for(const person of merged.crew)
+            {
+                if(person.job == 'Director')
+                {
+                    directors.push(person.name);
+                }
+                if(person.job == 'Producer')
+                {
+                    producers.push(person.name);
+                }
+                if(person.department == 'Writing')
+                {
+                    writers.push(person.name+' ('+person.job+')');
+                }
+            }
+            if(directors.length)
+            {
+                results.director = directors.join(', ');
+            }
+            if(producers.length)
+            {
+                results.producer = producers.join(', ');
+            }
+            if(writers.length)
+            {
+                results.writer = writers.join(', ');
+            }
+        }
+        if(merged.genres)
+        {
+            let genres = [];
+            for(const genre of merged.genres)
+            {
+                genres.push(genre.name);
+            }
+            results.genre = genres.join(', ');
+        }
+
+        return results;
+    }
+
+    _performTMDBRequestSync(url,params)
+    {
+        let data = wait.for(this._performTMDBRequest,url,params);
+        return data;
+    }
+
+    _performTMDBRequest(url, params,cb)
+    {
+        url = 'https://api.themoviedb.org/3'+url;
+        if(params === undefined)
+        {
+            params = {};
+        }
+        params = _.extend({},params);
+        const serialish = url+JSON.stringify(params);
+        if(cache.exists('externalAPI',serialish))
+        {
+            cb(null,cache.get('externalAPI',serialish));
+            return;
+        }
+        params.api_key = '80a1fb000afc84db4fe72fd9f812c567';
+        httpreq.get(url,{
+                parameters: params
             },(err,res) =>
             {
                 if (!err)
@@ -1731,21 +1806,7 @@ class movieCollection extends collectionType
                     }
                 }
                 cb(err,res);
-            }
-        );
-    }
-
-    /*
-     * Checks if a field from OMDB is valid (they can be undefined or the
-     * string 'N/A' if invalid)
-     */
-    isValidOMDBField (content)
-    {
-        if(content !== undefined && content !== 'N/A')
-        {
-            return true;
-        }
-        return false;
+        });
     }
 }
 

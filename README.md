@@ -175,8 +175,8 @@ This field is completely optional.
 
 **imdbID** - the IMDB id for this item. This is to help `rotcelloc` find metadata
 for the item, or force it to use a certain entry if it detects the wrong one.
-As we use the OMDB, if this is omitted we will do what we can to autodetect it
-using OMDB (which usually works very well).
+As we use the TMDB, if this is omitted we will do what we can to autodetect it
+using TMDB (which usually works very well).
 
 **actors** - a list of actors for the item, will be extracted from metadata if
 omitted
@@ -213,11 +213,8 @@ possible without them.
 
 ### Metadata sources
 
-[OMDb API](http://omdbapi.com/) - The Open Movie Database. Used for all movie
-and TV series metadata and fallback movie and TV series posters.
-
-[The Movie Database](https://www.themoviedb.org/). Used for movie and TV series
-posters.
+[TMDB](http://omdbapi.com/) - The Movie Database. Used for all movie
+and TV series metadata and posters.
 
 [TheGamesDB.net](http://thegamesdb.net/). Used for game metadata and posters.
 
@@ -240,9 +237,6 @@ libraries to synchronous
 [commander](https://www.npmjs.com/package/commander) - used to parse
 command-line parameters
 
-[movie-art](https://www.npmjs.com/package/movie-art) - used to retrieve posters
-from TMDb
-
 [ejs](http://ejs.co/) - used for templating
 
 [UglifyJS](https://github.com/mishoo/UglifyJS) - used to minify JS
@@ -261,7 +255,7 @@ Thanks to Lisbeth Helen Storebø and Helene Hemstad for ongoing feedback and
 testing.
 
 ## License
-Copyright &copy; Eskild Hustvedt 2015
+Copyright &copy; Eskild Hustvedt 2015-2017
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

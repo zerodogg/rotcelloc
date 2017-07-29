@@ -281,7 +281,7 @@
                 }
                 this.renderSingleMetadata($target,this.translate('Group'),value,'group',true);
             }
-            const genericEntriesOrder = [ 'language','rating', 'metascore','imdbRating','isbn','format','publisher' ],
+            const genericEntriesOrder = [ 'language','rating', 'metascore','imdbRating','tmdbRating','isbn','format','publisher' ],
                 genericEntries = {
                 'rating':{
                     searchable: false,
@@ -297,6 +297,14 @@
                     'renderer':(val) =>
                     {
                         return val+'/100';
+                    }
+                },
+                'tmdbRating':{
+                    searchable: false,
+                    'label':this.translate('TMDB rating'),
+                    'renderer': (val,entryData) =>
+                    {
+                        return entryData.tmdbRating+'/10 ('+entryData.tmdbVotes+' '+this.translate('votes'  )+')';
                     }
                 },
                 'imdbRating':{
@@ -391,7 +399,14 @@
                 }
                 links += '<a target="_blank" href="'+imdbURL+'">IMDB</a>';
                 links += ', ';
-                links += '<a target="_blank" href="https://www.themoviedb.org/search/'+( data.type === 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
+                if(data.tmdbID)
+                {
+                    links += '<a target="_blank" href="https://www.themoviedb.org/'+( data.type === 'series' ? 'tv' : 'movie' )+'/'+data.tmdbID+'">TheMovieDB</a>';
+                }
+                else
+                {
+                    links += '<a target="_blank" href="https://www.themoviedb.org/search/'+( data.type === 'series' ? 'tv' : 'movie' )+'?query='+encodeURIComponent(data.origTitle ? data.origTitle : data.title)+'">TheMovieDB</a>';
+                }
             }
             else if(data.type === 'books')
             {
