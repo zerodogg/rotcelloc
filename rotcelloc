@@ -880,7 +880,16 @@ class collectionType
                 return;
             }
             printv(4,'Downloading: '+url+' to .rotcellocdata/images/orig/'+fname);
-            const data = wait.forMethod(httpreq,'get',url, {binary: true });
+            printv(5,'Download is for '+entry.title);
+            let data;
+            try
+            {
+                data = wait.forMethod(httpreq,'get',url, {binary: true });
+            }
+            catch(e)
+            {
+                data = { statusCode: e.message };
+            };
             if(data.statusCode === 200)
             {
                 fs.writeFileSync(helper.resolveOutPath('.rotcellocdata/images/orig/'+fname),data.body);
