@@ -1383,18 +1383,40 @@ class movieCollection extends collectionType
     retrieveMetadataFor(entry)
     {
         const ckey = getCacheID(entry);
+        let legacy;
         if(cache.existsNotMiss('meta',ckey))
         {
             const cached = cache.get('meta',ckey);
             if(cached && cached.Response == 'True')
             {
-                return this.parseLegacyOMDBData(cached);
+                /*
+                 * There are cases where OMDB doesn't have a poster, but
+                 * TMDB will. In these cases we try to use the TMDB entry even
+                 * though we have *some* data from OMDB already
+                 */
+                legacy = this.parseLegacyOMDBData(cached);
+                if (legacy.poster !== null && legacy.poster !== undefined)
+                {
+                    return legacy;
+                }
+                else
+                {
+                    printv(4, 'Ignoring cached legacy OMDB data for "'+entry.title+'" because it had no poster');
+                }
             }
-            return cached;
+            else
+            {
+                return cached;
+            }
         }
         const data = this.metadataFetcher.getMetadataFor(entry);
         if(data == null)
         {
+            if(legacy)
+            {
+                printv(4,'Using OMDB entry even without a poster, because TMDB lookup failed');
+                return legacy;
+            }
             printv(3,'Could not retrieve metadatadata for '+ (entry.origTitle ? entry.origTitle : entry.title) );
             cache.set(null,'meta',ckey);
             return;
